@@ -108,14 +108,17 @@ go build ./cmd/voyage
 ## Development
 
 ```bash
-# Run tests
+# Run tests (headless mode for CI/servers without display)
+go test -tags headless -race ./...
+
+# Run tests with display (requires X11/Wayland)
 go test -race ./...
 
 # Run benchmarks
-go test -bench=. ./pkg/benchmark/...
+go test -tags headless -bench=. ./pkg/benchmark/...
 
 # Check for issues
-go vet ./...
+go vet -tags headless ./...
 
 # Validate no bundled assets
 ./scripts/validate-no-assets.sh
