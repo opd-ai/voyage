@@ -110,6 +110,17 @@ func (p *Party) LivingCount() int {
 	return count
 }
 
+// DeadCount returns the number of dead members.
+func (p *Party) DeadCount() int {
+	count := 0
+	for _, m := range p.members {
+		if !m.IsAlive {
+			count++
+		}
+	}
+	return count
+}
+
 // Capacity returns the party's maximum capacity.
 func (p *Party) Capacity() int {
 	return p.capacity
