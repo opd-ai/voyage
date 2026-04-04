@@ -515,3 +515,164 @@ func TestBackstoryVariety(t *testing.T) {
 		t.Errorf("Expected variety in backstories, got only %d unique origins", len(origins))
 	}
 }
+
+func TestStatusTracker(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	if !tracker.IsHealthy() {
+		t.Error("New tracker should be healthy")
+	}
+
+	tracker.AddEffect(StatusEffect{
+		Type:     StatusDisease,
+		Severity: 50,
+		Duration: 5,
+	})
+
+	if tracker.IsHealthy() {
+		t.Error("Tracker with disease should not be healthy")
+	}
+	if !tracker.HasEffect(StatusDisease) {
+		t.Error("Should have disease effect")
+	}
+}
+
+func TestStatusEffectStacking(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	tracker.AddEffect(StatusEffect{
+		Type:     StatusDisease,
+		Severity: 30,
+		Duration: 3,
+	})
+	tracker.AddEffect(StatusEffect{
+		Type:     StatusDisease,
+		Severity: 40,
+		Duration: 5,
+	})
+
+	effect := tracker.GetEffect(StatusDisease)
+	if effect == nil {
+		t.Fatal("Should have disease effect")
+	}
+	if effect.Severity != 70 {
+		t.Errorf("Severity = %f, want 70", effect.Severity)
+	}
+	if effect.Duration != 5 {
+		t.Errorf("Duration = %d, want 5", effect.Duration)
+	}
+}
+
+func TestStatusEffectSeverityCap(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 80, Duration: 5})
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 50, Duration: 5})
+
+	effect := tracker.GetEffect(StatusDisease)
+	if effect.Severity != 100 {
+		t.Errorf("Severity should cap at 100, got %f", effect.Severity)
+	}
+}
+
+func TestStatusModifiers(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 100, Duration: 5})
+
+	skillMod := tracker.TotalSkillModifier()
+	if skillMod >= 0 {
+		t.Error("Disease should have negative skill modifier")
+	}
+
+	healMod := tracker.TotalHealModifier()
+	if healMod >= 0 {
+		t.Error("Disease should have negative heal modifier")
+	}
+}
+
+func TestStatusAdvanceDay(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 50, Duration: 2})
+
+	expired := tracker.AdvanceDay()
+	if len(expired) != 0 {
+		t.Error("Should not expire after 1 day")
+	}
+	if !tracker.HasEffect(StatusDisease) {
+		t.Error("Should still have disease")
+	}
+
+	expired = tracker.AdvanceDay()
+	if len(expired) != 1 {
+		t.Errorf("Should have 1 expired effect, got %d", len(expired))
+	}
+	if tracker.HasEffect(StatusDisease) {
+		t.Error("Disease should have expired")
+	}
+}
+
+func TestStatusTypeName(t *testing.T) {
+	// Test standard status names
+	name := StatusTypeName(StatusDisease, engine.GenreFantasy)
+	if name != "Disease" {
+		t.Errorf("Disease name = %s, want Disease", name)
+	}
+
+	// Test genre-specific affliction names
+	for _, genre := range engine.AllGenres() {
+		name := StatusTypeName(StatusGenreAffliction, genre)
+		if name == "" {
+			t.Errorf("Genre %s should have affliction name", genre)
+		}
+	}
+}
+
+func TestGenreAfflictionNames(t *testing.T) {
+	expected := map[engine.GenreID]string{
+		engine.GenreFantasy:   "Cursed",
+		engine.GenreScifi:     "Irradiated",
+		engine.GenreHorror:    "Infected",
+		engine.GenreCyberpunk: "Glitched",
+		engine.GenrePostapoc:  "Mutated",
+	}
+
+	for genre, expectedName := range expected {
+		name := StatusTypeName(StatusGenreAffliction, genre)
+		if name != expectedName {
+			t.Errorf("Genre %s: affliction = %s, want %s", genre, name, expectedName)
+		}
+	}
+}
+
+func TestRemoveEffect(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 50, Duration: 5})
+	tracker.AddEffect(StatusEffect{Type: StatusInjury, Severity: 30, Duration: 3})
+
+	tracker.RemoveEffect(StatusDisease)
+
+	if tracker.HasEffect(StatusDisease) {
+		t.Error("Disease should be removed")
+	}
+	if !tracker.HasEffect(StatusInjury) {
+		t.Error("Injury should still exist")
+	}
+}
+
+func TestContagiousEffects(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 50, Duration: 5})
+	tracker.AddEffect(StatusEffect{Type: StatusInjury, Severity: 30, Duration: 3})
+
+	contagious := tracker.ContagiousEffects()
+	if len(contagious) != 1 {
+		t.Errorf("Should have 1 contagious effect, got %d", len(contagious))
+	}
+	if contagious[0].Type != StatusDisease {
+		t.Error("Disease should be contagious")
+	}
+}

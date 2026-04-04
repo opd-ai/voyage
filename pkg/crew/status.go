@@ -94,36 +94,36 @@ func GetStatusModifiers(st StatusType, severity float64) StatusModifiers {
 
 var statusModifiers = map[StatusType]StatusModifiers{
 	StatusDisease: {
-		SkillMod:       -0.3,  // 30% skill reduction at max severity
-		HealMod:        -0.5,  // 50% slower healing
+		SkillMod:       -0.3, // 30% skill reduction at max severity
+		HealMod:        -0.5, // 50% slower healing
 		DesertionMod:   0,
-		ContagionRate:  0.2,   // 20% spread chance per day
-		DamagePerDay:   5,     // 5 damage per day
+		ContagionRate:  0.2, // 20% spread chance per day
+		DamagePerDay:   5,   // 5 damage per day
 		MedicineNeeded: 15,
 	},
 	StatusInjury: {
-		SkillMod:       -0.4,  // 40% skill reduction
-		HealMod:        -0.3,  // 30% slower healing
+		SkillMod:       -0.4, // 40% skill reduction
+		HealMod:        -0.3, // 30% slower healing
 		DesertionMod:   0,
-		ContagionRate:  0,     // Not contagious
-		DamagePerDay:   2,     // 2 damage per day without treatment
+		ContagionRate:  0, // Not contagious
+		DamagePerDay:   2, // 2 damage per day without treatment
 		MedicineNeeded: 10,
 	},
 	StatusExhaustion: {
 		SkillMod:       -0.25, // 25% skill reduction
 		HealMod:        -0.2,
-		DesertionMod:   0.1,   // 10% more likely to desert
+		DesertionMod:   0.1, // 10% more likely to desert
 		ContagionRate:  0,
-		DamagePerDay:   0,     // No direct damage
-		MedicineNeeded: 0,     // Rest cures, not medicine
+		DamagePerDay:   0, // No direct damage
+		MedicineNeeded: 0, // Rest cures, not medicine
 	},
 	StatusDespair: {
 		SkillMod:       -0.15,
 		HealMod:        -0.1,
-		DesertionMod:   0.3,   // 30% more likely to desert
-		ContagionRate:  0.1,   // Can spread mood
+		DesertionMod:   0.3, // 30% more likely to desert
+		ContagionRate:  0.1, // Can spread mood
 		DamagePerDay:   0,
-		MedicineNeeded: 0,     // Morale cures, not medicine
+		MedicineNeeded: 0, // Morale cures, not medicine
 	},
 	StatusGenreAffliction: {
 		SkillMod:       -0.35,

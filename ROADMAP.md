@@ -187,12 +187,12 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] `SetGenre()` re-skins trait/skill names (medic→biomancer→doc→netdoc→chem-doc)
 
 #### Status Effects — Crew
-- [ ] Disease (spreads between crew; slows recovery; fatal without medicine)
-- [ ] Injury (reduces action effectiveness; requires rest + medicine)
-- [ ] Exhaustion (from overtravel; reduces skill effectiveness)
-- [ ] Despair (low morale debuff; increases desertion chance)
-- [ ] Genre-specific afflictions (cursed → irradiated → infected → glitched → mutated)
-- [ ] `SetGenre()` renames and recolours status icons
+- [x] Disease (spreads between crew; slows recovery; fatal without medicine)
+- [x] Injury (reduces action effectiveness; requires rest + medicine)
+- [x] Exhaustion (from overtravel; reduces skill effectiveness)
+- [x] Despair (low morale debuff; increases desertion chance)
+- [x] Genre-specific afflictions (cursed → irradiated → infected → glitched → mutated)
+- [x] `SetGenre()` renames and recolours status icons
 
 #### Vessel Systems — Depth and Upgrades
 - [ ] Modular vessel system: engine, cargo hold, medical bay, navigation, defense
