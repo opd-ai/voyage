@@ -386,7 +386,25 @@ func (g *Generator) Generate() *CrewMember {
 	// Vary starting health slightly
 	member.Health = 80 + float64(g.gen.Intn(21))
 
+	// Generate backstory
+	member.Backstory = g.generateBackstory(trait, skill)
+
 	return member
+}
+
+// generateBackstory creates procedural character history.
+func (g *Generator) generateBackstory(trait Trait, skill Skill) Backstory {
+	origins := backstoryOrigins[g.genre]
+	motivations := backstoryMotivations[g.genre]
+	memories := backstoryMemories[g.genre]
+	secrets := backstorySecrets[g.genre]
+
+	return Backstory{
+		Origin:     seed.Choice(g.gen, origins),
+		Motivation: seed.Choice(g.gen, motivations),
+		Memory:     seed.Choice(g.gen, memories),
+		Secret:     seed.Choice(g.gen, secrets),
+	}
 }
 
 // generateName creates a procedural name based on genre.
