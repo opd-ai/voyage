@@ -210,11 +210,11 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] `SetGenre()` re-skins customization screen and module upgrade vocabulary
 
 #### Trading and Supply Points
-- [ ] Procedurally generated supply posts / towns at waypoints
-- [ ] Dynamic inventory seeded from map region and genre
-- [ ] Buy/sell interface with supply/demand pricing
-- [ ] All item names and descriptions procedurally generated from seed — no embedded item text
-- [ ] Bartering option (trade goods instead of currency)
+- [x] Procedurally generated supply posts / towns at waypoints
+- [x] Dynamic inventory seeded from map region and genre
+- [x] Buy/sell interface with supply/demand pricing
+- [x] All item names and descriptions procedurally generated from seed — no embedded item text
+- [x] Bartering option (trade goods instead of currency)
 - [ ] Town reputation track (friendly towns offer better prices; hostile towns may attack)
 - [ ] `SetGenre()` re-skins trading posts (market→space-dock→survivor-camp→black-market→scrap-bazaar)
 
