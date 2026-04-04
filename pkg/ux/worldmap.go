@@ -57,40 +57,59 @@ func (wmv *WorldMapView) Draw(screen *ebiten.Image, wm *world.WorldMap, vesselX,
 	tilesHigh := wmv.viewHeight / wmv.tileSize
 	palette := renderer.Palette()
 
-	// Draw visible tiles
+	wmv.drawVisibleTiles(screen, wm, tilesWide, tilesHigh, palette, renderer)
+	wmv.drawVesselAtPosition(screen, vesselX, vesselY)
+}
+
+// drawVisibleTiles renders all tiles visible within the viewport.
+func (wmv *WorldMapView) drawVisibleTiles(screen *ebiten.Image, wm *world.WorldMap, tilesWide, tilesHigh int, palette *rendering.Palette, renderer *rendering.Renderer) {
 	for dy := 0; dy < tilesHigh; dy++ {
 		for dx := 0; dx < tilesWide; dx++ {
-			worldX := wmv.cameraX + dx
-			worldY := wmv.cameraY + dy
-
-			if worldX < 0 || worldY < 0 || worldX >= wm.Width || worldY >= wm.Height {
-				continue
-			}
-
-			tile := wm.GetTile(worldX, worldY)
-			if tile == nil {
-				continue
-			}
-			screenX := dx * wmv.tileSize
-			screenY := dy * wmv.tileSize
-
-			// Draw terrain
-			tileType := int(tile.Terrain) % len(palette.TileColors)
-			renderer.DrawTile(screen, dx, dy, tileType)
-
-			// Mark explored/unexplored (fog of war)
-			if !tile.Explored {
-				wmv.drawFogOverlay(screen, screenX, screenY)
-			}
-
-			// Mark destination
-			if tile.Landmark != nil && tile.Landmark.Type == world.LandmarkDestination {
-				wmv.drawDestinationMarker(screen, screenX, screenY)
-			}
+			wmv.drawTileAtOffset(screen, wm, dx, dy, palette, renderer)
 		}
 	}
+}
 
-	// Draw vessel position
+// drawTileAtOffset renders a single tile at the given viewport offset.
+func (wmv *WorldMapView) drawTileAtOffset(screen *ebiten.Image, wm *world.WorldMap, dx, dy int, palette *rendering.Palette, renderer *rendering.Renderer) {
+	worldX := wmv.cameraX + dx
+	worldY := wmv.cameraY + dy
+
+	if !wmv.isWorldCoordInBounds(worldX, worldY, wm) {
+		return
+	}
+
+	tile := wm.GetTile(worldX, worldY)
+	if tile == nil {
+		return
+	}
+
+	screenX := dx * wmv.tileSize
+	screenY := dy * wmv.tileSize
+
+	tileType := int(tile.Terrain) % len(palette.TileColors)
+	renderer.DrawTile(screen, dx, dy, tileType)
+
+	wmv.drawTileOverlays(screen, tile, screenX, screenY)
+}
+
+// isWorldCoordInBounds checks if world coordinates are within map bounds.
+func (wmv *WorldMapView) isWorldCoordInBounds(x, y int, wm *world.WorldMap) bool {
+	return x >= 0 && y >= 0 && x < wm.Width && y < wm.Height
+}
+
+// drawTileOverlays renders fog and destination markers.
+func (wmv *WorldMapView) drawTileOverlays(screen *ebiten.Image, tile *world.Tile, screenX, screenY int) {
+	if !tile.Explored {
+		wmv.drawFogOverlay(screen, screenX, screenY)
+	}
+	if tile.Landmark != nil && tile.Landmark.Type == world.LandmarkDestination {
+		wmv.drawDestinationMarker(screen, screenX, screenY)
+	}
+}
+
+// drawVesselAtPosition renders the vessel marker at the appropriate screen position.
+func (wmv *WorldMapView) drawVesselAtPosition(screen *ebiten.Image, vesselX, vesselY int) {
 	vesselScreenX := (vesselX - wmv.cameraX) * wmv.tileSize
 	vesselScreenY := (vesselY - wmv.cameraY) * wmv.tileSize
 	wmv.drawVesselMarker(screen, vesselScreenX, vesselScreenY)

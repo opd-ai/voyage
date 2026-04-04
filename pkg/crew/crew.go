@@ -13,8 +13,19 @@ type CrewMember struct {
 	MaxHealth     float64
 	Trait         Trait
 	Skill         Skill
+	SkillExp      float64 // Experience points in primary skill
+	SkillLevel    int     // Level in primary skill (0-5)
 	IsAlive       bool
 	DaysWithParty int
+	Backstory     Backstory // Procedurally generated personal history
+}
+
+// Backstory contains procedurally generated character history.
+type Backstory struct {
+	Origin     string // Where they came from
+	Motivation string // Why they travel
+	Memory     string // A defining past moment
+	Secret     string // Something hidden
 }
 
 // Trait represents a character personality trait.
@@ -29,6 +40,8 @@ const (
 	TraitGenerous
 	TraitStoic
 	TraitEmotional
+	TraitNavigator
+	TraitScavenger
 )
 
 // Skill represents a character's primary skill.
@@ -43,6 +56,38 @@ const (
 	SkillWarrior
 	SkillLeader
 )
+
+// TraitEffect describes gameplay modifiers from a trait.
+type TraitEffect struct {
+	MoraleModifier   float64 // Modifier to morale changes (-0.2 = 20% reduction)
+	FuelModifier     float64 // Modifier to fuel consumption (-0.1 = 10% less fuel)
+	ScavengeModifier float64 // Modifier to scavenge results (+0.2 = 20% more loot)
+	CombatModifier   float64 // Modifier to combat effectiveness
+	HealModifier     float64 // Modifier to healing effectiveness
+	TravelModifier   float64 // Modifier to travel speed
+}
+
+// TraitEffects maps traits to their gameplay effects.
+var TraitEffects = map[Trait]TraitEffect{
+	TraitBrave:       {MoraleModifier: 0.1, CombatModifier: 0.15, FuelModifier: 0.05},
+	TraitCautious:    {FuelModifier: -0.1, TravelModifier: -0.05, ScavengeModifier: -0.1},
+	TraitOptimistic:  {MoraleModifier: 0.2, HealModifier: 0.1},
+	TraitPessimistic: {MoraleModifier: -0.1, ScavengeModifier: 0.1},
+	TraitGreedy:      {ScavengeModifier: 0.2, MoraleModifier: -0.05},
+	TraitGenerous:    {MoraleModifier: 0.15, ScavengeModifier: -0.1},
+	TraitStoic:       {MoraleModifier: 0.0, HealModifier: 0.1, CombatModifier: 0.05},
+	TraitEmotional:   {MoraleModifier: 0.1, CombatModifier: -0.05, HealModifier: -0.05},
+	TraitNavigator:   {TravelModifier: 0.15, FuelModifier: -0.15},
+	TraitScavenger:   {ScavengeModifier: 0.25, FuelModifier: 0.1},
+}
+
+// GetTraitEffect returns the effect for a trait.
+func GetTraitEffect(t Trait) TraitEffect {
+	if effect, ok := TraitEffects[t]; ok {
+		return effect
+	}
+	return TraitEffect{}
+}
 
 // NewCrewMember creates a new crew member with the given attributes.
 func NewCrewMember(id int, name string, trait Trait, skill Skill) *CrewMember {
@@ -86,6 +131,67 @@ func (c *CrewMember) HealthRatio() float64 {
 	return c.Health / c.MaxHealth
 }
 
+// SkillEffectiveness returns the effectiveness multiplier for the crew member's skill.
+// Base is 1.0, increases with level: Level 0=1.0, Level 5=1.5 (50% bonus at max).
+func (c *CrewMember) SkillEffectiveness() float64 {
+	if c.Skill == SkillNone {
+		return 0.5 // Unskilled workers are half as effective
+	}
+	return 1.0 + float64(c.SkillLevel)*0.1
+}
+
+// GainSkillExp adds experience points to the crew member's skill.
+// Returns true if the member leveled up.
+func (c *CrewMember) GainSkillExp(amount float64) bool {
+	if c.Skill == SkillNone || c.SkillLevel >= MaxSkillLevel {
+		return false
+	}
+	c.SkillExp += amount
+	threshold := SkillExpThreshold(c.SkillLevel)
+	if c.SkillExp >= threshold {
+		c.SkillExp -= threshold
+		c.SkillLevel++
+		return true
+	}
+	return false
+}
+
+// MaxSkillLevel is the maximum level a skill can reach.
+const MaxSkillLevel = 5
+
+// SkillExpThreshold returns the experience needed to reach the next level.
+// Experience needed increases with each level.
+func SkillExpThreshold(currentLevel int) float64 {
+	// 100, 150, 225, 337.5, 506.25
+	return 100.0 * pow(1.5, float64(currentLevel))
+}
+
+// pow returns base^exp for floats.
+func pow(base, exp float64) float64 {
+	result := 1.0
+	for i := 0; i < int(exp); i++ {
+		result *= base
+	}
+	return result
+}
+
+// SkillExpProgress returns [0, 1] progress toward next level.
+func (c *CrewMember) SkillExpProgress() float64 {
+	if c.Skill == SkillNone || c.SkillLevel >= MaxSkillLevel {
+		return 0
+	}
+	return c.SkillExp / SkillExpThreshold(c.SkillLevel)
+}
+
+// SkillLevelName returns a descriptive name for the skill level.
+func SkillLevelName(level int) string {
+	names := []string{"Novice", "Apprentice", "Journeyman", "Expert", "Master", "Grandmaster"}
+	if level < 0 || level >= len(names) {
+		return "Unknown"
+	}
+	return names[level]
+}
+
 // TraitName returns the name of the trait for the given genre.
 func TraitName(t Trait, genre engine.GenreID) string {
 	names, ok := traitNames[genre]
@@ -114,6 +220,8 @@ var traitNames = map[engine.GenreID]map[Trait]string{
 		TraitGenerous:    "Generous",
 		TraitStoic:       "Stoic",
 		TraitEmotional:   "Passionate",
+		TraitNavigator:   "Pathfinder",
+		TraitScavenger:   "Forager",
 	},
 	engine.GenreScifi: {
 		TraitBrave:       "Fearless",
@@ -124,6 +232,8 @@ var traitNames = map[engine.GenreID]map[Trait]string{
 		TraitGenerous:    "Altruistic",
 		TraitStoic:       "Logical",
 		TraitEmotional:   "Empathic",
+		TraitNavigator:   "Astrogator",
+		TraitScavenger:   "Salvager",
 	},
 	engine.GenreHorror: {
 		TraitBrave:       "Fearless",
@@ -134,6 +244,8 @@ var traitNames = map[engine.GenreID]map[Trait]string{
 		TraitGenerous:    "Selfless",
 		TraitStoic:       "Hardened",
 		TraitEmotional:   "Unstable",
+		TraitNavigator:   "Guide",
+		TraitScavenger:   "Scrounger",
 	},
 	engine.GenreCyberpunk: {
 		TraitBrave:       "Reckless",
@@ -144,16 +256,20 @@ var traitNames = map[engine.GenreID]map[Trait]string{
 		TraitGenerous:    "Anarchist",
 		TraitStoic:       "Chrome-cold",
 		TraitEmotional:   "Wire-hot",
+		TraitNavigator:   "Gridrunner",
+		TraitScavenger:   "Dumpster Diver",
 	},
 	engine.GenrePostapoc: {
 		TraitBrave:       "Survivor",
 		TraitCautious:    "Wary",
 		TraitOptimistic:  "Believer",
 		TraitPessimistic: "Doom-sayer",
-		TraitGreedy:      "Scavenger",
+		TraitGreedy:      "Hoarder",
 		TraitGenerous:    "Sharer",
 		TraitStoic:       "Weathered",
 		TraitEmotional:   "Broken",
+		TraitNavigator:   "Wayfinder",
+		TraitScavenger:   "Scavenger",
 	},
 }
 
@@ -216,6 +332,8 @@ func AllTraits() []Trait {
 		TraitGenerous,
 		TraitStoic,
 		TraitEmotional,
+		TraitNavigator,
+		TraitScavenger,
 	}
 }
 

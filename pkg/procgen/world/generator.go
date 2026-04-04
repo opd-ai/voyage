@@ -115,34 +115,54 @@ func (g *Generator) Generate(width, height int) *WorldMap {
 
 // assignBiomes divides the map into biome regions.
 func (g *Generator) assignBiomes(w *WorldMap) {
+	centers := g.generateBiomeCenters(w)
+	g.assignTilesToNearestCenter(w, centers)
+}
+
+// biomeCenter holds the position and biome type for a region.
+type biomeCenter struct {
+	x, y  int
+	biome BiomeType
+}
+
+// generateBiomeCenters creates random biome region centers.
+func (g *Generator) generateBiomeCenters(w *WorldMap) []biomeCenter {
 	numRegions := 6 + g.gen.Intn(4)
-	centers := make([]struct {
-		x, y  int
-		biome BiomeType
-	}, numRegions)
-
+	centers := make([]biomeCenter, numRegions)
 	biomes := AllBiomeTypes()
-	for i := 0; i < numRegions; i++ {
-		centers[i].x = g.gen.Intn(w.Width)
-		centers[i].y = g.gen.Intn(w.Height)
-		centers[i].biome = seed.Choice(g.gen, biomes)
-	}
 
-	// Assign tiles to nearest center
-	for y := 0; y < w.Height; y++ {
-		for x := 0; x < w.Width; x++ {
-			minDist := w.Width * w.Height
-			var nearestBiome BiomeType
-			for _, c := range centers {
-				dist := abs(x-c.x) + abs(y-c.y)
-				if dist < minDist {
-					minDist = dist
-					nearestBiome = c.biome
-				}
-			}
-			w.Tiles[y][x].Biome = nearestBiome
+	for i := 0; i < numRegions; i++ {
+		centers[i] = biomeCenter{
+			x:     g.gen.Intn(w.Width),
+			y:     g.gen.Intn(w.Height),
+			biome: seed.Choice(g.gen, biomes),
 		}
 	}
+	return centers
+}
+
+// assignTilesToNearestCenter assigns each tile to the nearest biome center.
+func (g *Generator) assignTilesToNearestCenter(w *WorldMap, centers []biomeCenter) {
+	for y := 0; y < w.Height; y++ {
+		for x := 0; x < w.Width; x++ {
+			w.Tiles[y][x].Biome = g.findNearestBiome(x, y, centers, w)
+		}
+	}
+}
+
+// findNearestBiome returns the biome type of the nearest center.
+func (g *Generator) findNearestBiome(x, y int, centers []biomeCenter, w *WorldMap) BiomeType {
+	minDist := w.Width * w.Height
+	var nearestBiome BiomeType
+
+	for _, c := range centers {
+		dist := abs(x-c.x) + abs(y-c.y)
+		if dist < minDist {
+			minDist = dist
+			nearestBiome = c.biome
+		}
+	}
+	return nearestBiome
 }
 
 // assignTerrain fills in terrain based on biomes.
@@ -209,35 +229,48 @@ func (g *Generator) generatePaths(w *WorldMap) {
 func (g *Generator) connectPoints(w *WorldMap, from, to Point) {
 	current := from
 	for current.X != to.X || current.Y != to.Y {
-		// Move toward destination with some randomness
-		dx := sign(to.X - current.X)
-		dy := sign(to.Y - current.Y)
-
-		// Occasionally deviate
-		if g.gen.Chance(0.3) {
-			if g.gen.Chance(0.5) && dx != 0 {
-				dy = g.gen.Range(-1, 1)
-			} else if dy != 0 {
-				dx = g.gen.Range(-1, 1)
-			}
-		}
-
-		next := Point{
-			X: clamp(current.X+dx, 0, w.Width-1),
-			Y: clamp(current.Y+dy, 0, w.Height-1),
-		}
-
-		// Add connection
-		tile := w.Tiles[current.Y][current.X]
-		if !containsPoint(tile.Connections, next) {
-			tile.Connections = append(tile.Connections, next)
-		}
-		nextTile := w.Tiles[next.Y][next.X]
-		if !containsPoint(nextTile.Connections, current) {
-			nextTile.Connections = append(nextTile.Connections, current)
-		}
-
+		next := g.calculateNextStep(current, to, w)
+		g.addBidirectionalConnection(w, current, next)
 		current = next
+	}
+}
+
+// calculateNextStep determines the next point in the path with optional deviation.
+func (g *Generator) calculateNextStep(current, to Point, w *WorldMap) Point {
+	dx := sign(to.X - current.X)
+	dy := sign(to.Y - current.Y)
+
+	if g.gen.Chance(0.3) {
+		dx, dy = g.applyDeviation(dx, dy)
+	}
+
+	return Point{
+		X: clamp(current.X+dx, 0, w.Width-1),
+		Y: clamp(current.Y+dy, 0, w.Height-1),
+	}
+}
+
+// applyDeviation randomly adjusts movement direction.
+func (g *Generator) applyDeviation(dx, dy int) (int, int) {
+	if g.gen.Chance(0.5) && dx != 0 {
+		return dx, g.gen.Range(-1, 1)
+	}
+	if dy != 0 {
+		return g.gen.Range(-1, 1), dy
+	}
+	return dx, dy
+}
+
+// addBidirectionalConnection adds a two-way connection between tiles.
+func (g *Generator) addBidirectionalConnection(w *WorldMap, a, b Point) {
+	tileA := w.Tiles[a.Y][a.X]
+	tileB := w.Tiles[b.Y][b.X]
+
+	if !containsPoint(tileA.Connections, b) {
+		tileA.Connections = append(tileA.Connections, b)
+	}
+	if !containsPoint(tileB.Connections, a) {
+		tileB.Connections = append(tileB.Connections, a)
 	}
 }
 

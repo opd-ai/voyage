@@ -322,7 +322,7 @@ func TestInputConfigJSON(t *testing.T) {
 
 func TestGetKeyCode(t *testing.T) {
 	ic := NewInputConfig()
-	
+
 	code := ic.GetKeyCode(ActionMoveUp)
 	if code == 0 {
 		t.Error("GetKeyCode should return non-zero for default binding")
@@ -331,7 +331,7 @@ func TestGetKeyCode(t *testing.T) {
 
 func TestAllBindings(t *testing.T) {
 	ic := NewInputConfig()
-	
+
 	bindings := ic.AllBindings()
 	if len(bindings) < 10 {
 		t.Errorf("AllBindings should return at least 10 bindings, got %d", len(bindings))

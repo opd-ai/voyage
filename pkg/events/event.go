@@ -18,6 +18,10 @@ const (
 	CategoryHardship
 	// CategoryWindfall represents positive random events.
 	CategoryWindfall
+	// CategoryHazard represents genre-specific danger events.
+	CategoryHazard
+	// CategoryCrew represents crew-specific personal events.
+	CategoryCrew
 )
 
 // AllEventCategories returns all event categories.
@@ -28,6 +32,8 @@ func AllEventCategories() []EventCategory {
 		CategoryDiscovery,
 		CategoryHardship,
 		CategoryWindfall,
+		CategoryHazard,
+		CategoryCrew,
 	}
 }
 
@@ -120,6 +126,8 @@ var categoryNames = map[engine.GenreID]map[EventCategory]string{
 		CategoryDiscovery: "Discovery",
 		CategoryHardship:  "Hardship",
 		CategoryWindfall:  "Fortune",
+		CategoryHazard:    "Arcane Peril",
+		CategoryCrew:      "Personal Matter",
 	},
 	engine.GenreScifi: {
 		CategoryWeather:   "Space Weather",
@@ -127,6 +135,8 @@ var categoryNames = map[engine.GenreID]map[EventCategory]string{
 		CategoryDiscovery: "Scan Result",
 		CategoryHardship:  "Malfunction",
 		CategoryWindfall:  "Lucky Find",
+		CategoryHazard:    "Anomaly",
+		CategoryCrew:      "Crew Report",
 	},
 	engine.GenreHorror: {
 		CategoryWeather:   "Weather",
@@ -134,6 +144,8 @@ var categoryNames = map[engine.GenreID]map[EventCategory]string{
 		CategoryDiscovery: "Discovery",
 		CategoryHardship:  "Crisis",
 		CategoryWindfall:  "Relief",
+		CategoryHazard:    "Threat",
+		CategoryCrew:      "Breaking Point",
 	},
 	engine.GenreCyberpunk: {
 		CategoryWeather:   "Environment",
@@ -141,6 +153,8 @@ var categoryNames = map[engine.GenreID]map[EventCategory]string{
 		CategoryDiscovery: "Intel",
 		CategoryHardship:  "Complication",
 		CategoryWindfall:  "Score",
+		CategoryHazard:    "Hostile ICE",
+		CategoryCrew:      "Personal Biz",
 	},
 	engine.GenrePostapoc: {
 		CategoryWeather:   "Weather",
@@ -148,5 +162,7 @@ var categoryNames = map[engine.GenreID]map[EventCategory]string{
 		CategoryDiscovery: "Salvage",
 		CategoryHardship:  "Crisis",
 		CategoryWindfall:  "Lucky Break",
+		CategoryHazard:    "Zone Event",
+		CategoryCrew:      "Pack Drama",
 	},
 }

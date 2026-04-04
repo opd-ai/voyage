@@ -330,3 +330,309 @@ var windfallTemplates = map[engine.GenreID][]EventTemplate{
 		},
 	},
 }
+
+// HazardTemplates define genre-specific hazard events.
+// These are thematic dangers unique to each setting.
+var hazardTemplates = map[engine.GenreID][]EventTemplate{
+	engine.GenreFantasy: {
+		{
+			Title:       "Magic Storm",
+			Description: "Wild arcane energies swirl through the air. Lightning crackles with unnatural colors.",
+			Choices: []ChoiceTemplate{
+				{Text: "Shelter until it passes", Outcome: EventOutcome{TimeAdvance: 2, FoodDelta: -5}},
+				{Text: "Use protective wards", Outcome: EventOutcome{MoraleDelta: -5}},
+				{Text: "Push through quickly", Outcome: EventOutcome{CrewDamage: 15, VesselDamage: 10}},
+			},
+		},
+		{
+			Title:       "Cursed Grounds",
+			Description: "An ancient battlefield. The dead do not rest easy here.",
+			Choices: []ChoiceTemplate{
+				{Text: "Offer tribute to the spirits", Outcome: EventOutcome{CurrencyDelta: -15, MoraleDelta: 5}},
+				{Text: "Rush through at speed", Outcome: EventOutcome{FuelDelta: -10, MoraleDelta: -10}},
+				{Text: "Take a longer detour", Outcome: EventOutcome{TimeAdvance: 3, FuelDelta: -5}},
+			},
+		},
+	},
+	engine.GenreScifi: {
+		{
+			Title:       "Asteroid Field",
+			Description: "Dense asteroid clusters ahead. Navigation requires full attention.",
+			Choices: []ChoiceTemplate{
+				{Text: "Navigate through carefully", Outcome: EventOutcome{TimeAdvance: 2, FuelDelta: -5}},
+				{Text: "Blast through with weapons", Outcome: EventOutcome{FuelDelta: -15, VesselDamage: 5}},
+				{Text: "Chart a course around", Outcome: EventOutcome{TimeAdvance: 4, FuelDelta: -10}},
+			},
+		},
+		{
+			Title:       "Ion Storm",
+			Description: "Electromagnetic interference blankets the region. Systems are flickering.",
+			Choices: []ChoiceTemplate{
+				{Text: "Power down non-essentials", Outcome: EventOutcome{TimeAdvance: 3}},
+				{Text: "Boost shields and push through", Outcome: EventOutcome{FuelDelta: -20, VesselDamage: 10}},
+			},
+		},
+	},
+	engine.GenreHorror: {
+		{
+			Title:       "Zombie Horde",
+			Description: "The shambling dead have gathered in massive numbers. They block the road ahead.",
+			Choices: []ChoiceTemplate{
+				{Text: "Ram through them", Outcome: EventOutcome{VesselDamage: 20, FuelDelta: -5}},
+				{Text: "Draw them away with noise", Outcome: EventOutcome{TimeAdvance: 2, MoraleDelta: -5}},
+				{Text: "Find another route", Outcome: EventOutcome{TimeAdvance: 4, FuelDelta: -15}},
+			},
+		},
+		{
+			Title:       "Infected Zone",
+			Description: "Contamination levels spike. The air itself feels wrong.",
+			Choices: []ChoiceTemplate{
+				{Text: "Seal up and drive fast", Outcome: EventOutcome{FuelDelta: -10, TimeAdvance: 1}},
+				{Text: "Use medical gear as protection", Outcome: EventOutcome{MedicineDelta: -10}},
+				{Text: "Turn back", Outcome: EventOutcome{TimeAdvance: 3, MoraleDelta: -8}},
+			},
+		},
+	},
+	engine.GenreCyberpunk: {
+		{
+			Title:       "Netrunner Ambush",
+			Description: "Your systems lock up. Someone's trying to jack your vehicle remotely.",
+			Choices: []ChoiceTemplate{
+				{Text: "Counter-hack them", Outcome: EventOutcome{TimeAdvance: 1, MoraleDelta: 5}},
+				{Text: "Pay the ransom", Outcome: EventOutcome{CurrencyDelta: -30}},
+				{Text: "Go manual and flee", Outcome: EventOutcome{VesselDamage: 10, FuelDelta: -10}},
+			},
+		},
+		{
+			Title:       "Corporate Drone Swarm",
+			Description: "Security drones converge on your position. You've triggered something.",
+			Choices: []ChoiceTemplate{
+				{Text: "EMP burst", Outcome: EventOutcome{FuelDelta: -20, TimeAdvance: 1}},
+				{Text: "Jam their signals", Outcome: EventOutcome{CurrencyDelta: -15, TimeAdvance: 2}},
+				{Text: "Outrun them", Outcome: EventOutcome{FuelDelta: -15, VesselDamage: 15}},
+			},
+		},
+	},
+	engine.GenrePostapoc: {
+		{
+			Title:       "Radiation Storm",
+			Description: "A wall of glowing dust sweeps across the wastes. Geiger counters scream.",
+			Choices: []ChoiceTemplate{
+				{Text: "Seal vehicle and wait", Outcome: EventOutcome{TimeAdvance: 4, FoodDelta: -5, WaterDelta: -5}},
+				{Text: "Use rad meds and push through", Outcome: EventOutcome{MedicineDelta: -15, TimeAdvance: 1}},
+				{Text: "Find shelter in ruins", Outcome: EventOutcome{TimeAdvance: 3, MoraleDelta: -5}},
+			},
+		},
+		{
+			Title:       "Mutant Swarm",
+			Description: "Twisted creatures emerge from the wasteland, drawn by your engine noise.",
+			Choices: []ChoiceTemplate{
+				{Text: "Floor it and run", Outcome: EventOutcome{FuelDelta: -15, VesselDamage: 10}},
+				{Text: "Stand and fight", Outcome: EventOutcome{CrewDamage: 15, TimeAdvance: 1, MoraleDelta: 5}},
+				{Text: "Throw supplies to distract", Outcome: EventOutcome{FoodDelta: -10, WaterDelta: -5}},
+			},
+		},
+	},
+}
+
+// CrewEventType identifies the type of crew-specific event.
+type CrewEventType int
+
+const (
+	// CrewEventCrisis is a personal crisis requiring intervention.
+	CrewEventCrisis CrewEventType = iota
+	// CrewEventMilestone is a positive personal achievement.
+	CrewEventMilestone
+	// CrewEventSacrifice is an opportunity for heroic self-sacrifice.
+	CrewEventSacrifice
+)
+
+// CrewEventTemplate includes a crew member placeholder.
+type CrewEventTemplate struct {
+	Type        CrewEventType
+	Title       string // Use %s for crew member name
+	Description string // Use %s for crew member name
+	Choices     []ChoiceTemplate
+}
+
+// CrewEventTemplates define crew-specific events by genre.
+var crewTemplates = map[engine.GenreID][]CrewEventTemplate{
+	engine.GenreFantasy: {
+		{
+			Type:        CrewEventCrisis,
+			Title:       "%s Falls Into Despair",
+			Description: "%s is haunted by visions of home. Their spirit wavers.",
+			Choices: []ChoiceTemplate{
+				{Text: "Offer words of comfort", Outcome: EventOutcome{MoraleDelta: 10, TimeAdvance: 1}},
+				{Text: "Give them space", Outcome: EventOutcome{MoraleDelta: -5}},
+				{Text: "Share a drink and story", Outcome: EventOutcome{MoraleDelta: 15, WaterDelta: -2}},
+			},
+		},
+		{
+			Type:        CrewEventMilestone,
+			Title:       "%s Discovers Their Purpose",
+			Description: "%s has found inner strength. They move with new determination.",
+			Choices: []ChoiceTemplate{
+				{Text: "Celebrate their growth", Outcome: EventOutcome{MoraleDelta: 15}},
+				{Text: "Ask them to share wisdom", Outcome: EventOutcome{MoraleDelta: 10, TimeAdvance: 1}},
+			},
+		},
+		{
+			Type:        CrewEventSacrifice,
+			Title:       "%s Holds the Line",
+			Description: "Danger approaches. %s steps forward to protect the group.",
+			Choices: []ChoiceTemplate{
+				{Text: "Accept their sacrifice", Outcome: EventOutcome{CrewDamage: 50, MoraleDelta: 20}},
+				{Text: "Pull them back to safety", Outcome: EventOutcome{CrewDamage: 10, VesselDamage: 20, MoraleDelta: 5}},
+			},
+		},
+	},
+	engine.GenreScifi: {
+		{
+			Type:        CrewEventCrisis,
+			Title:       "%s Questions the Mission",
+			Description: "%s is showing signs of space fatigue. Their focus is slipping.",
+			Choices: []ChoiceTemplate{
+				{Text: "Run psychological protocols", Outcome: EventOutcome{MoraleDelta: 10, TimeAdvance: 1}},
+				{Text: "Assign them light duties", Outcome: EventOutcome{MoraleDelta: 5, FuelDelta: -5}},
+				{Text: "Ignore it - they'll adapt", Outcome: EventOutcome{MoraleDelta: -8}},
+			},
+		},
+		{
+			Type:        CrewEventMilestone,
+			Title:       "%s Achieves Certification",
+			Description: "%s has mastered a new skill. Their efficiency has improved.",
+			Choices: []ChoiceTemplate{
+				{Text: "Log it in their record", Outcome: EventOutcome{MoraleDelta: 10}},
+				{Text: "Host a ceremony", Outcome: EventOutcome{MoraleDelta: 20, FoodDelta: -3}},
+			},
+		},
+		{
+			Type:        CrewEventSacrifice,
+			Title:       "%s Volunteers for EVA",
+			Description: "A critical repair is needed outside. %s volunteers for the dangerous task.",
+			Choices: []ChoiceTemplate{
+				{Text: "Accept the risk", Outcome: EventOutcome{CrewDamage: 40, VesselDamage: -20, MoraleDelta: 15}},
+				{Text: "Find another way", Outcome: EventOutcome{FuelDelta: -20, TimeAdvance: 2}},
+			},
+		},
+	},
+	engine.GenreHorror: {
+		{
+			Type:        CrewEventCrisis,
+			Title:       "%s Is Breaking Down",
+			Description: "%s hasn't slept in days. The horrors are getting to them.",
+			Choices: []ChoiceTemplate{
+				{Text: "Sedate them", Outcome: EventOutcome{MedicineDelta: -5, MoraleDelta: 5}},
+				{Text: "Talk them through it", Outcome: EventOutcome{MoraleDelta: 8, TimeAdvance: 1}},
+				{Text: "They need to toughen up", Outcome: EventOutcome{MoraleDelta: -15}},
+			},
+		},
+		{
+			Type:        CrewEventMilestone,
+			Title:       "%s Finds Resolve",
+			Description: "%s has stared into the abyss and found their courage.",
+			Choices: []ChoiceTemplate{
+				{Text: "Acknowledge their strength", Outcome: EventOutcome{MoraleDelta: 15}},
+				{Text: "Hope it lasts", Outcome: EventOutcome{MoraleDelta: 5}},
+			},
+		},
+		{
+			Type:        CrewEventSacrifice,
+			Title:       "%s Creates a Distraction",
+			Description: "They're closing in. %s offers to draw them away.",
+			Choices: []ChoiceTemplate{
+				{Text: "Let them do it", Outcome: EventOutcome{CrewDamage: 60, MoraleDelta: 25}},
+				{Text: "No one gets left behind", Outcome: EventOutcome{CrewDamage: 20, FuelDelta: -15}},
+			},
+		},
+	},
+	engine.GenreCyberpunk: {
+		{
+			Type:        CrewEventCrisis,
+			Title:       "%s Has Cyberpsychosis Symptoms",
+			Description: "%s is twitching. The chrome is fighting their meat.",
+			Choices: []ChoiceTemplate{
+				{Text: "Get them to a ripperdoc", Outcome: EventOutcome{CurrencyDelta: -25, MoraleDelta: 10}},
+				{Text: "Use suppressants", Outcome: EventOutcome{MedicineDelta: -10, MoraleDelta: 5}},
+				{Text: "They'll flatline eventually anyway", Outcome: EventOutcome{MoraleDelta: -20}},
+			},
+		},
+		{
+			Type:        CrewEventMilestone,
+			Title:       "%s Paid Off Their Debt",
+			Description: "%s is finally free of their corporate obligations.",
+			Choices: []ChoiceTemplate{
+				{Text: "Throw them a party", Outcome: EventOutcome{MoraleDelta: 20, CurrencyDelta: -10}},
+				{Text: "Good for them", Outcome: EventOutcome{MoraleDelta: 8}},
+			},
+		},
+		{
+			Type:        CrewEventSacrifice,
+			Title:       "%s Jacks In",
+			Description: "The ICE is brutal. %s offers to take the hit to break through.",
+			Choices: []ChoiceTemplate{
+				{Text: "Let them burn", Outcome: EventOutcome{CrewDamage: 45, CurrencyDelta: 30, MoraleDelta: 10}},
+				{Text: "Find another angle", Outcome: EventOutcome{TimeAdvance: 2, CurrencyDelta: -15}},
+			},
+		},
+	},
+	engine.GenrePostapoc: {
+		{
+			Type:        CrewEventCrisis,
+			Title:       "%s Remembers the Old World",
+			Description: "%s found something from before. They can't stop crying.",
+			Choices: []ChoiceTemplate{
+				{Text: "Sit with them", Outcome: EventOutcome{MoraleDelta: 12, TimeAdvance: 1}},
+				{Text: "Let them grieve alone", Outcome: EventOutcome{MoraleDelta: -3}},
+				{Text: "Destroy the memento", Outcome: EventOutcome{MoraleDelta: -20}},
+			},
+		},
+		{
+			Type:        CrewEventMilestone,
+			Title:       "%s Made Something Grow",
+			Description: "%s coaxed life from the wasteland. A small plant, but it's hope.",
+			Choices: []ChoiceTemplate{
+				{Text: "Guard it carefully", Outcome: EventOutcome{MoraleDelta: 20}},
+				{Text: "Eat it - calories are calories", Outcome: EventOutcome{FoodDelta: 2, MoraleDelta: -10}},
+			},
+		},
+		{
+			Type:        CrewEventSacrifice,
+			Title:       "%s Stays Behind",
+			Description: "Raiders are coming. %s will buy time.",
+			Choices: []ChoiceTemplate{
+				{Text: "Honor their choice", Outcome: EventOutcome{CrewDamage: 55, MoraleDelta: 25, FuelDelta: 10}},
+				{Text: "Everyone runs together", Outcome: EventOutcome{CrewDamage: 15, VesselDamage: 25}},
+			},
+		},
+	},
+}
+
+// GetCrewEventTemplates returns crew event templates for a genre.
+func GetCrewEventTemplates(genre engine.GenreID) []CrewEventTemplate {
+	return crewTemplates[genre]
+}
+
+// HazardVocabulary returns genre-specific hazard names for display.
+func HazardVocabulary(genre engine.GenreID) []string {
+	templates := hazardTemplates[genre]
+	names := make([]string, len(templates))
+	for i, t := range templates {
+		names[i] = t.Title
+	}
+	return names
+}
+
+// AllEventTemplates returns all event templates for a given genre grouped by category.
+func AllEventTemplates(genre engine.GenreID) map[EventCategory][]EventTemplate {
+	return map[EventCategory][]EventTemplate{
+		CategoryWeather:   weatherTemplates[genre],
+		CategoryEncounter: encounterTemplates[genre],
+		CategoryDiscovery: discoveryTemplates[genre],
+		CategoryHardship:  hardshipTemplates[genre],
+		CategoryWindfall:  windfallTemplates[genre],
+		CategoryHazard:    hazardTemplates[genre],
+		// CategoryCrew uses CrewEventTemplate, not EventTemplate
+	}
+}

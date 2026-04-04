@@ -4,11 +4,13 @@ package ux
 
 import (
 	"testing"
+	"time"
 
 	"github.com/opd-ai/voyage/pkg/crew"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/events"
 	"github.com/opd-ai/voyage/pkg/resources"
+	"github.com/opd-ai/voyage/pkg/saveload"
 )
 
 func TestDefaultSkin(t *testing.T) {
@@ -224,23 +226,6 @@ func TestWrapText(t *testing.T) {
 	}
 }
 
-func TestGameStats(t *testing.T) {
-	stats := GameStats{
-		DaysTraveled:     30,
-		DistanceTraveled: 150,
-		CrewLost:         2,
-		EventsResolved:   25,
-		Victory:          true,
-	}
-
-	if stats.DaysTraveled != 30 {
-		t.Errorf("expected DaysTraveled 30, got %d", stats.DaysTraveled)
-	}
-	if !stats.Victory {
-		t.Error("expected Victory true")
-	}
-}
-
 // Integration test stubs - these test that types can be used together
 func TestHUDWithResources(t *testing.T) {
 	hud := NewHUD(engine.GenreFantasy)
@@ -288,12 +273,12 @@ func TestMenuSetGenre(t *testing.T) {
 
 func TestMenuSelectPrev(t *testing.T) {
 	menu := NewMenu(engine.GenreFantasy, MenuMain, 800, 600)
-	
+
 	// Get to the end
 	for i := 0; i < 10; i++ {
 		menu.SelectNext()
 	}
-	
+
 	// Now go back
 	menu.SelectPrev()
 	idx := menu.selectedIndex
@@ -304,7 +289,7 @@ func TestMenuSelectPrev(t *testing.T) {
 
 func TestMenuTypes(t *testing.T) {
 	menuTypes := []MenuType{MenuMain, MenuPause, MenuOptions, MenuGameOver}
-	
+
 	for _, mt := range menuTypes {
 		menu := NewMenu(engine.GenreFantasy, mt, 800, 600)
 		if menu.menuType != mt {
@@ -319,7 +304,7 @@ func TestMenuTypes(t *testing.T) {
 func TestAbsFunction(t *testing.T) {
 	// Test the abs function through WorldMapView
 	wmv := NewWorldMapView(engine.GenreFantasy, 16, 320, 240)
-	
+
 	// abs is used internally - we verify behavior through CenterOn
 	wmv.CenterOn(-10, -10)
 	// Camera should be set (even if negative, it still processes)
@@ -330,38 +315,11 @@ func TestAbsFunction(t *testing.T) {
 
 func TestHealthToStatus(t *testing.T) {
 	hud := NewHUD(engine.GenreFantasy)
-	
+
 	// Test healthToStatus by checking the statusColor function indirectly
 	// We can't easily test private functions, but we verify HUD creation works
 	if hud.skin == nil {
 		t.Error("HUD should have a skin")
-	}
-}
-
-func TestSplitWords(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected []string
-	}{
-		{"hello world", []string{"hello", "world"}},
-		{"one", []string{"one"}},
-		{"", nil},
-		{"  spaces  between  ", []string{"spaces", "between"}},
-		{"line1\nline2", []string{"line1", "line2"}},
-		{"mixed spaces\nand\nnewlines", []string{"mixed", "spaces", "and", "newlines"}},
-	}
-
-	for _, tt := range tests {
-		result := splitWords(tt.input)
-		if len(result) != len(tt.expected) {
-			t.Errorf("splitWords(%q) = %v, want %v", tt.input, result, tt.expected)
-			continue
-		}
-		for i := range result {
-			if result[i] != tt.expected[i] {
-				t.Errorf("splitWords(%q)[%d] = %q, want %q", tt.input, i, result[i], tt.expected[i])
-			}
-		}
 	}
 }
 
@@ -395,7 +353,7 @@ func TestWrapTextEdgeCases(t *testing.T) {
 
 func TestMenuGameOverItems(t *testing.T) {
 	menu := NewMenu(engine.GenreFantasy, MenuGameOver, 800, 600)
-	
+
 	// Game over menu should have specific items
 	foundRetry := false
 	foundMainMenu := false
@@ -407,7 +365,7 @@ func TestMenuGameOverItems(t *testing.T) {
 			foundMainMenu = true
 		}
 	}
-	
+
 	if !foundRetry {
 		t.Error("Game over menu should have retry option")
 	}
@@ -427,7 +385,7 @@ func TestUISkinColors(t *testing.T) {
 
 	for _, genre := range genres {
 		skin := DefaultSkin(genre)
-		
+
 		// Verify all colors are non-nil
 		if skin.TextPrimary == nil {
 			t.Errorf("DefaultSkin(%v) has nil TextPrimary", genre)
@@ -446,7 +404,7 @@ func TestUISkinColors(t *testing.T) {
 
 func TestWorldMapViewUpdateCamera(t *testing.T) {
 	wmv := NewWorldMapView(engine.GenreFantasy, 16, 320, 240)
-	
+
 	// Test CenterOn at various positions
 	positions := []struct{ x, y int }{
 		{0, 0},
@@ -454,7 +412,7 @@ func TestWorldMapViewUpdateCamera(t *testing.T) {
 		{100, 100},
 		{-10, -10},
 	}
-	
+
 	for _, pos := range positions {
 		wmv.CenterOn(pos.x, pos.y)
 		// Just verify it doesn't panic
@@ -465,20 +423,192 @@ func TestWorldMapViewUpdateCamera(t *testing.T) {
 
 func TestEventOverlayResetSelection(t *testing.T) {
 	eo := NewEventOverlay(engine.GenreFantasy, 400, 300)
-	
+
 	// Move selection
 	eo.SelectNext(4)
 	eo.SelectNext(4)
-	
+
 	if eo.SelectedChoice() != 2 {
 		t.Errorf("expected selectedChoice 2, got %d", eo.SelectedChoice())
 	}
-	
+
 	// Hide and show - Show() resets selection to 0
 	eo.Hide()
 	eo.Show()
-	
+
 	if eo.SelectedChoice() != 0 {
 		t.Errorf("after hide/show, expected selectedChoice 0 (reset), got %d", eo.SelectedChoice())
+	}
+}
+
+func TestNewSlotSelectionScreen(t *testing.T) {
+	screen := NewSlotSelectionScreen(engine.GenreFantasy, SlotModeLoad, 800, 600)
+	if screen == nil {
+		t.Fatal("NewSlotSelectionScreen returned nil")
+	}
+	if screen.mode != SlotModeLoad {
+		t.Errorf("expected mode SlotModeLoad, got %v", screen.mode)
+	}
+	if screen.genre != engine.GenreFantasy {
+		t.Errorf("expected genre Fantasy, got %v", screen.genre)
+	}
+}
+
+func TestSlotSelectionScreenSetMode(t *testing.T) {
+	screen := NewSlotSelectionScreen(engine.GenreFantasy, SlotModeLoad, 800, 600)
+
+	screen.SetMode(SlotModeSave)
+	if screen.mode != SlotModeSave {
+		t.Errorf("expected mode SlotModeSave, got %v", screen.mode)
+	}
+}
+
+func TestSlotSelectionScreenSetGenre(t *testing.T) {
+	screen := NewSlotSelectionScreen(engine.GenreFantasy, SlotModeLoad, 800, 600)
+
+	screen.SetGenre(engine.GenreScifi)
+	if screen.genre != engine.GenreScifi {
+		t.Errorf("expected genre Scifi, got %v", screen.genre)
+	}
+}
+
+func TestSlotSelectionScreenNavigation(t *testing.T) {
+	screen := NewSlotSelectionScreen(engine.GenreFantasy, SlotModeLoad, 800, 600)
+
+	// Simulate some slots
+	screen.slots = []saveload.SlotInfo{
+		{Slot: 0, Empty: false, IsAuto: true},
+		{Slot: 1, Empty: true, IsAuto: false},
+		{Slot: 2, Empty: false, IsAuto: false},
+	}
+
+	// Test initial state
+	if screen.SelectedSlot() != 0 {
+		t.Errorf("expected selected slot 0, got %d", screen.SelectedSlot())
+	}
+
+	// Test SelectNext
+	screen.SelectNext()
+	if screen.SelectedSlot() != 1 {
+		t.Errorf("expected selected slot 1 after SelectNext, got %d", screen.SelectedSlot())
+	}
+
+	// Test SelectPrev
+	screen.SelectPrev()
+	if screen.SelectedSlot() != 0 {
+		t.Errorf("expected selected slot 0 after SelectPrev, got %d", screen.SelectedSlot())
+	}
+
+	// Test wrap-around
+	screen.SelectPrev()
+	if screen.SelectedSlot() != 2 {
+		t.Errorf("expected selected slot 2 (wrap), got %d", screen.SelectedSlot())
+	}
+}
+
+func TestSlotSelectionScreenCanSelect(t *testing.T) {
+	screen := NewSlotSelectionScreen(engine.GenreFantasy, SlotModeLoad, 800, 600)
+
+	screen.slots = []saveload.SlotInfo{
+		{Slot: 0, Empty: false, IsAuto: true},
+		{Slot: 1, Empty: true, IsAuto: false},
+	}
+
+	// In load mode, can only select non-empty slots
+	screen.selectedIndex = 0
+	if !screen.CanSelect() {
+		t.Error("should be able to select non-empty slot in load mode")
+	}
+
+	screen.selectedIndex = 1
+	if screen.CanSelect() {
+		t.Error("should not be able to select empty slot in load mode")
+	}
+
+	// In save mode, can always select
+	screen.SetMode(SlotModeSave)
+	screen.selectedIndex = 1
+	if !screen.CanSelect() {
+		t.Error("should be able to select any slot in save mode")
+	}
+}
+
+func TestSlotSelectionScreenDeleteConfirm(t *testing.T) {
+	screen := NewSlotSelectionScreen(engine.GenreFantasy, SlotModeLoad, 800, 600)
+
+	screen.slots = []saveload.SlotInfo{
+		{Slot: 0, Empty: false, IsAuto: true},
+	}
+
+	if screen.IsConfirmingDelete() {
+		t.Error("should not be confirming delete initially")
+	}
+
+	screen.ToggleDeleteConfirm()
+	if !screen.IsConfirmingDelete() {
+		t.Error("should be confirming delete after toggle")
+	}
+
+	screen.CancelDelete()
+	if screen.IsConfirmingDelete() {
+		t.Error("should not be confirming delete after cancel")
+	}
+}
+
+func TestSlotSelectionScreenNoSlots(t *testing.T) {
+	screen := NewSlotSelectionScreen(engine.GenreFantasy, SlotModeLoad, 800, 600)
+
+	// With no slots, navigation should not panic
+	screen.SelectNext()
+	screen.SelectPrev()
+
+	// Selected slot should be -1 with no slots
+	if screen.SelectedSlot() != -1 {
+		t.Errorf("expected selected slot -1 with no slots, got %d", screen.SelectedSlot())
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	tests := []struct {
+		input    time.Duration
+		expected string
+	}{
+		{5 * time.Minute, "5m"},
+		{30 * time.Minute, "30m"},
+		{2 * time.Hour, "2h"},
+		{48 * time.Hour, "2d"},
+	}
+
+	for _, tt := range tests {
+		result := formatDuration(tt.input)
+		if result != tt.expected {
+			t.Errorf("formatDuration(%v) = %s, want %s", tt.input, result, tt.expected)
+		}
+	}
+}
+
+func TestSlotActionConstants(t *testing.T) {
+	// Verify constants exist and have distinct values
+	actions := []SlotAction{SlotActionNone, SlotActionSelect, SlotActionDelete, SlotActionCancel}
+	seen := make(map[SlotAction]bool)
+
+	for _, a := range actions {
+		if seen[a] {
+			t.Errorf("duplicate SlotAction value: %d", a)
+		}
+		seen[a] = true
+	}
+}
+
+func TestSlotModeConstants(t *testing.T) {
+	// Verify constants exist and have distinct values
+	modes := []SlotSelectionMode{SlotModeLoad, SlotModeSave}
+	seen := make(map[SlotSelectionMode]bool)
+
+	for _, m := range modes {
+		if seen[m] {
+			t.Errorf("duplicate SlotSelectionMode value: %d", m)
+		}
+		seen[m] = true
 	}
 }

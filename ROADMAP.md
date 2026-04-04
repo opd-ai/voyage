@@ -58,113 +58,113 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 *Goal: ECS scaffold, seed-based PCG, rendering, and a fully playable journey from origin to destination in one genre (`fantasy` baseline).*
 
 #### ECS Framework
-- [ ] Component / Entity / System interfaces (`SetGenre(genreID GenreID)` required on every **System**; see interface definition above)
-- [ ] System execution ordering and dependency graph
-- [ ] Entity lifecycle management (spawn, despawn, pooling)
+- [x] Component / Entity / System interfaces (`SetGenre(genreID GenreID)` required on every **System**; see interface definition above)
+- [x] System execution ordering and dependency graph
+- [x] Entity lifecycle management (spawn, despawn, pooling)
 
 #### Seed-Based Deterministic RNG
-- [ ] Master seed → subsystem seed derivation (`HashSeed` via SHA-256)
-- [ ] Per-subsystem isolated `math/rand` sources
-- [ ] Determinism test suite (same seed → same game)
+- [x] Master seed → subsystem seed derivation (`HashSeed` via SHA-256)
+- [x] Per-subsystem isolated `math/rand` sources
+- [x] Determinism test suite (same seed → same game)
 
 #### Input System
-- [ ] Keyboard / gamepad mapping
-- [ ] Rebindable controls (stored in config)
-- [ ] Modal input handling (overworld navigation vs. event resolution vs. menus)
+- [x] Keyboard / gamepad mapping
+- [x] Rebindable controls (stored in config)
+- [x] Modal input handling (overworld navigation vs. event resolution vs. menus)
 
 #### Procedural World Map Generation
-- [ ] Voronoi / grid-based overworld with regions and biomes
-- [ ] Origin → destination placement with guaranteed solvable path
-- [ ] Waypoint and landmark seeding (towns, outposts, ruins, wilderness)
-- [ ] Terrain type assignment (plains, forest, mountain, desert, river, ocean, ruin)
-- [ ] Branching path network with risk/reward tradeoffs (short=dangerous, long=safer)
-- [ ] `SetGenre()` on map generator to swap biome vocabulary (forest→void nebula, mountain→asteroid belt)
+- [x] Voronoi / grid-based overworld with regions and biomes
+- [x] Origin → destination placement with guaranteed solvable path
+- [x] Waypoint and landmark seeding (towns, outposts, ruins, wilderness)
+- [x] Terrain type assignment (plains, forest, mountain, desert, river, ocean, ruin)
+- [x] Branching path network with risk/reward tradeoffs (short=dangerous, long=safer)
+- [x] `SetGenre()` on map generator to swap biome vocabulary (forest→void nebula, mountain→asteroid belt)
 
 #### Overworld Rendering
-- [ ] Ebiten tile renderer for the world map
-- [ ] Procedural tile sprite generation (cellular automata + palette)
-- [ ] Fog-of-war / unexplored region masking
-- [ ] Player vessel token (procedurally generated sprite)
-- [ ] Landmark icons (procedurally generated per type and genre)
-- [ ] `SetGenre()` on renderer to swap palette and tile-theme presets
+- [x] Ebiten tile renderer for the world map
+- [x] Procedural tile sprite generation (cellular automata + palette)
+- [x] Fog-of-war / unexplored region masking
+- [x] Player vessel token (procedurally generated sprite)
+- [x] Landmark icons (procedurally generated per type and genre)
+- [x] `SetGenre()` on renderer to swap palette and tile-theme presets
 
 #### Time Progression System
-- [ ] Turn-based day/night cycle
-- [ ] Movement costs per terrain type (mountains cost more turns than plains)
-- [ ] Rest mechanic (spend turns stationary to recover morale/health)
-- [ ] Seasonal time tracking (affects hazard frequency and resource costs)
+- [x] Turn-based day/night cycle
+- [x] Movement costs per terrain type (mountains cost more turns than plains)
+- [x] Rest mechanic (spend turns stationary to recover morale/health)
+- [x] Seasonal time tracking (affects hazard frequency and resource costs)
 
 #### Resource Management — Core Six
-- [ ] Food (depletes daily; crew starves if empty)
-- [ ] Water (depletes daily; faster in desert/hot biomes)
-- [ ] Fuel / Stamina (depletes per movement; vessel stops if empty)
-- [ ] Medicine (consumed on injury/disease events; death without it)
-- [ ] Morale (falls on hardship, rises on rest/success; crew desert at zero)
-- [ ] Currency / Trade Goods (used at supply points)
-- [ ] Resource HUD with warning thresholds
-- [ ] `SetGenre()` renames resources (food→rations→biomass→credit-chips→scrap)
+- [x] Food (depletes daily; crew starves if empty)
+- [x] Water (depletes daily; faster in desert/hot biomes)
+- [x] Fuel / Stamina (depletes per movement; vessel stops if empty)
+- [x] Medicine (consumed on injury/disease events; death without it)
+- [x] Morale (falls on hardship, rises on rest/success; crew desert at zero)
+- [x] Currency / Trade Goods (used at supply points)
+- [x] Resource HUD with warning thresholds
+- [x] `SetGenre()` renames resources (food→rations→biomass→credit-chips→scrap)
 
 #### Party / Crew System — Foundation
-- [ ] Party entity with 2–6 crew member slots
-- [ ] Procedurally generated crew member (name, portrait-sprite, trait, skill)
-- [ ] Individual health tracking per crew member
-- [ ] Crew mortality (starvation, disease, injury)
-- [ ] `SetGenre()` re-skins crew names and portrait palette (medieval → alien → survivor → street-punk → wastelander)
+- [x] Party entity with 2–6 crew member slots
+- [x] Procedurally generated crew member (name, portrait-sprite, trait, skill)
+- [x] Individual health tracking per crew member
+- [x] Crew mortality (starvation, disease, injury)
+- [x] `SetGenre()` re-skins crew names and portrait palette (medieval → alien → survivor → street-punk → wastelander)
 
 #### Vessel / Transport System — Foundation
-- [ ] Vessel entity with hull integrity, speed, and cargo capacity stats
-- [ ] Cargo inventory (items the party carries)
-- [ ] Basic breakdown events (random chance per turn based on vessel condition)
-- [ ] Repair mechanic (spend materials to restore integrity)
-- [ ] `SetGenre()` swaps vessel type vocabulary (wagon → spacecraft → car → runner-rig → diesel-hauler)
+- [x] Vessel entity with hull integrity, speed, and cargo capacity stats
+- [x] Cargo inventory (items the party carries)
+- [x] Basic breakdown events (random chance per turn based on vessel condition)
+- [x] Repair mechanic (spend materials to restore integrity)
+- [x] `SetGenre()` swaps vessel type vocabulary (wagon → spacecraft → car → runner-rig → diesel-hauler)
 
 #### Vessel Customization — Foundation
-- [ ] Procedurally generated vessel name (seed-derived; player may rename)
-- [ ] Starting loadout selection (3 procedurally generated preset configurations: balanced, fast/light, slow/heavy)
-- [ ] Visual variant selection (3 procedurally generated hull skins per genre; no bundled sprites)
+- [x] Procedurally generated vessel name (seed-derived; player may rename)
+- [x] Starting loadout selection (3 procedurally generated preset configurations: balanced, fast/light, slow/heavy)
+- [x] Visual variant selection (3 procedurally generated hull skins per genre; no bundled sprites)
 
 #### Procedural Event System — Core
-- [ ] Event queue seeded from master seed + current map position
-- [ ] Event categories: weather, encounter, discovery, hardship, windfall
-- [ ] Choice-based event resolution (present 2–4 options with different resource costs/gains)
-- [ ] Outcome application (apply resource deltas, crew health changes, vessel damage)
-- [ ] All event text procedurally generated at runtime from grammar templates driven by seed — no pre-authored event scripts
-- [ ] `SetGenre()` re-skins event vocabulary and flavor text generation parameters
+- [x] Event queue seeded from master seed + current map position
+- [x] Event categories: weather, encounter, discovery, hardship, windfall
+- [x] Choice-based event resolution (present 2–4 options with different resource costs/gains)
+- [x] Outcome application (apply resource deltas, crew health changes, vessel damage)
+- [x] All event text procedurally generated at runtime from grammar templates driven by seed — no pre-authored event scripts
+- [x] `SetGenre()` re-skins event vocabulary and flavor text generation parameters
 
 #### Audio — Waveform Synthesis & SFX
-- [ ] Sine / square / sawtooth / triangle / noise waveforms
-- [ ] ADSR envelope system
-- [ ] SFX generation (travel movement, event fanfare, crisis alarm, success jingle, death toll)
-- [ ] Ambient travel music (looping procedural composition)
-- [ ] `SetGenre()` on audio to select thematic instrument/timbre presets
+- [x] Sine / square / sawtooth / triangle / noise waveforms
+- [x] ADSR envelope system
+- [x] SFX generation (travel movement, event fanfare, crisis alarm, success jingle, death toll)
+- [x] Ambient travel music (looping procedural composition)
+- [x] `SetGenre()` on audio to select thematic instrument/timbre presets
 
 #### UI / HUD / Menus
-- [ ] World map screen with vessel position, explored tiles, and route overlay
-- [ ] Resource panel (six resources with bar indicators)
-- [ ] Crew roster panel (names, health, morale per member)
-- [ ] Event overlay (text, choices, outcome display)
-- [ ] Main menu, pause menu, options screen
-- [ ] Genre-themed UI skin switchable via `SetGenre()`
+- [x] World map screen with vessel position, explored tiles, and route overlay
+- [x] Resource panel (six resources with bar indicators)
+- [x] Crew roster panel (names, health, morale per member)
+- [x] Event overlay (text, choices, outcome display)
+- [x] Main menu, pause menu, options screen
+- [x] Genre-themed UI skin switchable via `SetGenre()`
 
 #### Save / Load
-- [ ] Multiple save slots with autosave on turn advance
-- [ ] Slot selection screen
-- [ ] Seed embedded in save for reproducibility
+- [x] Multiple save slots with autosave on turn advance
+- [x] Slot selection screen
+- [x] Seed embedded in save for reproducibility
 
 #### Config / Settings
-- [ ] Resolution, volume, key bindings persisted to disk
-- [ ] CLI flags (`--seed`, `--genre`, `--difficulty`)
+- [x] Resolution, volume, key bindings persisted to disk
+- [x] CLI flags (`--seed`, `--genre`, `--difficulty`)
 
 #### Win / Lose Conditions
-- [ ] Win: vessel reaches destination tile with ≥1 living crew member
-- [ ] Lose: vessel destroyed, or all crew dead, or morale hits zero and full mutiny
-- [ ] End-screen with run summary (days traveled, crew lost, events survived, score)
+- [x] Win: vessel reaches destination tile with ≥1 living crew member
+- [x] Lose: vessel destroyed, or all crew dead, or morale hits zero and full mutiny
+- [x] End-screen with run summary (days traveled, crew lost, events survived, score)
 
 #### Foraging and Scavenging
-- [ ] Spend turns at wilderness, ruin, or landmark tiles to attempt a gather action
-- [ ] Outcome table seeded from position + turn count (find food, find parts, find nothing, trigger encounter)
-- [ ] Diminishing returns per tile (repeated foraging same tile yields less)
-- [ ] `SetGenre()` re-skins gather action (forage → salvage → scavenge → jack data → strip wreck)
+- [x] Spend turns at wilderness, ruin, or landmark tiles to attempt a gather action
+- [x] Outcome table seeded from position + turn count (find food, find parts, find nothing, trigger encounter)
+- [x] Diminishing returns per tile (repeated foraging same tile yields less)
+- [x] `SetGenre()` re-skins gather action (forage → salvage → scavenge → jack data → strip wreck)
 
 ---
 
@@ -173,16 +173,16 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 *Goal: Complete the gameplay loop — deep crew management, vessel upgrades, trading economy, tactical encounter resolution, and all five genre skins.*
 
 #### All 5 Genres — Full Integration
-- [ ] `SetGenre()` implemented on every system (renderer, audio, map, event, HUD, narrative, crew, vessel)
-- [ ] Genre selection at game start (or seed-derived genre) using `GenreID` constants
-- [ ] Per-genre biome / tile / palette / SFX / music generation parameter presets (configuration values that drive procedural generation — not bundled asset files)
-- [ ] Per-genre hazard vocabulary (magic storms, asteroid fields, zombie hordes, netrunner ambushes, radiation storms)
+- [x] `SetGenre()` implemented on every system (renderer, audio, map, event, HUD, narrative, crew, vessel)
+- [x] Genre selection at game start (or seed-derived genre) using `GenreID` constants
+- [x] Per-genre biome / tile / palette / SFX / music generation parameter presets (configuration values that drive procedural generation — not bundled asset files)
+- [x] Per-genre hazard vocabulary (magic storms, asteroid fields, zombie hordes, netrunner ambushes, radiation storms)
 
 #### Crew Depth — Traits, Skills, and Relationships
-- [ ] Trait system (brave, cautious, medic, mechanic, navigator, scavenger, etc.)
-- [ ] Skill system (skills improve with use — experienced medic heals more effectively)
-- [ ] Crew relationship network (pairs that bicker or bond affect morale events)
-- [ ] Crew-specific events (personal crisis, milestone, sacrifice opportunity)
+- [x] Trait system (brave, cautious, medic, mechanic, navigator, scavenger, etc.)
+- [x] Skill system (skills improve with use — experienced medic heals more effectively)
+- [x] Crew relationship network (pairs that bicker or bond affect morale events)
+- [x] Crew-specific events (personal crisis, milestone, sacrifice opportunity)
 - [ ] Procedurally generated crew backstory surfaced in crew detail screen — no pre-written character bios
 - [ ] `SetGenre()` re-skins trait/skill names (medic→biomancer→doc→netdoc→chem-doc)
 

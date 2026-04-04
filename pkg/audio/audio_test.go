@@ -291,3 +291,142 @@ func TestGenrePresets(t *testing.T) {
 		}
 	}
 }
+
+func TestMusicGenerator(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	// Generate a 4-bar loop
+	samples := gen.GenerateLoop(4)
+
+	if len(samples) == 0 {
+		t.Fatal("should generate samples")
+	}
+
+	// At 80 BPM, 4 bars = 12 seconds = 529200 samples
+	expectedMinSamples := int(44100 * 10) // At least 10 seconds
+	if len(samples) < expectedMinSamples {
+		t.Errorf("samples = %d, want at least %d", len(samples), expectedMinSamples)
+	}
+
+	// Check samples are in valid range
+	for i, s := range samples {
+		if s < -1.0 || s > 1.0 {
+			t.Errorf("sample %d = %f, out of range [-1, 1]", i, s)
+			break
+		}
+	}
+}
+
+func TestMusicGeneratorGenres(t *testing.T) {
+	for _, genre := range engine.AllGenres() {
+		gen := NewMusicGenerator(12345, genre)
+		samples := gen.GenerateLoop(2)
+
+		if len(samples) == 0 {
+			t.Errorf("genre %s: should generate samples", genre)
+		}
+	}
+}
+
+func TestMusicGeneratorDeterminism(t *testing.T) {
+	gen1 := NewMusicGenerator(12345, engine.GenreFantasy)
+	gen2 := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	samples1 := gen1.GenerateLoop(2)
+	samples2 := gen2.GenerateLoop(2)
+
+	if len(samples1) != len(samples2) {
+		t.Fatalf("sample lengths differ: %d vs %d", len(samples1), len(samples2))
+	}
+
+	// First 1000 samples should be identical
+	for i := 0; i < 1000 && i < len(samples1); i++ {
+		if samples1[i] != samples2[i] {
+			t.Errorf("sample %d differs: %f vs %f", i, samples1[i], samples2[i])
+			break
+		}
+	}
+}
+
+func TestMusicGeneratorBPM(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	gen.SetBPM(120)
+	fast := gen.GenerateLoop(4)
+
+	gen.SetBPM(60)
+	slow := gen.GenerateLoop(4)
+
+	// Slower BPM should produce longer loop
+	if len(slow) <= len(fast) {
+		t.Error("slower BPM should produce longer loop")
+	}
+}
+
+func TestMusicGeneratorBytes(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	bytes := gen.GenerateBytes(2)
+
+	if len(bytes) == 0 {
+		t.Error("should generate bytes")
+	}
+
+	// Should be even number (16-bit samples)
+	if len(bytes)%2 != 0 {
+		t.Errorf("bytes length = %d, should be even", len(bytes))
+	}
+}
+
+func TestAmbientLoop(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+	loop := gen.GenerateAmbientLoop(4)
+
+	if loop.IsEmpty() {
+		t.Error("loop should not be empty")
+	}
+
+	if loop.Duration <= 0 {
+		t.Errorf("duration = %f, should be positive", loop.Duration)
+	}
+
+	if loop.SampleRate != 44100 {
+		t.Errorf("sample rate = %f, want 44100", loop.SampleRate)
+	}
+
+	if loop.Genre != engine.GenreFantasy {
+		t.Errorf("genre = %s, want fantasy", loop.Genre)
+	}
+
+	if loop.Bars != 4 {
+		t.Errorf("bars = %d, want 4", loop.Bars)
+	}
+}
+
+func TestAmbientLoopGetSampleAt(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+	loop := gen.GenerateAmbientLoop(2)
+
+	// Sample at t=0 should be valid
+	s0 := loop.GetSampleAt(0)
+	if s0 < -1 || s0 > 1 {
+		t.Errorf("sample at 0 = %f, out of range", s0)
+	}
+
+	// Sample at t > duration should wrap (looping)
+	sLoop := loop.GetSampleAt(loop.Duration + 0.1)
+	if sLoop < -1 || sLoop > 1 {
+		t.Errorf("looped sample = %f, out of range", sLoop)
+	}
+}
+
+func TestMusicGeneratorGenreSwitch(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	gen.SetGenre(engine.GenreScifi)
+	loop := gen.GenerateAmbientLoop(2)
+
+	if loop.Genre != engine.GenreScifi {
+		t.Errorf("genre = %s, want scifi", loop.Genre)
+	}
+}

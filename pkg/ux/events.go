@@ -162,31 +162,46 @@ func (eo *EventOverlay) drawBorder(img *ebiten.Image) {
 
 // wrapText wraps text to fit within a maximum character width.
 func (eo *EventOverlay) wrapText(text string, maxWidth int) []string {
-	if maxWidth <= 0 {
-		maxWidth = 40
-	}
+	maxWidth = eo.ensureValidMaxWidth(maxWidth)
+	return eo.buildWrappedLines(splitWords(text), maxWidth)
+}
 
+// ensureValidMaxWidth returns a valid max width, defaulting to 40 if invalid.
+func (eo *EventOverlay) ensureValidMaxWidth(maxWidth int) int {
+	if maxWidth <= 0 {
+		return 40
+	}
+	return maxWidth
+}
+
+// buildWrappedLines builds lines from words respecting max width.
+func (eo *EventOverlay) buildWrappedLines(words []string, maxWidth int) []string {
 	var lines []string
 	var currentLine string
 
-	for _, word := range splitWords(text) {
-		if len(currentLine)+len(word)+1 > maxWidth {
-			if currentLine != "" {
-				lines = append(lines, currentLine)
-			}
-			currentLine = word
-		} else {
-			if currentLine != "" {
-				currentLine += " "
-			}
-			currentLine += word
-		}
+	for _, word := range words {
+		currentLine, lines = eo.addWordToLine(currentLine, word, maxWidth, lines)
 	}
+
 	if currentLine != "" {
 		lines = append(lines, currentLine)
 	}
-
 	return lines
+}
+
+// addWordToLine adds a word to the current line or starts a new line.
+func (eo *EventOverlay) addWordToLine(currentLine, word string, maxWidth int, lines []string) (string, []string) {
+	if len(currentLine)+len(word)+1 > maxWidth {
+		if currentLine != "" {
+			lines = append(lines, currentLine)
+		}
+		return word, lines
+	}
+
+	if currentLine != "" {
+		currentLine += " "
+	}
+	return currentLine + word, lines
 }
 
 // splitWords splits text into words.

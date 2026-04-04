@@ -30,38 +30,47 @@ func (r *Resolver) Apply(outcome *EventOutcome, res *resources.Resources, party 
 		Message: outcome.Description,
 	}
 
-	// Apply resource changes
-	if outcome.FoodDelta != 0 {
-		res.Add(resources.ResourceFood, outcome.FoodDelta)
-	}
-	if outcome.WaterDelta != 0 {
-		res.Add(resources.ResourceWater, outcome.WaterDelta)
-	}
-	if outcome.FuelDelta != 0 {
-		res.Add(resources.ResourceFuel, outcome.FuelDelta)
-	}
-	if outcome.MedicineDelta != 0 {
-		res.Add(resources.ResourceMedicine, outcome.MedicineDelta)
-	}
-	if outcome.MoraleDelta != 0 {
-		res.Add(resources.ResourceMorale, outcome.MoraleDelta)
-	}
-	if outcome.CurrencyDelta != 0 {
-		res.Add(resources.ResourceCurrency, outcome.CurrencyDelta)
+	r.applyResourceDeltas(outcome, res)
+	result.Deaths = r.applyCrewDamage(outcome, party)
+	r.applyVesselDamage(outcome, v)
+
+	return result
+}
+
+// applyResourceDeltas applies all resource changes from an outcome.
+func (r *Resolver) applyResourceDeltas(outcome *EventOutcome, res *resources.Resources) {
+	resourceDeltas := []struct {
+		resource resources.ResourceType
+		delta    float64
+	}{
+		{resources.ResourceFood, outcome.FoodDelta},
+		{resources.ResourceWater, outcome.WaterDelta},
+		{resources.ResourceFuel, outcome.FuelDelta},
+		{resources.ResourceMedicine, outcome.MedicineDelta},
+		{resources.ResourceMorale, outcome.MoraleDelta},
+		{resources.ResourceCurrency, outcome.CurrencyDelta},
 	}
 
-	// Apply crew damage
+	for _, rd := range resourceDeltas {
+		if rd.delta != 0 {
+			res.Add(rd.resource, rd.delta)
+		}
+	}
+}
+
+// applyCrewDamage applies damage to all crew members if needed.
+func (r *Resolver) applyCrewDamage(outcome *EventOutcome, party *crew.Party) []string {
 	if outcome.CrewDamage > 0 {
-		deaths := party.ApplyDamageToAll(outcome.CrewDamage)
-		result.Deaths = deaths
+		return party.ApplyDamageToAll(outcome.CrewDamage)
 	}
+	return nil
+}
 
-	// Apply vessel damage
+// applyVesselDamage applies damage to the vessel if needed.
+func (r *Resolver) applyVesselDamage(outcome *EventOutcome, v *vessel.Vessel) {
 	if outcome.VesselDamage > 0 {
 		v.TakeDamage(outcome.VesselDamage)
 	}
-
-	return result
 }
 
 // CanChoose checks if the party can select a choice requiring a skill.
@@ -100,25 +109,39 @@ func (r *Resolver) GetSkillBonus(event *Event, party *crew.Party) float64 {
 func (r *Resolver) ModifyOutcome(outcome *EventOutcome, bonus float64) EventOutcome {
 	modified := *outcome
 
-	// Reduce negative effects, increase positive effects
-	if modified.CrewDamage > 0 {
-		modified.CrewDamage *= (1 - bonus)
-	}
-	if modified.VesselDamage > 0 {
-		modified.VesselDamage *= (1 - bonus)
-	}
-	if modified.MoraleDelta < 0 {
-		modified.MoraleDelta *= (1 - bonus)
-	}
-	if modified.FoodDelta > 0 {
-		modified.FoodDelta *= (1 + bonus)
-	}
-	if modified.WaterDelta > 0 {
-		modified.WaterDelta *= (1 + bonus)
-	}
-	if modified.CurrencyDelta > 0 {
-		modified.CurrencyDelta *= (1 + bonus)
-	}
+	// Reduce negative effects
+	modified.CrewDamage = r.reduceNegativeEffect(modified.CrewDamage, bonus)
+	modified.VesselDamage = r.reduceNegativeEffect(modified.VesselDamage, bonus)
+	modified.MoraleDelta = r.reduceNegativeDelta(modified.MoraleDelta, bonus)
+
+	// Increase positive effects
+	modified.FoodDelta = r.increasePositiveDelta(modified.FoodDelta, bonus)
+	modified.WaterDelta = r.increasePositiveDelta(modified.WaterDelta, bonus)
+	modified.CurrencyDelta = r.increasePositiveDelta(modified.CurrencyDelta, bonus)
 
 	return modified
+}
+
+// reduceNegativeEffect reduces a positive damage value by bonus percentage.
+func (r *Resolver) reduceNegativeEffect(value, bonus float64) float64 {
+	if value > 0 {
+		return value * (1 - bonus)
+	}
+	return value
+}
+
+// reduceNegativeDelta reduces the magnitude of a negative delta.
+func (r *Resolver) reduceNegativeDelta(value, bonus float64) float64 {
+	if value < 0 {
+		return value * (1 - bonus)
+	}
+	return value
+}
+
+// increasePositiveDelta increases a positive delta by bonus percentage.
+func (r *Resolver) increasePositiveDelta(value, bonus float64) float64 {
+	if value > 0 {
+		return value * (1 + bonus)
+	}
+	return value
 }

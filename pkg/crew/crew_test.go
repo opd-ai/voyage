@@ -192,3 +192,274 @@ func TestNamesAndSkills(t *testing.T) {
 		}
 	}
 }
+
+func TestTraitEffects(t *testing.T) {
+	// Test that all traits have effects defined
+	for _, trait := range AllTraits() {
+		effect := GetTraitEffect(trait)
+		// Effects can be zero values, just verify we can get them
+		_ = effect
+	}
+
+	// Test specific trait effects
+	braveEffect := GetTraitEffect(TraitBrave)
+	if braveEffect.CombatModifier <= 0 {
+		t.Error("TraitBrave should have positive combat modifier")
+	}
+
+	cautiousEffect := GetTraitEffect(TraitCautious)
+	if cautiousEffect.FuelModifier >= 0 {
+		t.Error("TraitCautious should have negative fuel modifier (saves fuel)")
+	}
+
+	navigatorEffect := GetTraitEffect(TraitNavigator)
+	if navigatorEffect.TravelModifier <= 0 {
+		t.Error("TraitNavigator should have positive travel modifier")
+	}
+	if navigatorEffect.FuelModifier >= 0 {
+		t.Error("TraitNavigator should have negative fuel modifier (saves fuel)")
+	}
+
+	scavengerEffect := GetTraitEffect(TraitScavenger)
+	if scavengerEffect.ScavengeModifier <= 0 {
+		t.Error("TraitScavenger should have positive scavenge modifier")
+	}
+}
+
+func TestAllTraitsCount(t *testing.T) {
+	traits := AllTraits()
+	if len(traits) != 10 {
+		t.Errorf("Expected 10 traits, got %d", len(traits))
+	}
+}
+
+func TestNavigatorAndScavengerTraits(t *testing.T) {
+	// Test that navigator and scavenger exist
+	found := make(map[Trait]bool)
+	for _, trait := range AllTraits() {
+		found[trait] = true
+	}
+	if !found[TraitNavigator] {
+		t.Error("TraitNavigator should be in AllTraits()")
+	}
+	if !found[TraitScavenger] {
+		t.Error("TraitScavenger should be in AllTraits()")
+	}
+
+	// Test trait names for all genres
+	for _, genre := range engine.AllGenres() {
+		navName := TraitName(TraitNavigator, genre)
+		if navName == "" {
+			t.Errorf("TraitNavigator should have name for genre %s", genre)
+		}
+		scavName := TraitName(TraitScavenger, genre)
+		if scavName == "" {
+			t.Errorf("TraitScavenger should have name for genre %s", genre)
+		}
+	}
+}
+
+func TestSkillEffectiveness(t *testing.T) {
+	// Unskilled worker
+	unskilled := NewCrewMember(1, "Test", TraitBrave, SkillNone)
+	if unskilled.SkillEffectiveness() != 0.5 {
+		t.Errorf("Unskilled effectiveness = %f, want 0.5", unskilled.SkillEffectiveness())
+	}
+
+	// New skilled worker (level 0)
+	skilled := NewCrewMember(2, "Test", TraitBrave, SkillMedic)
+	if skilled.SkillEffectiveness() != 1.0 {
+		t.Errorf("Level 0 effectiveness = %f, want 1.0", skilled.SkillEffectiveness())
+	}
+
+	// Level up and test
+	skilled.SkillLevel = 3
+	if skilled.SkillEffectiveness() != 1.3 {
+		t.Errorf("Level 3 effectiveness = %f, want 1.3", skilled.SkillEffectiveness())
+	}
+
+	// Max level
+	skilled.SkillLevel = MaxSkillLevel
+	if skilled.SkillEffectiveness() != 1.5 {
+		t.Errorf("Level 5 effectiveness = %f, want 1.5", skilled.SkillEffectiveness())
+	}
+}
+
+func TestSkillExpGain(t *testing.T) {
+	member := NewCrewMember(1, "Test", TraitBrave, SkillMedic)
+	if member.SkillLevel != 0 {
+		t.Error("Should start at level 0")
+	}
+
+	// Partial experience
+	leveledUp := member.GainSkillExp(50)
+	if leveledUp {
+		t.Error("Should not level up from 50 exp")
+	}
+	if member.SkillLevel != 0 {
+		t.Error("Should still be level 0")
+	}
+
+	// Level up
+	leveledUp = member.GainSkillExp(60)
+	if !leveledUp {
+		t.Error("Should level up after 110 total exp (threshold 100)")
+	}
+	if member.SkillLevel != 1 {
+		t.Errorf("Should be level 1, got %d", member.SkillLevel)
+	}
+	// Should have overflow exp
+	if member.SkillExp != 10 {
+		t.Errorf("Overflow exp = %f, want 10", member.SkillExp)
+	}
+}
+
+func TestSkillExpThresholds(t *testing.T) {
+	expected := []float64{100, 150, 225, 337.5, 506.25}
+	for level, exp := range expected {
+		got := SkillExpThreshold(level)
+		if got != exp {
+			t.Errorf("Level %d threshold = %f, want %f", level, got, exp)
+		}
+	}
+}
+
+func TestSkillExpNoGainForUnskilled(t *testing.T) {
+	member := NewCrewMember(1, "Test", TraitBrave, SkillNone)
+	leveledUp := member.GainSkillExp(1000)
+	if leveledUp {
+		t.Error("Unskilled members should not gain exp")
+	}
+	if member.SkillLevel != 0 {
+		t.Error("Unskilled members should stay at level 0")
+	}
+}
+
+func TestSkillExpProgress(t *testing.T) {
+	member := NewCrewMember(1, "Test", TraitBrave, SkillMedic)
+	member.SkillExp = 50
+	progress := member.SkillExpProgress()
+	if progress != 0.5 {
+		t.Errorf("Progress = %f, want 0.5", progress)
+	}
+}
+
+func TestSkillLevelName(t *testing.T) {
+	names := []string{"Novice", "Apprentice", "Journeyman", "Expert", "Master", "Grandmaster"}
+	for level, expectedName := range names {
+		name := SkillLevelName(level)
+		if name != expectedName {
+			t.Errorf("Level %d name = %s, want %s", level, name, expectedName)
+		}
+	}
+}
+
+func TestRelationshipNetwork(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	// Test getting non-existent relationship
+	rel := network.GetRelationship(1, 2)
+	if rel.Type != RelationNeutral {
+		t.Error("New relationship should be neutral")
+	}
+	if rel.Strength != 0 {
+		t.Error("New relationship should have 0 strength")
+	}
+}
+
+func TestRelationshipInteraction(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	// Positive interactions
+	for i := 0; i < 10; i++ {
+		network.Interact(1, 2, 8)
+	}
+	rel := network.GetRelationship(1, 2)
+	if rel.Strength != 80 {
+		t.Errorf("Strength = %f, want 80", rel.Strength)
+	}
+	if rel.Interactions != 10 {
+		t.Errorf("Interactions = %d, want 10", rel.Interactions)
+	}
+	if rel.Type != RelationRomantic {
+		t.Errorf("Type = %d, want %d (Romantic)", rel.Type, RelationRomantic)
+	}
+}
+
+func TestRelationshipRivalry(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	// Negative interactions
+	for i := 0; i < 10; i++ {
+		network.Interact(1, 2, -10)
+	}
+	rel := network.GetRelationship(1, 2)
+	if rel.Strength != -100 {
+		t.Errorf("Strength = %f, want -100", rel.Strength)
+	}
+	if rel.Type != RelationRivalry {
+		t.Errorf("Type = %d, want %d (Rivalry)", rel.Type, RelationRivalry)
+	}
+}
+
+func TestRelationshipMoraleModifier(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	// Create friendly relationship
+	for i := 0; i < 5; i++ {
+		network.Interact(1, 2, 15)
+	}
+	rel := network.GetRelationship(1, 2)
+	modifier := rel.MoraleModifier()
+	if modifier <= 0 {
+		t.Errorf("Friendly relationship should have positive morale modifier, got %f", modifier)
+	}
+
+	// Create rivalry
+	network2 := NewRelationshipNetwork(engine.GenreFantasy)
+	for i := 0; i < 10; i++ {
+		network2.Interact(3, 4, -10)
+	}
+	rel2 := network2.GetRelationship(3, 4)
+	modifier2 := rel2.MoraleModifier()
+	if modifier2 >= 0 {
+		t.Errorf("Rivalry should have negative morale modifier, got %f", modifier2)
+	}
+}
+
+func TestRelationTypeName(t *testing.T) {
+	for _, genre := range engine.AllGenres() {
+		types := []RelationType{RelationNeutral, RelationFriendly, RelationRomantic, RelationRivalry, RelationMentorship}
+		for _, rt := range types {
+			name := RelationTypeName(rt, genre)
+			if name == "" || name == "Unknown" {
+				t.Errorf("RelationType %d should have name for genre %s", rt, genre)
+			}
+		}
+	}
+}
+
+func TestRelationshipsFor(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	network.Interact(1, 2, 10)
+	network.Interact(1, 3, 10)
+	network.Interact(2, 3, 10)
+
+	rels := network.RelationshipsFor(1)
+	if len(rels) != 2 {
+		t.Errorf("Member 1 should have 2 relationships, got %d", len(rels))
+	}
+}
+
+func TestAllRelationships(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	network.Interact(1, 2, 10)
+	network.Interact(3, 4, -10)
+
+	all := network.AllRelationships()
+	if len(all) != 2 {
+		t.Errorf("Should have 2 relationships, got %d", len(all))
+	}
+}

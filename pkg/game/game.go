@@ -90,34 +90,59 @@ func NewGame(cfg Config) *Game {
 
 // Update implements ebiten.Game.Update.
 func (g *Game) Update() error {
-	// Handle input based on state
+	g.handleStateInput()
+	g.handleDebugToggle()
+	return nil
+}
+
+// handleStateInput processes input based on current game state.
+func (g *Game) handleStateInput() {
 	switch g.state {
 	case StateMenu:
-		if ebiten.IsKeyPressed(ebiten.KeyEnter) || ebiten.IsKeyPressed(ebiten.KeySpace) {
-			g.state = StatePlaying
-		}
+		g.handleMenuInput()
 	case StatePlaying:
-		if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-			g.state = StatePaused
-		}
-		// Update game world
-		g.world.Update(1.0 / 60.0)
+		g.handlePlayingInput()
 	case StatePaused:
-		if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-			g.state = StatePlaying
-		}
+		g.handlePausedInput()
 	case StateGameOver:
-		if ebiten.IsKeyPressed(ebiten.KeyEnter) {
-			g.state = StateMenu
-		}
+		g.handleGameOverInput()
 	}
+}
 
-	// Toggle debug mode
+// handleMenuInput handles input in menu state.
+func (g *Game) handleMenuInput() {
+	if ebiten.IsKeyPressed(ebiten.KeyEnter) || ebiten.IsKeyPressed(ebiten.KeySpace) {
+		g.state = StatePlaying
+	}
+}
+
+// handlePlayingInput handles input during gameplay.
+func (g *Game) handlePlayingInput() {
+	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+		g.state = StatePaused
+	}
+	g.world.Update(1.0 / 60.0)
+}
+
+// handlePausedInput handles input in paused state.
+func (g *Game) handlePausedInput() {
+	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+		g.state = StatePlaying
+	}
+}
+
+// handleGameOverInput handles input in game over state.
+func (g *Game) handleGameOverInput() {
+	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
+		g.state = StateMenu
+	}
+}
+
+// handleDebugToggle toggles debug mode with F3 key.
+func (g *Game) handleDebugToggle() {
 	if ebiten.IsKeyPressed(ebiten.KeyF3) {
 		g.debugMode = !g.debugMode
 	}
-
-	return nil
 }
 
 // Draw implements ebiten.Game.Draw.

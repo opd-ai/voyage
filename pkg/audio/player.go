@@ -6,19 +6,21 @@ import "github.com/opd-ai/voyage/pkg/engine"
 // The actual playback will use Ebitengine's audio package when the
 // game loop is running.
 type Player struct {
-	genre  engine.GenreID
-	sfxGen *SFXGenerator
-	volume float64
-	muted  bool
+	genre    engine.GenreID
+	sfxGen   *SFXGenerator
+	musicGen *MusicGenerator
+	volume   float64
+	muted    bool
 }
 
 // NewPlayer creates a new audio player.
 func NewPlayer(masterSeed int64, genre engine.GenreID) *Player {
 	return &Player{
-		genre:  genre,
-		sfxGen: NewSFXGenerator(masterSeed, genre),
-		volume: 1.0,
-		muted:  false,
+		genre:    genre,
+		sfxGen:   NewSFXGenerator(masterSeed, genre),
+		musicGen: NewMusicGenerator(masterSeed, genre),
+		volume:   1.0,
+		muted:    false,
 	}
 }
 
@@ -26,6 +28,7 @@ func NewPlayer(masterSeed int64, genre engine.GenreID) *Player {
 func (p *Player) SetGenre(genre engine.GenreID) {
 	p.genre = genre
 	p.sfxGen.SetGenre(genre)
+	p.musicGen.SetGenre(genre)
 }
 
 // Genre returns the current genre.
@@ -96,4 +99,26 @@ func (p *Player) PreloadSFX() map[SFXType][]float64 {
 // SFXGenerator returns the underlying SFX generator.
 func (p *Player) SFXGenerator() *SFXGenerator {
 	return p.sfxGen
+}
+
+// MusicGenerator returns the underlying music generator.
+func (p *Player) MusicGenerator() *MusicGenerator {
+	return p.musicGen
+}
+
+// GenerateAmbientMusic creates a looping ambient music track.
+// Returns the generated samples for playback.
+func (p *Player) GenerateAmbientMusic(bars int) *AmbientLoop {
+	if p.muted {
+		return nil
+	}
+
+	loop := p.musicGen.GenerateAmbientLoop(bars)
+
+	// Apply volume to samples
+	for i := range loop.Samples {
+		loop.Samples[i] *= p.volume
+	}
+
+	return loop
 }

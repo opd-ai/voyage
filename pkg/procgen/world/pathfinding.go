@@ -11,63 +11,98 @@ type PathResult struct {
 
 // FindPath finds a path from start to end using A* algorithm.
 func (w *WorldMap) FindPath(start, end Point) PathResult {
-	if w.GetTile(start.X, start.Y) == nil || w.GetTile(end.X, end.Y) == nil {
+	if !w.isValidPathEndpoints(start, end) {
 		return PathResult{Found: false}
 	}
 
-	openSet := &priorityQueue{}
-	heap.Init(openSet)
+	state := w.initPathfindingState(start, end)
 
-	cameFrom := make(map[Point]Point)
-	gScore := make(map[Point]int)
-	gScore[start] = 0
-
-	fScore := make(map[Point]int)
-	fScore[start] = heuristic(start, end)
-
-	heap.Push(openSet, &pathNode{point: start, priority: fScore[start]})
-	inOpen := map[Point]bool{start: true}
-
-	for openSet.Len() > 0 {
-		current := heap.Pop(openSet).(*pathNode).point
-		delete(inOpen, current)
+	for state.openSet.Len() > 0 {
+		current := heap.Pop(state.openSet).(*pathNode).point
+		delete(state.inOpen, current)
 
 		if current == end {
-			return PathResult{
-				Path:  reconstructPath(cameFrom, current),
-				Cost:  gScore[current],
-				Found: true,
-			}
+			return w.buildPathResult(state, current)
 		}
 
-		tile := w.GetTile(current.X, current.Y)
-		if tile == nil {
-			continue
-		}
-
-		for _, neighbor := range tile.Connections {
-			neighborTile := w.GetTile(neighbor.X, neighbor.Y)
-			if neighborTile == nil {
-				continue
-			}
-
-			info := terrainBaseInfo[neighborTile.Terrain]
-			tentativeG := gScore[current] + info.MovementCost
-
-			if oldG, exists := gScore[neighbor]; !exists || tentativeG < oldG {
-				cameFrom[neighbor] = current
-				gScore[neighbor] = tentativeG
-				fScore[neighbor] = tentativeG + heuristic(neighbor, end)
-
-				if !inOpen[neighbor] {
-					heap.Push(openSet, &pathNode{point: neighbor, priority: fScore[neighbor]})
-					inOpen[neighbor] = true
-				}
-			}
-		}
+		w.processNeighbors(state, current, end)
 	}
 
 	return PathResult{Found: false}
+}
+
+// pathfindingState holds A* algorithm state.
+type pathfindingState struct {
+	openSet  *priorityQueue
+	cameFrom map[Point]Point
+	gScore   map[Point]int
+	fScore   map[Point]int
+	inOpen   map[Point]bool
+}
+
+// isValidPathEndpoints checks if start and end points are valid tiles.
+func (w *WorldMap) isValidPathEndpoints(start, end Point) bool {
+	return w.GetTile(start.X, start.Y) != nil && w.GetTile(end.X, end.Y) != nil
+}
+
+// initPathfindingState initializes A* algorithm data structures.
+func (w *WorldMap) initPathfindingState(start, end Point) *pathfindingState {
+	openSet := &priorityQueue{}
+	heap.Init(openSet)
+
+	state := &pathfindingState{
+		openSet:  openSet,
+		cameFrom: make(map[Point]Point),
+		gScore:   map[Point]int{start: 0},
+		fScore:   map[Point]int{start: heuristic(start, end)},
+		inOpen:   map[Point]bool{start: true},
+	}
+
+	heap.Push(openSet, &pathNode{point: start, priority: state.fScore[start]})
+	return state
+}
+
+// processNeighbors evaluates all neighbors of the current node.
+func (w *WorldMap) processNeighbors(state *pathfindingState, current, end Point) {
+	tile := w.GetTile(current.X, current.Y)
+	if tile == nil {
+		return
+	}
+
+	for _, neighbor := range tile.Connections {
+		w.evaluateNeighbor(state, current, neighbor, end)
+	}
+}
+
+// evaluateNeighbor processes a single neighbor in A* search.
+func (w *WorldMap) evaluateNeighbor(state *pathfindingState, current, neighbor, end Point) {
+	neighborTile := w.GetTile(neighbor.X, neighbor.Y)
+	if neighborTile == nil {
+		return
+	}
+
+	info := terrainBaseInfo[neighborTile.Terrain]
+	tentativeG := state.gScore[current] + info.MovementCost
+
+	if oldG, exists := state.gScore[neighbor]; !exists || tentativeG < oldG {
+		state.cameFrom[neighbor] = current
+		state.gScore[neighbor] = tentativeG
+		state.fScore[neighbor] = tentativeG + heuristic(neighbor, end)
+
+		if !state.inOpen[neighbor] {
+			heap.Push(state.openSet, &pathNode{point: neighbor, priority: state.fScore[neighbor]})
+			state.inOpen[neighbor] = true
+		}
+	}
+}
+
+// buildPathResult constructs the final path result.
+func (w *WorldMap) buildPathResult(state *pathfindingState, current Point) PathResult {
+	return PathResult{
+		Path:  reconstructPath(state.cameFrom, current),
+		Cost:  state.gScore[current],
+		Found: true,
+	}
 }
 
 // HasPath checks if a path exists between two points.

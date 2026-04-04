@@ -69,54 +69,72 @@ func (e *Envelope) Sample() float64 {
 	switch e.state {
 	case EnvelopeIdle:
 		e.level = 0
-
 	case EnvelopeAttack:
-		if e.attack > 0 {
-			e.level = e.time / e.attack
-			if e.level >= 1.0 {
-				e.level = 1.0
-				e.state = EnvelopeDecay
-				e.time = 0
-			}
-		} else {
-			e.level = 1.0
-			e.state = EnvelopeDecay
-			e.time = 0
-		}
-
+		e.processAttack()
 	case EnvelopeDecay:
-		if e.decay > 0 {
-			e.level = 1.0 - (1.0-e.sustain)*(e.time/e.decay)
-			if e.time >= e.decay {
-				e.level = e.sustain
-				e.state = EnvelopeSustain
-				e.time = 0
-			}
-		} else {
-			e.level = e.sustain
-			e.state = EnvelopeSustain
-			e.time = 0
-		}
-
+		e.processDecay()
 	case EnvelopeSustain:
 		e.level = e.sustain
-
 	case EnvelopeRelease:
-		if e.release > 0 {
-			startLevel := e.sustain
-			e.level = startLevel * (1.0 - e.time/e.release)
-			if e.level <= 0 {
-				e.level = 0
-				e.state = EnvelopeIdle
-			}
-		} else {
-			e.level = 0
-			e.state = EnvelopeIdle
-		}
+		e.processRelease()
 	}
 
 	e.time += dt
 	return e.level
+}
+
+// processAttack handles the attack phase of the envelope.
+func (e *Envelope) processAttack() {
+	if e.attack > 0 {
+		e.level = e.time / e.attack
+		if e.level >= 1.0 {
+			e.level = 1.0
+			e.transitionToDecay()
+		}
+	} else {
+		e.level = 1.0
+		e.transitionToDecay()
+	}
+}
+
+// processDecay handles the decay phase of the envelope.
+func (e *Envelope) processDecay() {
+	if e.decay > 0 {
+		e.level = 1.0 - (1.0-e.sustain)*(e.time/e.decay)
+		if e.time >= e.decay {
+			e.transitionToSustain()
+		}
+	} else {
+		e.transitionToSustain()
+	}
+}
+
+// processRelease handles the release phase of the envelope.
+func (e *Envelope) processRelease() {
+	if e.release > 0 {
+		startLevel := e.sustain
+		e.level = startLevel * (1.0 - e.time/e.release)
+		if e.level <= 0 {
+			e.level = 0
+			e.state = EnvelopeIdle
+		}
+	} else {
+		e.level = 0
+		e.state = EnvelopeIdle
+	}
+}
+
+// transitionToDecay moves to decay state and resets time.
+func (e *Envelope) transitionToDecay() {
+	e.state = EnvelopeDecay
+	e.time = 0
+}
+
+// transitionToSustain moves to sustain state and sets level.
+func (e *Envelope) transitionToSustain() {
+	e.level = e.sustain
+	e.state = EnvelopeSustain
+	e.time = 0
 }
 
 // IsActive returns true if the envelope is producing output.

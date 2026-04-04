@@ -263,3 +263,134 @@ func TestGenreTemplates(t *testing.T) {
 		}
 	}
 }
+
+func TestHazardVocabulary(t *testing.T) {
+	expected := map[engine.GenreID][]string{
+		engine.GenreFantasy:   {"Magic Storm", "Cursed Grounds"},
+		engine.GenreScifi:     {"Asteroid Field", "Ion Storm"},
+		engine.GenreHorror:    {"Zombie Horde", "Infected Zone"},
+		engine.GenreCyberpunk: {"Netrunner Ambush", "Corporate Drone Swarm"},
+		engine.GenrePostapoc:  {"Radiation Storm", "Mutant Swarm"},
+	}
+
+	for genre, expectedNames := range expected {
+		names := HazardVocabulary(genre)
+		if len(names) != len(expectedNames) {
+			t.Errorf("genre %s: got %d hazards, want %d", genre, len(names), len(expectedNames))
+			continue
+		}
+		for i, name := range expectedNames {
+			if names[i] != name {
+				t.Errorf("genre %s: hazard %d = %s, want %s", genre, i, names[i], name)
+			}
+		}
+	}
+}
+
+func TestCategoryHazardExists(t *testing.T) {
+	categories := AllEventCategories()
+	found := false
+	for _, c := range categories {
+		if c == CategoryHazard {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("CategoryHazard should be in AllEventCategories")
+	}
+}
+
+func TestCategoryHazardNames(t *testing.T) {
+	genres := engine.AllGenres()
+	for _, g := range genres {
+		name := CategoryName(CategoryHazard, g)
+		if name == "" {
+			t.Errorf("genre %s: CategoryHazard should have a name", g)
+		}
+	}
+}
+
+func TestAllEventTemplates(t *testing.T) {
+	genres := engine.AllGenres()
+	for _, g := range genres {
+		templates := AllEventTemplates(g)
+		if len(templates) != 6 {
+			t.Errorf("genre %s: got %d categories, want 6", g, len(templates))
+		}
+		// Check hazard templates exist
+		hazards, ok := templates[CategoryHazard]
+		if !ok {
+			t.Errorf("genre %s: missing hazard templates", g)
+		}
+		if len(hazards) < 2 {
+			t.Errorf("genre %s: got %d hazard templates, want at least 2", g, len(hazards))
+		}
+	}
+}
+
+func TestCrewEventTemplates(t *testing.T) {
+	genres := engine.AllGenres()
+	for _, g := range genres {
+		templates := GetCrewEventTemplates(g)
+		if len(templates) < 3 {
+			t.Errorf("genre %s: got %d crew templates, want at least 3", g, len(templates))
+		}
+
+		// Check for each event type
+		hasCrisis := false
+		hasMilestone := false
+		hasSacrifice := false
+		for _, tmpl := range templates {
+			switch tmpl.Type {
+			case CrewEventCrisis:
+				hasCrisis = true
+			case CrewEventMilestone:
+				hasMilestone = true
+			case CrewEventSacrifice:
+				hasSacrifice = true
+			}
+			// Check templates have placeholders
+			if tmpl.Title == "" {
+				t.Errorf("genre %s: crew event should have title", g)
+			}
+			if len(tmpl.Choices) == 0 {
+				t.Errorf("genre %s: crew event %s should have choices", g, tmpl.Title)
+			}
+		}
+
+		if !hasCrisis {
+			t.Errorf("genre %s: should have crisis event", g)
+		}
+		if !hasMilestone {
+			t.Errorf("genre %s: should have milestone event", g)
+		}
+		if !hasSacrifice {
+			t.Errorf("genre %s: should have sacrifice event", g)
+		}
+	}
+}
+
+func TestCategoryCrewNames(t *testing.T) {
+	genres := engine.AllGenres()
+	for _, g := range genres {
+		name := CategoryName(CategoryCrew, g)
+		if name == "" {
+			t.Errorf("genre %s: CategoryCrew should have a name", g)
+		}
+	}
+}
+
+func TestCategoryCrewInAllCategories(t *testing.T) {
+	categories := AllEventCategories()
+	found := false
+	for _, c := range categories {
+		if c == CategoryCrew {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("CategoryCrew should be in AllEventCategories")
+	}
+}

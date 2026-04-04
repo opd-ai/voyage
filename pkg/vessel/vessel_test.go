@@ -279,3 +279,292 @@ func TestVesselNames(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadoutGenerator(t *testing.T) {
+	lg := NewLoadoutGenerator(12345, engine.GenreFantasy)
+
+	loadouts := lg.GenerateAll()
+	if len(loadouts) != 3 {
+		t.Errorf("expected 3 loadouts, got %d", len(loadouts))
+	}
+
+	// Verify each loadout type is represented
+	types := make(map[LoadoutType]bool)
+	for _, l := range loadouts {
+		types[l.Type] = true
+	}
+
+	for _, lt := range AllLoadoutTypes() {
+		if !types[lt] {
+			t.Errorf("missing loadout type: %d", lt)
+		}
+	}
+}
+
+func TestLoadoutDeterminism(t *testing.T) {
+	lg1 := NewLoadoutGenerator(12345, engine.GenreFantasy)
+	lg2 := NewLoadoutGenerator(12345, engine.GenreFantasy)
+
+	l1 := lg1.Generate(LoadoutBalanced)
+	l2 := lg2.Generate(LoadoutBalanced)
+
+	// Same seed should produce same results
+	if l1.StartFood != l2.StartFood {
+		t.Errorf("food mismatch: %f vs %f", l1.StartFood, l2.StartFood)
+	}
+	if l1.SpeedMod != l2.SpeedMod {
+		t.Errorf("speed mod mismatch: %f vs %f", l1.SpeedMod, l2.SpeedMod)
+	}
+}
+
+func TestLoadoutVariation(t *testing.T) {
+	lg1 := NewLoadoutGenerator(12345, engine.GenreFantasy)
+	lg2 := NewLoadoutGenerator(67890, engine.GenreFantasy)
+
+	l1 := lg1.Generate(LoadoutBalanced)
+	l2 := lg2.Generate(LoadoutBalanced)
+
+	// Different seeds should produce different results
+	// Note: There's a small chance they could be equal, but highly unlikely
+	if l1.StartFood == l2.StartFood && l1.SpeedMod == l2.SpeedMod {
+		t.Log("Warning: different seeds produced same loadout (possible but unlikely)")
+	}
+}
+
+func TestLoadoutTypeCharacteristics(t *testing.T) {
+	lg := NewLoadoutGenerator(12345, engine.GenreFantasy)
+
+	balanced := lg.Generate(LoadoutBalanced)
+	fast := lg.Generate(LoadoutFastLight)
+	heavy := lg.Generate(LoadoutSlowHeavy)
+
+	// Fast should be faster than balanced
+	if fast.SpeedMod <= balanced.SpeedMod*0.9 { // Allow 10% variation
+		t.Error("fast loadout should have higher speed than balanced")
+	}
+
+	// Heavy should have more capacity than balanced
+	if heavy.CapacityMod <= balanced.CapacityMod*0.9 {
+		t.Error("heavy loadout should have more capacity than balanced")
+	}
+
+	// Heavy should be slower than fast
+	if heavy.SpeedMod >= fast.SpeedMod*1.1 {
+		t.Error("heavy loadout should be slower than fast")
+	}
+}
+
+func TestLoadoutApplyToVessel(t *testing.T) {
+	lg := NewLoadoutGenerator(12345, engine.GenreFantasy)
+	loadout := lg.Generate(LoadoutBalanced)
+	v := NewVessel(VesselSmall, engine.GenreScifi) // Different initial config
+
+	loadout.ApplyToVessel(v)
+
+	// Verify vessel was configured
+	if v.vesselType != loadout.VesselType {
+		t.Error("vessel type not applied")
+	}
+	if v.genre != loadout.Genre {
+		t.Error("genre not applied")
+	}
+	if v.Integrity() != v.MaxIntegrity() {
+		t.Error("vessel should have full integrity after loadout")
+	}
+}
+
+func TestLoadoutNames(t *testing.T) {
+	genres := engine.AllGenres()
+	types := AllLoadoutTypes()
+
+	for _, g := range genres {
+		for _, lt := range types {
+			name := LoadoutName(lt, g)
+			if name == "" {
+				t.Errorf("missing name for genre=%s, loadout=%d", g, lt)
+			}
+		}
+	}
+}
+
+func TestLoadoutDescription(t *testing.T) {
+	for _, lt := range AllLoadoutTypes() {
+		desc := LoadoutDescription(lt)
+		if desc == "" {
+			t.Errorf("missing description for loadout type %d", lt)
+		}
+	}
+}
+
+func TestLoadoutGenreSwitching(t *testing.T) {
+	lg := NewLoadoutGenerator(12345, engine.GenreFantasy)
+
+	fantasy := lg.Generate(LoadoutBalanced)
+	if fantasy.Name() != "Merchant's Caravan" {
+		t.Errorf("fantasy name = %s, want Merchant's Caravan", fantasy.Name())
+	}
+
+	lg.SetGenre(engine.GenreScifi)
+	scifi := lg.Generate(LoadoutBalanced)
+	if scifi.Name() != "Survey Vessel" {
+		t.Errorf("scifi name = %s, want Survey Vessel", scifi.Name())
+	}
+}
+
+func TestAllVisualVariants(t *testing.T) {
+	variants := AllVisualVariants()
+	if len(variants) != 3 {
+		t.Errorf("expected 3 visual variants, got %d", len(variants))
+	}
+
+	// Check all three variants are present
+	expected := map[VisualVariant]bool{
+		VisualVariantA: false,
+		VisualVariantB: false,
+		VisualVariantC: false,
+	}
+	for _, v := range variants {
+		expected[v] = true
+	}
+	for v, found := range expected {
+		if !found {
+			t.Errorf("variant %d not in AllVisualVariants", v)
+		}
+	}
+}
+
+func TestVisualVariantNames(t *testing.T) {
+	genres := engine.AllGenres()
+	variants := AllVisualVariants()
+
+	for _, g := range genres {
+		for _, v := range variants {
+			name := VisualVariantName(v, g)
+			if name == "" {
+				t.Errorf("missing name for genre=%s, variant=%d", g, v)
+			}
+		}
+	}
+}
+
+func TestVisualVariantDescription(t *testing.T) {
+	for _, v := range AllVisualVariants() {
+		desc := VisualVariantDescription(v)
+		if desc == "" {
+			t.Errorf("missing description for variant %d", v)
+		}
+	}
+}
+
+func TestHullSkinGenerator(t *testing.T) {
+	gen := NewHullSkinGenerator(12345, engine.GenreFantasy)
+
+	skins := gen.GenerateAll(VesselMedium)
+	if len(skins) != 3 {
+		t.Errorf("expected 3 hull skins, got %d", len(skins))
+	}
+
+	// Verify each variant is represented
+	variants := make(map[VisualVariant]bool)
+	for _, s := range skins {
+		variants[s.Variant] = true
+		if s.Genre != engine.GenreFantasy {
+			t.Errorf("skin genre = %s, want fantasy", s.Genre)
+		}
+		if s.VesselType != VesselMedium {
+			t.Errorf("skin vessel type = %d, want %d", s.VesselType, VesselMedium)
+		}
+	}
+
+	for _, v := range AllVisualVariants() {
+		if !variants[v] {
+			t.Errorf("missing variant: %d", v)
+		}
+	}
+}
+
+func TestHullSkinGeneratorDeterminism(t *testing.T) {
+	gen1 := NewHullSkinGenerator(12345, engine.GenreFantasy)
+	gen2 := NewHullSkinGenerator(12345, engine.GenreFantasy)
+
+	skin1 := gen1.Generate(VisualVariantA, VesselMedium)
+	skin2 := gen2.Generate(VisualVariantA, VesselMedium)
+
+	if skin1.PrimaryHue != skin2.PrimaryHue {
+		t.Errorf("primary hue mismatch: %f vs %f", skin1.PrimaryHue, skin2.PrimaryHue)
+	}
+	if skin1.PatternDensity != skin2.PatternDensity {
+		t.Errorf("pattern density mismatch: %f vs %f", skin1.PatternDensity, skin2.PatternDensity)
+	}
+}
+
+func TestHullSkinGeneratorVariation(t *testing.T) {
+	gen1 := NewHullSkinGenerator(12345, engine.GenreFantasy)
+	gen2 := NewHullSkinGenerator(67890, engine.GenreFantasy)
+
+	skin1 := gen1.Generate(VisualVariantA, VesselMedium)
+	skin2 := gen2.Generate(VisualVariantA, VesselMedium)
+
+	// Different seeds should produce different results
+	if skin1.PrimaryHue == skin2.PrimaryHue && skin1.SecondaryHue == skin2.SecondaryHue {
+		t.Log("Warning: different seeds produced same hull skin (possible but unlikely)")
+	}
+}
+
+func TestHullSkinGeneratorGenreSwitching(t *testing.T) {
+	gen := NewHullSkinGenerator(12345, engine.GenreFantasy)
+
+	fantasy := gen.Generate(VisualVariantA, VesselMedium)
+	if fantasy.Genre != engine.GenreFantasy {
+		t.Errorf("genre = %s, want fantasy", fantasy.Genre)
+	}
+
+	gen.SetGenre(engine.GenreScifi)
+	scifi := gen.Generate(VisualVariantA, VesselMedium)
+	if scifi.Genre != engine.GenreScifi {
+		t.Errorf("genre = %s, want scifi", scifi.Genre)
+	}
+}
+
+func TestVesselVisuals(t *testing.T) {
+	gen := NewHullSkinGenerator(12345, engine.GenreFantasy)
+	params := gen.Generate(VisualVariantB, VesselMedium)
+
+	visuals := NewVesselVisuals(VisualVariantB, params)
+
+	if visuals.Variant != VisualVariantB {
+		t.Errorf("variant = %d, want %d", visuals.Variant, VisualVariantB)
+	}
+
+	name := visuals.VariantName()
+	if name != "Iron Bound" {
+		t.Errorf("variant name = %s, want Iron Bound", name)
+	}
+
+	desc := visuals.Description()
+	if desc == "" {
+		t.Error("description should not be empty")
+	}
+}
+
+func TestWrapHue(t *testing.T) {
+	tests := []struct {
+		input    float64
+		expected float64
+	}{
+		{0, 0},
+		{180, 180},
+		{360, 0},
+		{370, 10},
+		{-10, 350},
+		{720, 0},
+		{-720, 0},
+	}
+
+	for _, tt := range tests {
+		result := wrapHue(tt.input)
+		if result != tt.expected {
+			t.Errorf("wrapHue(%f) = %f, want %f", tt.input, result, tt.expected)
+		}
+	}
+}

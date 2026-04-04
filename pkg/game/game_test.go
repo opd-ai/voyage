@@ -222,3 +222,300 @@ func TestTerrainConsumption(t *testing.T) {
 		t.Error("terrain should consume water")
 	}
 }
+
+func TestSeason(t *testing.T) {
+	tm := NewTimeManager()
+
+	// At start, should be spring
+	if tm.Season() != SeasonSpring {
+		t.Errorf("initial season = %s, want Spring", SeasonName(tm.Season()))
+	}
+
+	// Advance to summer (20 days * 4 turns = 80 turns)
+	tm.SetTurn(80)
+	if tm.Season() != SeasonSummer {
+		t.Errorf("season at day 21 = %s, want Summer", SeasonName(tm.Season()))
+	}
+
+	// Advance to autumn (40 days * 4 turns = 160 turns)
+	tm.SetTurn(160)
+	if tm.Season() != SeasonAutumn {
+		t.Errorf("season at day 41 = %s, want Autumn", SeasonName(tm.Season()))
+	}
+
+	// Advance to winter (60 days * 4 turns = 240 turns)
+	tm.SetTurn(240)
+	if tm.Season() != SeasonWinter {
+		t.Errorf("season at day 61 = %s, want Winter", SeasonName(tm.Season()))
+	}
+
+	// Verify year wraps back to spring (80 days * 4 turns = 320 turns)
+	tm.SetTurn(320)
+	if tm.Season() != SeasonSpring {
+		t.Errorf("season at day 81 = %s, want Spring (year 2)", SeasonName(tm.Season()))
+	}
+}
+
+func TestSeasonDayTracking(t *testing.T) {
+	tm := NewTimeManager()
+
+	// Day 1 of spring
+	tm.SetTurn(0)
+	if tm.DayInSeason() != 1 {
+		t.Errorf("day in season at turn 0 = %d, want 1", tm.DayInSeason())
+	}
+
+	// Day 10 of spring (36 turns = 9 days, so turn 36 is day 10)
+	tm.SetTurn(36)
+	if tm.DayInSeason() != 10 {
+		t.Errorf("day in season at turn 36 = %d, want 10", tm.DayInSeason())
+	}
+
+	// Day 1 of summer
+	tm.SetTurn(80) // Day 21 overall, day 1 of summer
+	if tm.DayInSeason() != 1 {
+		t.Errorf("day in season at turn 80 = %d, want 1", tm.DayInSeason())
+	}
+}
+
+func TestSeasonModifiers(t *testing.T) {
+	// Test winter has highest costs
+	winterCost, winterHazard := SeasonModifiers(SeasonWinter)
+	summerCost, summerHazard := SeasonModifiers(SeasonSummer)
+
+	if winterCost <= summerCost {
+		t.Errorf("winter cost (%f) should be > summer cost (%f)", winterCost, summerCost)
+	}
+	if winterHazard <= summerHazard {
+		t.Errorf("winter hazard (%f) should be > summer hazard (%f)", winterHazard, winterHazard)
+	}
+
+	// Test autumn has lowest costs
+	autumnCost, _ := SeasonModifiers(SeasonAutumn)
+	springCost, _ := SeasonModifiers(SeasonSpring)
+
+	if autumnCost >= springCost {
+		t.Errorf("autumn cost (%f) should be < spring cost (%f)", autumnCost, springCost)
+	}
+}
+
+func TestDaysUntilSeasonChange(t *testing.T) {
+	tm := NewTimeManager()
+
+	// At start of spring (day 1), 20 days until summer
+	tm.SetTurn(0)
+	if tm.DaysUntilSeasonChange() != 20 {
+		t.Errorf("days until season change at start = %d, want 20", tm.DaysUntilSeasonChange())
+	}
+
+	// At day 15 of spring, 6 days until summer
+	tm.SetTurn(56) // Day 15
+	if tm.DaysUntilSeasonChange() != 6 {
+		t.Errorf("days until season change at day 15 = %d, want 6", tm.DaysUntilSeasonChange())
+	}
+}
+
+func TestYearTracking(t *testing.T) {
+	tm := NewTimeManager()
+
+	// Year 1 at start
+	tm.SetTurn(0)
+	if tm.Year() != 1 {
+		t.Errorf("year at turn 0 = %d, want 1", tm.Year())
+	}
+
+	// Year 1 at day 80 (end of first year)
+	tm.SetTurn(316) // Day 80
+	if tm.Year() != 1 {
+		t.Errorf("year at day 80 = %d, want 1", tm.Year())
+	}
+
+	// Year 2 at day 81
+	tm.SetTurn(320) // Day 81
+	if tm.Year() != 2 {
+		t.Errorf("year at day 81 = %d, want 2", tm.Year())
+	}
+}
+
+func TestResourceCostModifier(t *testing.T) {
+	tm := NewTimeManager()
+
+	// Spring should be baseline
+	tm.SetTurn(0)
+	if tm.ResourceCostModifier() != 1.0 {
+		t.Errorf("spring resource modifier = %f, want 1.0", tm.ResourceCostModifier())
+	}
+
+	// Winter should be higher
+	tm.SetTurn(240) // Winter
+	if tm.ResourceCostModifier() <= 1.0 {
+		t.Errorf("winter resource modifier = %f, want > 1.0", tm.ResourceCostModifier())
+	}
+}
+
+func TestSeasonProgress(t *testing.T) {
+	tm := NewTimeManager()
+
+	// Start of season should be 0%
+	tm.SetTurn(0)
+	if tm.SeasonProgress() != 0.0 {
+		t.Errorf("season progress at start = %f, want 0.0", tm.SeasonProgress())
+	}
+
+	// Middle of season should be ~50%
+	tm.SetTurn(40) // Day 11, about halfway through spring
+	progress := tm.SeasonProgress()
+	if progress < 0.4 || progress > 0.6 {
+		t.Errorf("season progress at day 11 = %f, want ~0.5", progress)
+	}
+}
+
+func TestForageManager(t *testing.T) {
+	fm := NewForageManager(12345, engine.GenreFantasy)
+
+	// Test action name
+	if fm.ActionName() != "Forage" {
+		t.Errorf("fantasy action name = %s, want Forage", fm.ActionName())
+	}
+
+	fm.SetGenre(engine.GenreScifi)
+	if fm.ActionName() != "Salvage" {
+		t.Errorf("scifi action name = %s, want Salvage", fm.ActionName())
+	}
+
+	fm.SetGenre(engine.GenreHorror)
+	if fm.ActionName() != "Scavenge" {
+		t.Errorf("horror action name = %s, want Scavenge", fm.ActionName())
+	}
+}
+
+func TestForageCanForage(t *testing.T) {
+	fm := NewForageManager(12345, engine.GenreFantasy)
+
+	// Forest tile should be forageable
+	forestTile := &world.Tile{X: 0, Y: 0, Terrain: world.TerrainForest}
+	if !fm.CanForage(forestTile) {
+		t.Error("should be able to forage in forest")
+	}
+
+	// Ruin tile should be forageable
+	ruinTile := &world.Tile{X: 0, Y: 0, Terrain: world.TerrainRuin}
+	if !fm.CanForage(ruinTile) {
+		t.Error("should be able to forage in ruins")
+	}
+
+	// River tile should not be forageable
+	riverTile := &world.Tile{X: 0, Y: 0, Terrain: world.TerrainRiver}
+	if fm.CanForage(riverTile) {
+		t.Error("should not be able to forage in river")
+	}
+
+	// Nil tile should not be forageable
+	if fm.CanForage(nil) {
+		t.Error("should not be able to forage nil tile")
+	}
+}
+
+func TestForageDeterminism(t *testing.T) {
+	fm1 := NewForageManager(12345, engine.GenreFantasy)
+	fm2 := NewForageManager(12345, engine.GenreFantasy)
+
+	tile := &world.Tile{X: 5, Y: 10, Terrain: world.TerrainForest}
+
+	result1 := fm1.Forage(tile, 0)
+	result2 := fm2.Forage(tile, 0)
+
+	// Same seed and position should produce same outcome
+	if result1.Outcome != result2.Outcome {
+		t.Errorf("outcome mismatch: %d vs %d", result1.Outcome, result2.Outcome)
+	}
+	if result1.FoodGain != result2.FoodGain {
+		t.Errorf("food gain mismatch: %f vs %f", result1.FoodGain, result2.FoodGain)
+	}
+}
+
+func TestForageDiminishingReturns(t *testing.T) {
+	fm := NewForageManager(12345, engine.GenreFantasy)
+
+	tile := &world.Tile{X: 0, Y: 0, Terrain: world.TerrainForest}
+
+	// First forage
+	result1 := fm.Forage(tile, 0)
+	gain1 := result1.FoodGain + result1.WaterGain + result1.FuelGain + result1.MedsGain
+
+	// Second forage at same tile
+	result2 := fm.Forage(tile, 1)
+	gain2 := result2.FoodGain + result2.WaterGain + result2.FuelGain + result2.MedsGain
+
+	// Forage count should increase
+	if fm.GetForageCount(0, 0) != 2 {
+		t.Errorf("forage count = %d, want 2", fm.GetForageCount(0, 0))
+	}
+
+	// Note: We can't guarantee second is less due to RNG, but we can test the mechanism
+	// The modifier itself can be tested
+	mod0 := fm.calculateYieldModifier(0)
+	mod1 := fm.calculateYieldModifier(1)
+	mod2 := fm.calculateYieldModifier(2)
+
+	if mod0 != 1.0 {
+		t.Errorf("first forage modifier = %f, want 1.0", mod0)
+	}
+	if mod1 >= mod0 {
+		t.Error("second forage modifier should be less than first")
+	}
+	if mod2 >= mod1 {
+		t.Error("third forage modifier should be less than second")
+	}
+
+	_ = gain1
+	_ = gain2
+}
+
+func TestForageResetTile(t *testing.T) {
+	fm := NewForageManager(12345, engine.GenreFantasy)
+	tile := &world.Tile{X: 3, Y: 7, Terrain: world.TerrainForest}
+
+	fm.Forage(tile, 0)
+	fm.Forage(tile, 1)
+
+	if fm.GetForageCount(3, 7) != 2 {
+		t.Errorf("forage count = %d, want 2", fm.GetForageCount(3, 7))
+	}
+
+	fm.ResetTile(3, 7)
+	if fm.GetForageCount(3, 7) != 0 {
+		t.Errorf("forage count after reset = %d, want 0", fm.GetForageCount(3, 7))
+	}
+}
+
+func TestForageApplyResult(t *testing.T) {
+	fm := NewForageManager(12345, engine.GenreFantasy)
+	res := resources.NewResources(engine.GenreFantasy)
+
+	initialFood := res.Get(resources.ResourceFood)
+
+	result := &ForageResult{
+		Outcome:  ForageFood,
+		FoodGain: 15.0,
+	}
+
+	fm.ApplyResult(result, res)
+
+	if res.Get(resources.ResourceFood) != initialFood+15.0 {
+		t.Errorf("food after apply = %f, want %f", res.Get(resources.ResourceFood), initialFood+15.0)
+	}
+}
+
+func TestForageNonForageableTile(t *testing.T) {
+	fm := NewForageManager(12345, engine.GenreFantasy)
+	tile := &world.Tile{X: 0, Y: 0, Terrain: world.TerrainRiver}
+
+	result := fm.Forage(tile, 0)
+	if result.Outcome != ForageNothing {
+		t.Errorf("non-forageable tile outcome = %d, want ForageNothing", result.Outcome)
+	}
+	if result.TurnsSpent != 0 {
+		t.Errorf("non-forageable turns = %d, want 0", result.TurnsSpent)
+	}
+}

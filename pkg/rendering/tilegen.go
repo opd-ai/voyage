@@ -1,3 +1,5 @@
+//go:build !headless
+
 package rendering
 
 import (
@@ -54,39 +56,60 @@ func (tg *TileGenerator) GenerateTile(baseColor color.Color, variation float64) 
 // GenerateTileCA creates a tile using cellular automata patterns.
 func (tg *TileGenerator) GenerateTileCA(baseColor, accentColor color.Color, density float64, iterations int) *ebiten.Image {
 	size := tg.tileSize
+	grid := tg.initializeCAGrid(size, density)
+	grid = tg.runCAIterations(grid, iterations)
+	return tg.renderCAGrid(grid, baseColor, accentColor)
+}
+
+// initializeCAGrid creates a new grid with random cell distribution.
+func (tg *TileGenerator) initializeCAGrid(size int, density float64) [][]bool {
 	grid := make([][]bool, size)
 	for i := range grid {
 		grid[i] = make([]bool, size)
 	}
-
-	// Initialize with random cells
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
 			grid[y][x] = tg.gen.Chance(density)
 		}
 	}
+	return grid
+}
 
-	// Run cellular automata
+// runCAIterations applies cellular automata rules for the specified iterations.
+func (tg *TileGenerator) runCAIterations(grid [][]bool, iterations int) [][]bool {
+	size := len(grid)
 	for iter := 0; iter < iterations; iter++ {
-		newGrid := make([][]bool, size)
-		for i := range newGrid {
-			newGrid[i] = make([]bool, size)
-		}
-
-		for y := 0; y < size; y++ {
-			for x := 0; x < size; x++ {
-				neighbors := tg.countNeighbors(grid, x, y)
-				if grid[y][x] {
-					newGrid[y][x] = neighbors >= 4
-				} else {
-					newGrid[y][x] = neighbors >= 5
-				}
-			}
-		}
-		grid = newGrid
+		grid = tg.stepCA(grid, size)
 	}
+	return grid
+}
 
-	// Render to image
+// stepCA performs a single cellular automata iteration.
+func (tg *TileGenerator) stepCA(grid [][]bool, size int) [][]bool {
+	newGrid := make([][]bool, size)
+	for i := range newGrid {
+		newGrid[i] = make([]bool, size)
+	}
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			neighbors := tg.countNeighbors(grid, x, y)
+			newGrid[y][x] = tg.applyCARules(grid[y][x], neighbors)
+		}
+	}
+	return newGrid
+}
+
+// applyCARules determines cell state based on neighbor count.
+func (tg *TileGenerator) applyCARules(alive bool, neighbors int) bool {
+	if alive {
+		return neighbors >= 4
+	}
+	return neighbors >= 5
+}
+
+// renderCAGrid converts the boolean grid to an image.
+func (tg *TileGenerator) renderCAGrid(grid [][]bool, baseColor, accentColor color.Color) *ebiten.Image {
+	size := len(grid)
 	img := ebiten.NewImage(size, size)
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
@@ -97,7 +120,6 @@ func (tg *TileGenerator) GenerateTileCA(baseColor, accentColor color.Color, dens
 			}
 		}
 	}
-
 	return img
 }
 
@@ -110,15 +132,17 @@ func (tg *TileGenerator) countNeighbors(grid [][]bool, x, y int) int {
 			if dx == 0 && dy == 0 {
 				continue
 			}
-			nx, ny := x+dx, y+dy
-			if nx >= 0 && nx < size && ny >= 0 && ny < size {
-				if grid[ny][nx] {
-					count++
-				}
+			if tg.isAliveNeighbor(grid, x+dx, y+dy, size) {
+				count++
 			}
 		}
 	}
 	return count
+}
+
+// isAliveNeighbor checks if a neighbor cell is alive and in bounds.
+func (tg *TileGenerator) isAliveNeighbor(grid [][]bool, nx, ny, size int) bool {
+	return nx >= 0 && nx < size && ny >= 0 && ny < size && grid[ny][nx]
 }
 
 // GenerateCharacterSprite creates a procedural character sprite.
