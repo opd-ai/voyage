@@ -195,10 +195,10 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] `SetGenre()` renames and recolours status icons
 
 #### Vessel Systems — Depth and Upgrades
-- [ ] Modular vessel system: engine, cargo hold, medical bay, navigation, defense
-- [ ] Per-system integrity tracking (damaged navigation = harder routing)
-- [ ] Upgrade system (spend currency at supply points to improve modules)
-- [ ] Cargo management screen (weight/volume limits per cargo hold tier)
+- [x] Modular vessel system: engine, cargo hold, medical bay, navigation, defense
+- [x] Per-system integrity tracking (damaged navigation = harder routing)
+- [x] Upgrade system (spend currency at supply points to improve modules)
+- [x] Cargo management screen (weight/volume limits per cargo hold tier)
 - [ ] Salvage mechanic (strip fallen vessels/wrecks for parts)
 - [ ] `SetGenre()` re-skins vessel modules (stable→engine room→engine bay→core systems→reactor)
 
