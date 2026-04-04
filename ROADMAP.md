@@ -13,8 +13,18 @@
 Every system must implement the `GenreSwitcher` interface to switch thematic presentation at runtime. **This interface is not yet implemented** — creating it is the first task in v1.0 ECS Framework.
 
 ```go
+type GenreID string
+
+const (
+    GenreIDFantasy   GenreID = "fantasy"
+    GenreIDScifi     GenreID = "scifi"
+    GenreIDHorror    GenreID = "horror"
+    GenreIDCyberpunk GenreID = "cyberpunk"
+    GenreIDPostapoc  GenreID = "postapoc"
+)
+
 type GenreSwitcher interface {
-    SetGenre(genreID string) // genreID: "fantasy" | "scifi" | "horror" | "cyberpunk" | "postapoc"
+    SetGenre(genreID GenreID)
 }
 ```
 
@@ -48,7 +58,7 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 *Goal: ECS scaffold, seed-based PCG, rendering, and a fully playable journey from origin to destination in one genre (`fantasy` baseline).*
 
 #### ECS Framework
-- [ ] Component / Entity / System interfaces (`SetGenre(genreID string)` required on every **System**; see interface definition above)
+- [ ] Component / Entity / System interfaces (`SetGenre(genreID GenreID)` required on every **System**; see interface definition above)
 - [ ] System execution ordering and dependency graph
 - [ ] Entity lifecycle management (spawn, despawn, pooling)
 
@@ -108,6 +118,11 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [ ] Repair mechanic (spend materials to restore integrity)
 - [ ] `SetGenre()` swaps vessel type vocabulary (wagon → spacecraft → car → runner-rig → diesel-hauler)
 
+#### Vessel Customization — Foundation
+- [ ] Procedurally generated vessel name (seed-derived; player may rename)
+- [ ] Starting loadout selection (3 procedurally generated preset configurations: balanced, fast/light, slow/heavy)
+- [ ] Visual variant selection (3 procedurally generated hull skins per genre; no bundled sprites)
+
 #### Procedural Event System — Core
 - [ ] Event queue seeded from master seed + current map position
 - [ ] Event categories: weather, encounter, discovery, hardship, windfall
@@ -145,6 +160,12 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [ ] Lose: vessel destroyed, or all crew dead, or morale hits zero and full mutiny
 - [ ] End-screen with run summary (days traveled, crew lost, events survived, score)
 
+#### Foraging and Scavenging
+- [ ] Spend turns at wilderness, ruin, or landmark tiles to attempt a gather action
+- [ ] Outcome table seeded from position + turn count (find food, find parts, find nothing, trigger encounter)
+- [ ] Diminishing returns per tile (repeated foraging same tile yields less)
+- [ ] `SetGenre()` re-skins gather action (forage → salvage → scavenge → jack data → strip wreck)
+
 ---
 
 ### v2.0 — Full Journey Loop (All 5 Genres, Crew Depth, Vessel Upgrades, Trading, Tactical Encounters)
@@ -153,7 +174,7 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 
 #### All 5 Genres — Full Integration
 - [ ] `SetGenre()` implemented on every system (renderer, audio, map, event, HUD, narrative, crew, vessel)
-- [ ] Genre selection at game start (or seed-derived genre)
+- [ ] Genre selection at game start (or seed-derived genre) using `GenreID` constants
 - [ ] Per-genre biome / tile / palette / SFX / music generation parameter presets (configuration values that drive procedural generation — not bundled asset files)
 - [ ] Per-genre hazard vocabulary (magic storms, asteroid fields, zombie hordes, netrunner ambushes, radiation storms)
 
@@ -181,6 +202,13 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [ ] Salvage mechanic (strip fallen vessels/wrecks for parts)
 - [ ] `SetGenre()` re-skins vessel modules (stable→engine room→engine bay→core systems→reactor)
 
+#### Vessel Customization — Full System
+- [ ] Custom module loadout screen before departure (swap starting module tier per slot)
+- [ ] Upgrade path branching: each module offers speed, cargo, or defense specialization tracks
+- [ ] Vessel insignia / livery selection (procedurally generated emblems; no bundled art)
+- [ ] Vessel insurance mechanic: pay currency to protect one module from a catastrophic breakdown
+- [ ] `SetGenre()` re-skins customization screen and module upgrade vocabulary
+
 #### Trading and Supply Points
 - [ ] Procedurally generated supply posts / towns at waypoints
 - [ ] Dynamic inventory seeded from map region and genre
@@ -192,7 +220,7 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 
 #### Tactical Encounter Resolution
 - [ ] Encounter types: ambush, negotiation, race/chase, crisis management, puzzle
-- [ ] Pause-able real-time or turn-based resolution phase (FTL-style)
+- [ ] Pausable real-time or turn-based resolution phase (FTL-style)
 - [ ] Crew assignment to encounter roles (fighter, medic, engineer, negotiator)
 - [ ] Outcome branches: victory, partial success, retreat, defeat
 - [ ] `SetGenre()` re-skins encounter imagery and sound design
@@ -214,6 +242,13 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [ ] Destination discovery events as the party approaches
 - [ ] Arrival ceremony sequence with procedurally generated narrative payoff text
 - [ ] `SetGenre()` re-skins destination type and arrival text vocabulary
+
+#### Crew Council
+- [ ] Critical route-choice decisions (dangerous shortcut, costly detour) trigger a crew vote
+- [ ] Each crew member votes based on their dominant trait (brave votes for risk, cautious votes against)
+- [ ] Player may overrule the vote; doing so applies a morale penalty proportional to dissent
+- [ ] Unanimous votes in the player's favor grant a small morale bonus
+- [ ] `SetGenre()` re-skins the council scene (campfire debate → bridge briefing → group argument → exec meeting → bonfire council)
 
 ---
 
@@ -259,6 +294,12 @@ All SFX and music are procedurally synthesized at runtime — no pre-recorded or
 - [ ] `horror` — desaturate + red-tint at low crew health, film grain
 - [ ] `cyberpunk` — neon bloom, CRT curvature, glitch artifacts on hacks
 - [ ] `postapoc` — sepia wash, dust overlay, heavy vignette
+
+#### Dynamic Minimap Overlay
+- [ ] Always-visible procedurally rendered corner minimap showing explored tiles and current position
+- [ ] Icons for towns, ruins, hazards, and the destination (revealed as explored)
+- [ ] Minimap fades or dims in crisis events (damaged navigation module reduces fidelity)
+- [ ] `SetGenre()` applies genre-appropriate minimap aesthetic (parchment map → holographic display → torn atlas → AR overlay → scratched road atlas)
 
 ---
 
@@ -319,6 +360,13 @@ All SFX and music are procedurally synthesized at runtime — no pre-recorded or
 - [ ] Achievements displayed on end-screen and in main menu Hall of Records
 - [ ] All achievement descriptions generated from seed/genre context
 
+#### Trade Route Dynamics
+- [ ] Regional supply and demand model: goods sold in a region become cheaper; scarcities drive prices up
+- [ ] Demand shifts propagate along procedurally generated trade routes (selling food in one town raises its price there and lowers it along the supply chain)
+- [ ] Price history display at supply points (sparkline of recent trade activity for that good)
+- [ ] Speculation mechanic: buy cheap goods early in the journey to sell dear at the destination
+- [ ] `SetGenre()` re-skins trade goods and economic vocabulary (grain/spices → fuel cells/ore → medical supplies/ammo → data chips/access codes → scrap/water)
+
 ---
 
 ### v5.0 — Online / Social / Platform Expansion
@@ -350,6 +398,12 @@ All SFX and music are procedurally synthesized at runtime — no pre-recorded or
 - [ ] Android APK build via `gomobile`
 - [ ] iOS build via `gomobile`
 - [ ] Touch controls (tap to move, swipe to scroll map, tap to select options)
+
+#### Run Sharing
+- [ ] Export any completed run as a compact shareable code (seed + genre + decision sequence encoded as base58 string)
+- [ ] Import a run code to replay another player's exact route and choices as a ghost overlay
+- [ ] Ghost mode: player plays the same seed while a translucent ghost vessel shows the shared run's path and timing
+- [ ] Share codes copyable from the end-screen with a single button press
 
 ---
 
@@ -389,10 +443,10 @@ pkg/audit/           — Feature audit tooling
 
 All content generators must satisfy:
 
-1. **Determinism**: Given the same seed and genre, every run produces an identical world. Verified by determinism test suite.
-2. **No Bundled Assets**: Zero embedded images, audio files, or pre-authored text. Confirmed by `scripts/validate-no-assets.sh`.
+1. **Determinism**: Given the same seed and genre, every run produces an identical world. Verified by determinism test suite (to be implemented in v1.0).
+2. **No Bundled Assets**: Zero embedded images, audio files, or pre-authored text. Confirmed by `scripts/validate-no-assets.sh` (to be implemented in v1.0).
 3. **Single Binary**: `go build ./cmd/voyage` produces one self-contained executable.
-4. **GenreSwitcher Compliance**: Every ECS System implements `SetGenre(genreID string)`. Verified by interface conformance tests.
+4. **GenreSwitcher Compliance**: Every ECS System implements `SetGenre(genreID GenreID)`. Verified by interface conformance tests (to be implemented in v1.0).
 5. **Seed Isolation**: Each subsystem derives its own `math/rand` source from the master seed via `HashSeed`. Cross-subsystem seeding is prohibited.
 
 ---
@@ -401,12 +455,12 @@ All content generators must satisfy:
 
 | Milestone | Target | Measurement |
 |-----------|--------|-------------|
-| No bundled assets | 0 `.png`/`.mp3`/`.ogg`/hardcoded text | `scripts/validate-no-assets.sh` |
-| Deterministic runs | Same seed produces identical world | Determinism test suite |
+| No bundled assets | 0 `.png`/`.mp3`/`.ogg`/hardcoded text | `scripts/validate-no-assets.sh` *(to be implemented)* |
+| Deterministic runs | Same seed produces identical world | Determinism test suite *(to be implemented in v1.0)* |
 | Single binary | `go build ./cmd/voyage` succeeds | CI build job |
 | All 5 genres playable | Each genre passes smoke-test | `go test ./pkg/procgen/genre/...` |
-| GenreSwitcher compliance | All Systems implement interface | Interface conformance test |
+| GenreSwitcher compliance | All Systems implement interface | Interface conformance test *(to be implemented in v1.0)* |
 | Test coverage | ≥40% per package | `go test -cover ./pkg/...` |
 | `go vet` clean | 0 errors | `go vet ./...` |
-| 60 FPS on target hardware | Benchmark ≥60 FPS | `pkg/benchmark/fps/` |
-| `<500MB` client memory | Benchmark <500 MB heap | `pkg/benchmark/memory/` |
+| 60 FPS on target hardware | Benchmark ≥60 FPS | `pkg/benchmark/fps/` *(to be implemented)* |
+| `<500MB` client memory | Benchmark <500 MB heap | `pkg/benchmark/memory/` *(to be implemented)* |
