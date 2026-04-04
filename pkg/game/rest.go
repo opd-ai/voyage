@@ -44,43 +44,19 @@ func (rm *RestManager) CanRest(res *resources.Resources, crewCount int) bool {
 
 // Rest performs a rest action, recovering morale and health.
 func (rm *RestManager) Rest(res *resources.Resources, party *crew.Party) RestResult {
-	crewCount := party.LivingCount()
-	foodCost := rm.baseFoodCost * float64(crewCount)
-	waterCost := rm.baseWaterCost * float64(crewCount)
+	foodCost, waterCost := rm.calculateRestCosts(party.LivingCount())
 
-	// Check resources
-	if res.Get(resources.ResourceFood) < foodCost {
-		return RestResult{
-			Message: "Not enough food to rest",
-		}
-	}
-	if res.Get(resources.ResourceWater) < waterCost {
-		return RestResult{
-			Message: "Not enough water to rest",
-		}
+	if msg := rm.validateRestResources(res, foodCost, waterCost); msg != "" {
+		return RestResult{Message: msg}
 	}
 
-	// Consume resources
 	res.Consume(resources.ResourceFood, foodCost)
 	res.Consume(resources.ResourceWater, waterCost)
 
-	// Recover morale
 	moraleRecovered := rm.baseMoraleRecovery
 	res.Add(resources.ResourceMorale, moraleRecovered)
 
-	// Heal crew
-	healthRecovered := make(map[int]float64)
-	for _, member := range party.Living() {
-		if member.Health < member.MaxHealth {
-			healAmount := rm.baseHealthRecovery
-			// Medics heal more
-			if member.Skill == crew.SkillMedic {
-				healAmount *= 1.5
-			}
-			member.Heal(healAmount)
-			healthRecovered[member.ID] = healAmount
-		}
-	}
+	healthRecovered := rm.healPartyMembers(party)
 
 	return RestResult{
 		MoraleRecovered: moraleRecovered,
@@ -90,6 +66,44 @@ func (rm *RestManager) Rest(res *resources.Resources, party *crew.Party) RestRes
 		TurnsSpent:      1,
 		Message:         "The party rested and recovered",
 	}
+}
+
+// calculateRestCosts computes the food and water costs for resting.
+func (rm *RestManager) calculateRestCosts(crewCount int) (foodCost, waterCost float64) {
+	return rm.baseFoodCost * float64(crewCount), rm.baseWaterCost * float64(crewCount)
+}
+
+// validateRestResources checks if there are sufficient resources to rest.
+func (rm *RestManager) validateRestResources(res *resources.Resources, foodCost, waterCost float64) string {
+	if res.Get(resources.ResourceFood) < foodCost {
+		return "Not enough food to rest"
+	}
+	if res.Get(resources.ResourceWater) < waterCost {
+		return "Not enough water to rest"
+	}
+	return ""
+}
+
+// healPartyMembers heals all injured crew members and returns the health recovered.
+func (rm *RestManager) healPartyMembers(party *crew.Party) map[int]float64 {
+	healthRecovered := make(map[int]float64)
+	for _, member := range party.Living() {
+		if member.Health < member.MaxHealth {
+			healAmount := rm.calculateHealAmount(member)
+			member.Heal(healAmount)
+			healthRecovered[member.ID] = healAmount
+		}
+	}
+	return healthRecovered
+}
+
+// calculateHealAmount determines how much a crew member heals based on their skill.
+func (rm *RestManager) calculateHealAmount(member *crew.CrewMember) float64 {
+	healAmount := rm.baseHealthRecovery
+	if member.Skill == crew.SkillMedic {
+		healAmount *= 1.5
+	}
+	return healAmount
 }
 
 // CampRest performs an extended camp rest with better recovery.

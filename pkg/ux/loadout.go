@@ -141,43 +141,19 @@ func (ls *LoadoutScreen) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	// Draw semi-transparent background overlay
-	overlay := ebiten.NewImage(ls.screenWidth, ls.screenHeight)
-	overlay.Fill(ls.skin.PanelBackground)
-	op := &ebiten.DrawImageOptions{}
-	op.ColorScale.ScaleAlpha(0.7)
-	screen.DrawImage(overlay, op)
+	DrawOverlay(screen, ls.skin, ls.screenWidth, ls.screenHeight)
+	panel, panelX, panelY := DrawCenteredPanel(screen, ls.skin, ls.screenWidth, ls.screenHeight, ls.panelWidth, ls.panelHeight)
 
-	// Calculate panel position (centered)
-	panelX := (ls.screenWidth - ls.panelWidth) / 2
-	panelY := (ls.screenHeight - ls.panelHeight) / 2
-
-	// Create panel
-	panel := ebiten.NewImage(ls.panelWidth, ls.panelHeight)
-	panel.Fill(ls.skin.PanelBackground)
-	ls.drawBorder(panel)
-
-	// Draw title
-	title := ls.getTitle()
-	titleX := (ls.panelWidth - len(title)*7) / 2
-	ebitenutil.DebugPrintAt(panel, title, titleX, 12)
+	DrawCenteredText(panel, ls.getTitle(), 12)
 
 	// Draw points remaining
 	pointsStr := fmt.Sprintf("Upgrade Points: %d", ls.pointsRemaining)
 	ebitenutil.DebugPrintAt(panel, pointsStr, 16, 40)
 
-	// Draw module slots
 	ls.drawModuleSlots(panel)
+	DrawInstructions(panel, "UP/DOWN: select  LEFT/RIGHT: adjust tier  ENTER: confirm  ESC: cancel", ls.panelHeight)
 
-	// Draw instructions
-	instructions := "UP/DOWN: select  LEFT/RIGHT: adjust tier  ENTER: confirm  ESC: cancel"
-	instrX := (ls.panelWidth - len(instructions)*7) / 2
-	ebitenutil.DebugPrintAt(panel, instructions, instrX, ls.panelHeight-20)
-
-	// Draw panel to screen
-	opPanel := &ebiten.DrawImageOptions{}
-	opPanel.GeoM.Translate(float64(panelX), float64(panelY))
-	screen.DrawImage(panel, opPanel)
+	DrawPanelToScreen(screen, panel, panelX, panelY)
 }
 
 // getTitle returns the genre-appropriate title.
@@ -249,21 +225,7 @@ func (ls *LoadoutScreen) moduleDescription(mt vessel.ModuleType) string {
 
 // drawBorder draws a border around the panel.
 func (ls *LoadoutScreen) drawBorder(panel *ebiten.Image) {
-	w, h := panel.Bounds().Dx(), panel.Bounds().Dy()
-	c := ls.skin.PanelBorder
-
-	for x := 0; x < w; x++ {
-		panel.Set(x, 0, c)
-		panel.Set(x, 1, c)
-		panel.Set(x, h-1, c)
-		panel.Set(x, h-2, c)
-	}
-	for y := 0; y < h; y++ {
-		panel.Set(0, y, c)
-		panel.Set(1, y, c)
-		panel.Set(w-1, y, c)
-		panel.Set(w-2, y, c)
-	}
+	DrawBorder(panel, ls.skin)
 }
 
 // LoadoutConfiguration represents a saved loadout configuration.

@@ -78,42 +78,15 @@ func (cs *CargoScreen) Draw(screen *ebiten.Image, hold *vessel.CargoHold, module
 		return
 	}
 
-	// Draw semi-transparent background overlay
-	overlay := ebiten.NewImage(cs.screenWidth, cs.screenHeight)
-	overlay.Fill(cs.skin.PanelBackground)
-	op := &ebiten.DrawImageOptions{}
-	op.ColorScale.ScaleAlpha(0.7)
-	screen.DrawImage(overlay, op)
+	DrawOverlay(screen, cs.skin, cs.screenWidth, cs.screenHeight)
+	panel, panelX, panelY := DrawCenteredPanel(screen, cs.skin, cs.screenWidth, cs.screenHeight, cs.panelWidth, cs.panelHeight)
 
-	// Calculate panel position (centered)
-	panelX := (cs.screenWidth - cs.panelWidth) / 2
-	panelY := (cs.screenHeight - cs.panelHeight) / 2
-
-	// Create panel
-	panel := ebiten.NewImage(cs.panelWidth, cs.panelHeight)
-	panel.Fill(cs.skin.PanelBackground)
-	cs.drawBorder(panel)
-
-	// Draw title
-	title := cs.getTitle()
-	titleX := (cs.panelWidth - len(title)*7) / 2
-	ebitenutil.DebugPrintAt(panel, title, titleX, 12)
-
-	// Draw capacity bars
+	DrawCenteredText(panel, cs.getTitle(), 12)
 	cs.drawCapacityBars(panel, hold, modules)
-
-	// Draw cargo list
 	cs.drawCargoList(panel, hold)
+	DrawInstructions(panel, "UP/DOWN to scroll, ESC to close", cs.panelHeight)
 
-	// Draw instructions
-	instructions := "UP/DOWN to scroll, ESC to close"
-	instrX := (cs.panelWidth - len(instructions)*7) / 2
-	ebitenutil.DebugPrintAt(panel, instructions, instrX, cs.panelHeight-20)
-
-	// Draw panel to screen
-	opPanel := &ebiten.DrawImageOptions{}
-	opPanel.GeoM.Translate(float64(panelX), float64(panelY))
-	screen.DrawImage(panel, opPanel)
+	DrawPanelToScreen(screen, panel, panelX, panelY)
 }
 
 // getTitle returns the genre-appropriate title.
@@ -254,21 +227,7 @@ func (cs *CargoScreen) ratioToStatus(ratio float64) resources.ThresholdStatus {
 
 // drawBorder draws a border around the panel.
 func (cs *CargoScreen) drawBorder(panel *ebiten.Image) {
-	w, h := panel.Bounds().Dx(), panel.Bounds().Dy()
-	c := cs.skin.PanelBorder
-
-	for x := 0; x < w; x++ {
-		panel.Set(x, 0, c)
-		panel.Set(x, 1, c)
-		panel.Set(x, h-1, c)
-		panel.Set(x, h-2, c)
-	}
-	for y := 0; y < h; y++ {
-		panel.Set(0, y, c)
-		panel.Set(1, y, c)
-		panel.Set(w-1, y, c)
-		panel.Set(w-2, y, c)
-	}
+	DrawBorder(panel, cs.skin)
 }
 
 // truncate shortens a string to max length with ellipsis.

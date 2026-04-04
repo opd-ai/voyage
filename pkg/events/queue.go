@@ -60,22 +60,40 @@ func (q *Queue) positionKey(x, y, turn int) string {
 	return fmt.Sprintf("pos_%d_%d_%d", x, y, turn)
 }
 
-// generateForCategory creates an event of the given category.
+// categoryTemplates maps event categories to their template sources.
+var categoryTemplates = map[EventCategory]map[engine.GenreID][]EventTemplate{
+	CategoryWeather:   weatherTemplates,
+	CategoryEncounter: encounterTemplates,
+	CategoryDiscovery: discoveryTemplates,
+	CategoryHardship:  hardshipTemplates,
+	CategoryWindfall:  windfallTemplates,
+}
+
+// generateForCategory creates an event of the given category using the
+// appropriate template set. Falls back to fantasy genre if no templates
+// exist for the current genre.
 func (q *Queue) generateForCategory(gen *seed.Generator, cat EventCategory) *Event {
-	switch cat {
-	case CategoryWeather:
-		return q.generateWeatherEvent(gen)
-	case CategoryEncounter:
-		return q.generateEncounterEvent(gen)
-	case CategoryDiscovery:
-		return q.generateDiscoveryEvent(gen)
-	case CategoryHardship:
-		return q.generateHardshipEvent(gen)
-	case CategoryWindfall:
-		return q.generateWindfallEvent(gen)
-	default:
-		return q.generateHardshipEvent(gen)
+	templateMap, ok := categoryTemplates[cat]
+	if !ok {
+		templateMap = categoryTemplates[CategoryHardship]
 	}
+	return q.generateEventFromTemplates(gen, cat, templateMap)
+}
+
+// generateEventFromTemplates creates an event by selecting from the given
+// template map based on the queue's current genre.
+func (q *Queue) generateEventFromTemplates(gen *seed.Generator, cat EventCategory, templateMap map[engine.GenreID][]EventTemplate) *Event {
+	templates := templateMap[q.genre]
+	if len(templates) == 0 {
+		templates = templateMap[engine.GenreFantasy]
+	}
+	tmpl := seed.Choice(gen, templates)
+
+	event := NewEvent(0, cat, tmpl.Title, tmpl.Description, q.genre)
+	for _, c := range tmpl.Choices {
+		event.AddChoice(c.Text, c.Outcome)
+	}
+	return event
 }
 
 // Resolve marks an event as resolved and returns the outcome.
@@ -121,74 +139,4 @@ func (q *Queue) ShouldTrigger(hazardChance float64) bool {
 	baseChance := 0.15 // Base 15% event chance per move
 	chance := baseChance + hazardChance*0.5
 	return q.gen.Float64() < chance
-}
-
-func (q *Queue) generateWeatherEvent(gen *seed.Generator) *Event {
-	templates := weatherTemplates[q.genre]
-	if len(templates) == 0 {
-		templates = weatherTemplates[engine.GenreFantasy]
-	}
-	tmpl := seed.Choice(gen, templates)
-
-	event := NewEvent(0, CategoryWeather, tmpl.Title, tmpl.Description, q.genre)
-	for _, c := range tmpl.Choices {
-		event.AddChoice(c.Text, c.Outcome)
-	}
-	return event
-}
-
-func (q *Queue) generateEncounterEvent(gen *seed.Generator) *Event {
-	templates := encounterTemplates[q.genre]
-	if len(templates) == 0 {
-		templates = encounterTemplates[engine.GenreFantasy]
-	}
-	tmpl := seed.Choice(gen, templates)
-
-	event := NewEvent(0, CategoryEncounter, tmpl.Title, tmpl.Description, q.genre)
-	for _, c := range tmpl.Choices {
-		event.AddChoice(c.Text, c.Outcome)
-	}
-	return event
-}
-
-func (q *Queue) generateDiscoveryEvent(gen *seed.Generator) *Event {
-	templates := discoveryTemplates[q.genre]
-	if len(templates) == 0 {
-		templates = discoveryTemplates[engine.GenreFantasy]
-	}
-	tmpl := seed.Choice(gen, templates)
-
-	event := NewEvent(0, CategoryDiscovery, tmpl.Title, tmpl.Description, q.genre)
-	for _, c := range tmpl.Choices {
-		event.AddChoice(c.Text, c.Outcome)
-	}
-	return event
-}
-
-func (q *Queue) generateHardshipEvent(gen *seed.Generator) *Event {
-	templates := hardshipTemplates[q.genre]
-	if len(templates) == 0 {
-		templates = hardshipTemplates[engine.GenreFantasy]
-	}
-	tmpl := seed.Choice(gen, templates)
-
-	event := NewEvent(0, CategoryHardship, tmpl.Title, tmpl.Description, q.genre)
-	for _, c := range tmpl.Choices {
-		event.AddChoice(c.Text, c.Outcome)
-	}
-	return event
-}
-
-func (q *Queue) generateWindfallEvent(gen *seed.Generator) *Event {
-	templates := windfallTemplates[q.genre]
-	if len(templates) == 0 {
-		templates = windfallTemplates[engine.GenreFantasy]
-	}
-	tmpl := seed.Choice(gen, templates)
-
-	event := NewEvent(0, CategoryWindfall, tmpl.Title, tmpl.Description, q.genre)
-	for _, c := range tmpl.Choices {
-		event.AddChoice(c.Text, c.Outcome)
-	}
-	return event
 }

@@ -225,21 +225,7 @@ func (m *Menu) getInstructions() string {
 
 // drawBorder draws a border around the panel.
 func (m *Menu) drawBorder(panel *ebiten.Image) {
-	w, h := panel.Bounds().Dx(), panel.Bounds().Dy()
-	c := m.skin.PanelBorder
-
-	for x := 0; x < w; x++ {
-		panel.Set(x, 0, c)
-		panel.Set(x, 1, c)
-		panel.Set(x, h-1, c)
-		panel.Set(x, h-2, c)
-	}
-	for y := 0; y < h; y++ {
-		panel.Set(0, y, c)
-		panel.Set(1, y, c)
-		panel.Set(w-1, y, c)
-		panel.Set(w-2, y, c)
-	}
+	DrawBorder(panel, m.skin)
 }
 
 // DrawGameOverScreen draws the game over screen with stats.
