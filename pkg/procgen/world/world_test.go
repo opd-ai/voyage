@@ -13,7 +13,7 @@ func TestGeneratorDeterminism(t *testing.T) {
 	// Each generator uses the same seed and should produce identical output
 	gen1 := NewGenerator(seed, genre)
 	w1 := gen1.Generate(20, 15)
-	
+
 	gen2 := NewGenerator(seed, genre)
 	w2 := gen2.Generate(20, 15)
 

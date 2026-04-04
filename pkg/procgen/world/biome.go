@@ -25,10 +25,10 @@ const (
 
 // BiomeInfo contains metadata about a biome.
 type BiomeInfo struct {
-	Type            BiomeType
-	Name            string
-	TerrainWeights  map[TerrainType]float64
-	HazardModifier  float64
+	Type             BiomeType
+	Name             string
+	TerrainWeights   map[TerrainType]float64
+	HazardModifier   float64
 	ResourceModifier float64
 }
 
@@ -49,7 +49,7 @@ var biomeBaseInfo = map[BiomeType]BiomeInfo{
 			TerrainRiver:    0.10,
 			TerrainRuin:     0.10,
 		},
-		HazardModifier:  1.0,
+		HazardModifier:   1.0,
 		ResourceModifier: 1.0,
 	},
 	BiomeArid: {
@@ -60,19 +60,19 @@ var biomeBaseInfo = map[BiomeType]BiomeInfo{
 			TerrainMountain: 0.15,
 			TerrainRuin:     0.15,
 		},
-		HazardModifier:  1.2,
+		HazardModifier:   1.2,
 		ResourceModifier: 0.7,
 	},
 	BiomeForested: {
 		Type: BiomeForested,
 		TerrainWeights: map[TerrainType]float64{
-			TerrainPlains:   0.15,
-			TerrainForest:   0.55,
-			TerrainRiver:    0.15,
-			TerrainSwamp:    0.10,
-			TerrainRuin:     0.05,
+			TerrainPlains: 0.15,
+			TerrainForest: 0.55,
+			TerrainRiver:  0.15,
+			TerrainSwamp:  0.10,
+			TerrainRuin:   0.05,
 		},
-		HazardModifier:  1.1,
+		HazardModifier:   1.1,
 		ResourceModifier: 1.2,
 	},
 	BiomeMountainous: {
@@ -84,19 +84,19 @@ var biomeBaseInfo = map[BiomeType]BiomeInfo{
 			TerrainRiver:    0.10,
 			TerrainRuin:     0.10,
 		},
-		HazardModifier:  1.3,
+		HazardModifier:   1.3,
 		ResourceModifier: 0.8,
 	},
 	BiomeWetland: {
 		Type: BiomeWetland,
 		TerrainWeights: map[TerrainType]float64{
-			TerrainPlains:   0.15,
-			TerrainSwamp:    0.40,
-			TerrainRiver:    0.30,
-			TerrainForest:   0.10,
-			TerrainRuin:     0.05,
+			TerrainPlains: 0.15,
+			TerrainSwamp:  0.40,
+			TerrainRiver:  0.30,
+			TerrainForest: 0.10,
+			TerrainRuin:   0.05,
 		},
-		HazardModifier:  1.4,
+		HazardModifier:   1.4,
 		ResourceModifier: 0.9,
 	},
 	BiomeRuined: {
@@ -107,7 +107,7 @@ var biomeBaseInfo = map[BiomeType]BiomeInfo{
 			TerrainDesert:   0.15,
 			TerrainMountain: 0.15,
 		},
-		HazardModifier:  1.5,
+		HazardModifier:   1.5,
 		ResourceModifier: 1.1,
 	},
 }
@@ -170,18 +170,18 @@ func AllBiomeTypes() []BiomeType {
 // SelectTerrain picks a terrain type based on biome weights.
 func SelectTerrain(gen *seed.Generator, biome BiomeType) TerrainType {
 	info := biomeBaseInfo[biome]
-	
+
 	// Use fixed order for determinism (maps iterate non-deterministically)
 	allTerrains := AllTerrainTypes()
 	terrains := make([]TerrainType, 0)
 	weights := make([]float64, 0)
-	
+
 	for _, terrain := range allTerrains {
 		if weight, ok := info.TerrainWeights[terrain]; ok {
 			terrains = append(terrains, terrain)
 			weights = append(weights, weight)
 		}
 	}
-	
+
 	return seed.WeightedChoice(gen, terrains, weights)
 }

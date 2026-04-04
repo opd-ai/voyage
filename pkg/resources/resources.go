@@ -46,7 +46,7 @@ func NewResources(genre engine.GenreID) *Resources {
 		levels:  make(map[ResourceType]float64),
 		maxLvls: make(map[ResourceType]float64),
 	}
-	
+
 	// Set default max levels
 	r.maxLvls[ResourceFood] = 100
 	r.maxLvls[ResourceWater] = 100
@@ -54,7 +54,7 @@ func NewResources(genre engine.GenreID) *Resources {
 	r.maxLvls[ResourceMedicine] = 50
 	r.maxLvls[ResourceMorale] = 100
 	r.maxLvls[ResourceCurrency] = 1000
-	
+
 	// Start with moderate levels
 	r.levels[ResourceFood] = 75
 	r.levels[ResourceWater] = 75
@@ -62,7 +62,7 @@ func NewResources(genre engine.GenreID) *Resources {
 	r.levels[ResourceMedicine] = 30
 	r.levels[ResourceMorale] = 80
 	r.levels[ResourceCurrency] = 50
-	
+
 	return r
 }
 

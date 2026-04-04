@@ -86,7 +86,7 @@ func (r *Renderer) Draw(screen *ebiten.Image) {
 }
 
 // DrawTile draws a single tile at the given screen position.
-func (r *Renderer) DrawTile(screen *ebiten.Image, x, y int, tileType int) {
+func (r *Renderer) DrawTile(screen *ebiten.Image, x, y, tileType int) {
 	img := ebiten.NewImage(r.tileSize, r.tileSize)
 	fillColor := r.palette.GetTileColor(tileType)
 	img.Fill(fillColor)
@@ -100,14 +100,14 @@ func (r *Renderer) DrawTile(screen *ebiten.Image, x, y int, tileType int) {
 func (r *Renderer) WorldToScreen(worldX, worldY float64) (screenX, screenY float64) {
 	screenX = (worldX - r.camera.X) * r.camera.Zoom
 	screenY = (worldY - r.camera.Y) * r.camera.Zoom
-	return
+	return screenX, screenY
 }
 
 // ScreenToWorld converts screen coordinates to world coordinates.
 func (r *Renderer) ScreenToWorld(screenX, screenY float64) (worldX, worldY float64) {
 	worldX = screenX/r.camera.Zoom + r.camera.X
 	worldY = screenY/r.camera.Zoom + r.camera.Y
-	return
+	return worldX, worldY
 }
 
 // Palette defines the color scheme for rendering.
@@ -135,9 +135,9 @@ func DefaultPalette(genre engine.GenreID) *Palette {
 			Warning:    color.RGBA{255, 200, 0, 255},
 			Danger:     color.RGBA{255, 50, 50, 255},
 			TileColors: []color.Color{
-				color.RGBA{5, 5, 20, 255},   // void
-				color.RGBA{30, 50, 80, 255}, // nebula
-				color.RGBA{50, 50, 60, 255}, // asteroid
+				color.RGBA{5, 5, 20, 255},     // void
+				color.RGBA{30, 50, 80, 255},   // nebula
+				color.RGBA{50, 50, 60, 255},   // asteroid
 				color.RGBA{80, 100, 120, 255}, // station
 			},
 		}
@@ -151,10 +151,10 @@ func DefaultPalette(genre engine.GenreID) *Palette {
 			Warning:    color.RGBA{200, 150, 50, 255},
 			Danger:     color.RGBA{150, 0, 0, 255},
 			TileColors: []color.Color{
-				color.RGBA{30, 25, 25, 255},  // wasteland
-				color.RGBA{50, 40, 35, 255},  // ruins
-				color.RGBA{40, 50, 40, 255},  // toxic
-				color.RGBA{60, 55, 50, 255},  // shelter
+				color.RGBA{30, 25, 25, 255}, // wasteland
+				color.RGBA{50, 40, 35, 255}, // ruins
+				color.RGBA{40, 50, 40, 255}, // toxic
+				color.RGBA{60, 55, 50, 255}, // shelter
 			},
 		}
 	case engine.GenreCyberpunk:
@@ -183,10 +183,10 @@ func DefaultPalette(genre engine.GenreID) *Palette {
 			Warning:    color.RGBA{200, 100, 50, 255},
 			Danger:     color.RGBA{180, 50, 30, 255},
 			TileColors: []color.Color{
-				color.RGBA{45, 40, 35, 255},   // dust
-				color.RGBA{60, 55, 45, 255},   // sand
-				color.RGBA{80, 70, 55, 255},   // scrapyard
-				color.RGBA{100, 90, 70, 255},  // settlement
+				color.RGBA{45, 40, 35, 255},  // dust
+				color.RGBA{60, 55, 45, 255},  // sand
+				color.RGBA{80, 70, 55, 255},  // scrapyard
+				color.RGBA{100, 90, 70, 255}, // settlement
 			},
 		}
 	default: // Fantasy
@@ -199,10 +199,10 @@ func DefaultPalette(genre engine.GenreID) *Palette {
 			Warning:    color.RGBA{200, 150, 50, 255},
 			Danger:     color.RGBA{180, 50, 50, 255},
 			TileColors: []color.Color{
-				color.RGBA{60, 90, 60, 255},   // plains
-				color.RGBA{40, 80, 40, 255},   // forest
-				color.RGBA{100, 90, 80, 255},  // mountain
-				color.RGBA{80, 100, 80, 255},  // town
+				color.RGBA{60, 90, 60, 255},  // plains
+				color.RGBA{40, 80, 40, 255},  // forest
+				color.RGBA{100, 90, 80, 255}, // mountain
+				color.RGBA{80, 100, 80, 255}, // town
 			},
 		}
 	}

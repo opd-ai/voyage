@@ -42,7 +42,7 @@ func DefaultConsumptionRates() map[ResourceType]ConsumptionRate {
 }
 
 // CalculateDailyConsumption calculates how much of a resource is consumed per day.
-func CalculateDailyConsumption(rt ResourceType, crewCount int, terrainType int) float64 {
+func CalculateDailyConsumption(rt ResourceType, crewCount, terrainType int) float64 {
 	rates := DefaultConsumptionRates()
 	rate, ok := rates[rt]
 	if !ok {

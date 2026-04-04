@@ -27,14 +27,14 @@ const (
 
 // Game implements ebiten.Game and manages the game lifecycle.
 type Game struct {
-	world      *engine.World
-	renderer   *rendering.Renderer
-	state      GameState
-	seed       int64
-	genre      engine.GenreID
-	tileGen    *rendering.TileGenerator
-	turn       int
-	debugMode  bool
+	world     *engine.World
+	renderer  *rendering.Renderer
+	state     GameState
+	seed      int64
+	genre     engine.GenreID
+	tileGen   *rendering.TileGenerator
+	turn      int
+	debugMode bool
 
 	// Screen dimensions
 	width  int

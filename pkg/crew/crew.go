@@ -7,13 +7,13 @@ import (
 
 // CrewMember represents an individual party member.
 type CrewMember struct {
-	ID          int
-	Name        string
-	Health      float64
-	MaxHealth   float64
-	Trait       Trait
-	Skill       Skill
-	IsAlive     bool
+	ID            int
+	Name          string
+	Health        float64
+	MaxHealth     float64
+	Trait         Trait
+	Skill         Skill
+	IsAlive       bool
 	DaysWithParty int
 }
 
@@ -47,13 +47,13 @@ const (
 // NewCrewMember creates a new crew member with the given attributes.
 func NewCrewMember(id int, name string, trait Trait, skill Skill) *CrewMember {
 	return &CrewMember{
-		ID:          id,
-		Name:        name,
-		Health:      100,
-		MaxHealth:   100,
-		Trait:       trait,
-		Skill:       skill,
-		IsAlive:     true,
+		ID:            id,
+		Name:          name,
+		Health:        100,
+		MaxHealth:     100,
+		Trait:         trait,
+		Skill:         skill,
+		IsAlive:       true,
 		DaysWithParty: 0,
 	}
 }
@@ -234,16 +234,16 @@ func AllSkills() []Skill {
 
 // Generator creates procedural crew members.
 type Generator struct {
-	gen   *seed.Generator
-	genre engine.GenreID
+	gen    *seed.Generator
+	genre  engine.GenreID
 	nextID int
 }
 
 // NewGenerator creates a new crew generator.
 func NewGenerator(masterSeed int64, genre engine.GenreID) *Generator {
 	return &Generator{
-		gen:   seed.NewGenerator(masterSeed, "crew"),
-		genre: genre,
+		gen:    seed.NewGenerator(masterSeed, "crew"),
+		genre:  genre,
 		nextID: 1,
 	}
 }
@@ -257,17 +257,17 @@ func (g *Generator) SetGenre(genre engine.GenreID) {
 func (g *Generator) Generate() *CrewMember {
 	name := g.generateName()
 	trait := seed.Choice(g.gen, AllTraits())
-	
+
 	// Weight skills - most are None, specialists are rarer
 	skillWeights := []float64{0.4, 0.12, 0.12, 0.12, 0.08, 0.08, 0.08}
 	skill := seed.WeightedChoice(g.gen, AllSkills(), skillWeights)
-	
+
 	member := NewCrewMember(g.nextID, name, trait, skill)
 	g.nextID++
-	
+
 	// Vary starting health slightly
 	member.Health = 80 + float64(g.gen.Intn(21))
-	
+
 	return member
 }
 
@@ -275,10 +275,10 @@ func (g *Generator) Generate() *CrewMember {
 func (g *Generator) generateName() string {
 	firstNames := firstNamesByGenre[g.genre]
 	lastNames := lastNamesByGenre[g.genre]
-	
+
 	first := seed.Choice(g.gen, firstNames)
 	last := seed.Choice(g.gen, lastNames)
-	
+
 	return first + " " + last
 }
 
