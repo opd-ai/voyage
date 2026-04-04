@@ -463,3 +463,55 @@ func TestAllRelationships(t *testing.T) {
 		t.Errorf("Should have 2 relationships, got %d", len(all))
 	}
 }
+
+func TestBackstoryGeneration(t *testing.T) {
+	for _, genre := range engine.AllGenres() {
+		gen := NewGenerator(12345, genre)
+		member := gen.Generate()
+
+		if member.Backstory.Origin == "" {
+			t.Errorf("genre %s: member should have origin", genre)
+		}
+		if member.Backstory.Motivation == "" {
+			t.Errorf("genre %s: member should have motivation", genre)
+		}
+		if member.Backstory.Memory == "" {
+			t.Errorf("genre %s: member should have memory", genre)
+		}
+		if member.Backstory.Secret == "" {
+			t.Errorf("genre %s: member should have secret", genre)
+		}
+	}
+}
+
+func TestBackstoryDeterminism(t *testing.T) {
+	gen1 := NewGenerator(12345, engine.GenreFantasy)
+	gen2 := NewGenerator(12345, engine.GenreFantasy)
+
+	for i := 0; i < 5; i++ {
+		m1 := gen1.Generate()
+		m2 := gen2.Generate()
+
+		if m1.Backstory.Origin != m2.Backstory.Origin {
+			t.Errorf("Origin should match for same seed")
+		}
+		if m1.Backstory.Motivation != m2.Backstory.Motivation {
+			t.Errorf("Motivation should match for same seed")
+		}
+	}
+}
+
+func TestBackstoryVariety(t *testing.T) {
+	gen := NewGenerator(12345, engine.GenreFantasy)
+	origins := make(map[string]bool)
+
+	for i := 0; i < 20; i++ {
+		member := gen.Generate()
+		origins[member.Backstory.Origin] = true
+	}
+
+	// Should have some variety
+	if len(origins) < 3 {
+		t.Errorf("Expected variety in backstories, got only %d unique origins", len(origins))
+	}
+}

@@ -183,8 +183,8 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] Skill system (skills improve with use — experienced medic heals more effectively)
 - [x] Crew relationship network (pairs that bicker or bond affect morale events)
 - [x] Crew-specific events (personal crisis, milestone, sacrifice opportunity)
-- [ ] Procedurally generated crew backstory surfaced in crew detail screen — no pre-written character bios
-- [ ] `SetGenre()` re-skins trait/skill names (medic→biomancer→doc→netdoc→chem-doc)
+- [x] Procedurally generated crew backstory surfaced in crew detail screen — no pre-written character bios
+- [x] `SetGenre()` re-skins trait/skill names (medic→biomancer→doc→netdoc→chem-doc)
 
 #### Status Effects — Crew
 - [ ] Disease (spreads between crew; slows recovery; fatal without medicine)
