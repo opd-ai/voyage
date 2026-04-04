@@ -205,9 +205,9 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 #### Vessel Customization — Full System
 - [x] Custom module loadout screen before departure (swap starting module tier per slot)
 - [x] Upgrade path branching: each module offers speed, cargo, or defense specialization tracks
-- [ ] Vessel insignia / livery selection (procedurally generated emblems; no bundled art)
-- [ ] Vessel insurance mechanic: pay currency to protect one module from a catastrophic breakdown
-- [ ] `SetGenre()` re-skins customization screen and module upgrade vocabulary
+- [x] Vessel insignia / livery selection (procedurally generated emblems; no bundled art)
+- [x] Vessel insurance mechanic: pay currency to protect one module from a catastrophic breakdown
+- [x] `SetGenre()` re-skins customization screen and module upgrade vocabulary
 
 #### Trading and Supply Points
 - [ ] Procedurally generated supply posts / towns at waypoints
