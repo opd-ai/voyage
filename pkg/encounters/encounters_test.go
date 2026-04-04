@@ -296,7 +296,7 @@ func TestResolverApplyResult(t *testing.T) {
 	initialFood := res.Get(resources.ResourceFood)
 
 	party := crew.NewParty(engine.GenreFantasy, 4)
-	v := vessel.New(engine.GenreFantasy, "Test Vessel")
+	v := vessel.NewVessel(vessel.VesselMedium, engine.GenreFantasy)
 
 	resolver.ApplyResult(result, res, party, v)
 

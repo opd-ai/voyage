@@ -219,29 +219,29 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] `SetGenre()` re-skins trading posts (market→space-dock→survivor-camp→black-market→scrap-bazaar)
 
 #### Tactical Encounter Resolution
-- [ ] Encounter types: ambush, negotiation, race/chase, crisis management, puzzle
-- [ ] Pausable real-time or turn-based resolution phase (FTL-style)
-- [ ] Crew assignment to encounter roles (fighter, medic, engineer, negotiator)
-- [ ] Outcome branches: victory, partial success, retreat, defeat
-- [ ] `SetGenre()` re-skins encounter imagery and sound design
+- [x] Encounter types: ambush, negotiation, race/chase, crisis management, puzzle
+- [x] Pausable real-time or turn-based resolution phase (FTL-style)
+- [x] Crew assignment to encounter roles (fighter, medic, engineer, negotiator)
+- [x] Outcome branches: victory, partial success, retreat, defeat
+- [x] `SetGenre()` re-skins encounter imagery and sound design
 
 #### Weather and Environmental Hazards
-- [ ] Weather system: 8+ types (storm, blizzard, heatwave, flood, fog, meteor shower, dust storm, acid rain)
-- [ ] Weather affects movement cost, resource consumption, visibility, and crew health
-- [ ] Terrain hazards: mountain passes (injury risk), river crossings (fuel cost), desert (water crisis), ruin (random loot + danger)
-- [ ] Genre-appropriate hazard subset per theme via `SetGenre()`
+- [x] Weather system: 8+ types (storm, blizzard, heatwave, flood, fog, meteor shower, dust storm, acid rain)
+- [x] Weather affects movement cost, resource consumption, visibility, and crew health
+- [x] Terrain hazards: mountain passes (injury risk), river crossings (fuel cost), desert (water crisis), ruin (random loot + danger)
+- [x] Genre-appropriate hazard subset per theme via `SetGenre()`
 
 #### Procedural NPC Generation
-- [ ] Wandering NPC encounters (traders, refugees, bandits, lost travelers)
-- [ ] Faction-affiliated NPCs with alignment tags
-- [ ] All NPC names, dialogue, and descriptions procedurally generated — no pre-authored NPC text
-- [ ] `SetGenre()` re-skins NPC archetypes (merchant→trader→survivor→fixer→scavenger)
+- [x] Wandering NPC encounters (traders, refugees, bandits, lost travelers)
+- [x] Faction-affiliated NPCs with alignment tags
+- [x] All NPC names, dialogue, and descriptions procedurally generated — no pre-authored NPC text
+- [x] `SetGenre()` re-skins NPC archetypes (merchant→trader→survivor→fixer→scavenger)
 
 #### Destination Depth
-- [ ] Multiple destination types seeded per run (city, sanctuary, treasure vault, escape craft, settlement)
-- [ ] Destination discovery events as the party approaches
-- [ ] Arrival ceremony sequence with procedurally generated narrative payoff text
-- [ ] `SetGenre()` re-skins destination type and arrival text vocabulary
+- [x] Multiple destination types seeded per run (city, sanctuary, treasure vault, escape craft, settlement)
+- [x] Destination discovery events as the party approaches
+- [x] Arrival ceremony sequence with procedurally generated narrative payoff text
+- [x] `SetGenre()` re-skins destination type and arrival text vocabulary
 
 #### Crew Council
 - [ ] Critical route-choice decisions (dangerous shortcut, costly detour) trigger a crew vote
