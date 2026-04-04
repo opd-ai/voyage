@@ -199,12 +199,12 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] Per-system integrity tracking (damaged navigation = harder routing)
 - [x] Upgrade system (spend currency at supply points to improve modules)
 - [x] Cargo management screen (weight/volume limits per cargo hold tier)
-- [ ] Salvage mechanic (strip fallen vessels/wrecks for parts)
-- [ ] `SetGenre()` re-skins vessel modules (stable→engine room→engine bay→core systems→reactor)
+- [x] Salvage mechanic (strip fallen vessels/wrecks for parts)
+- [x] `SetGenre()` re-skins vessel modules (stable→engine room→engine bay→core systems→reactor)
 
 #### Vessel Customization — Full System
-- [ ] Custom module loadout screen before departure (swap starting module tier per slot)
-- [ ] Upgrade path branching: each module offers speed, cargo, or defense specialization tracks
+- [x] Custom module loadout screen before departure (swap starting module tier per slot)
+- [x] Upgrade path branching: each module offers speed, cargo, or defense specialization tracks
 - [ ] Vessel insignia / livery selection (procedurally generated emblems; no bundled art)
 - [ ] Vessel insurance mechanic: pay currency to protect one module from a catastrophic breakdown
 - [ ] `SetGenre()` re-skins customization screen and module upgrade vocabulary
