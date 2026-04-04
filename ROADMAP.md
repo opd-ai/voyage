@@ -215,8 +215,8 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] Buy/sell interface with supply/demand pricing
 - [x] All item names and descriptions procedurally generated from seed — no embedded item text
 - [x] Bartering option (trade goods instead of currency)
-- [ ] Town reputation track (friendly towns offer better prices; hostile towns may attack)
-- [ ] `SetGenre()` re-skins trading posts (market→space-dock→survivor-camp→black-market→scrap-bazaar)
+- [x] Town reputation track (friendly towns offer better prices; hostile towns may attack)
+- [x] `SetGenre()` re-skins trading posts (market→space-dock→survivor-camp→black-market→scrap-bazaar)
 
 #### Tactical Encounter Resolution
 - [ ] Encounter types: ambush, negotiation, race/chase, crisis management, puzzle
