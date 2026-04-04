@@ -18,21 +18,25 @@ Voyage is a rogue-like travel simulator where every map, event, crew, vessel, au
 
 ## Status
 
-🚧 **Early Development** — Core engine and ECS framework implemented. Full gameplay coming soon.
+🚧 **Early Development** — Core engine complete. Full gameplay coming soon.
 
 ### Implemented
 - ✅ Go module and project structure
 - ✅ ECS framework with GenreSwitcher interface
 - ✅ Seed-based deterministic RNG
 - ✅ Ebitengine rendering foundation
-- ✅ Genre-switchable palettes
+- ✅ Procedural world map generation
+- ✅ Resource management system (six-axis model)
+- ✅ Crew/party system with procedural generation
+- ✅ Vessel/transport system
+- ✅ Procedural event system with grammar templates
+- ✅ Audio synthesis (waveforms, ADSR, SFX)
+- ✅ UI/HUD/Menus with genre theming
+- ✅ Win/lose conditions
+- ✅ Save/load system with multiple slots
+- ✅ Configuration and input rebinding
 - ✅ CI/CD pipeline
-
-### In Progress
-- 🔄 Procedural world map generation
-- 🔄 Resource management system
-- 🔄 Crew/party system
-- 🔄 Event system
+- ✅ Validation scripts
 
 ## Prerequisites
 
@@ -69,12 +73,27 @@ go build ./cmd/voyage
 # Start with specific genre
 ./voyage --genre scifi
 
+# Start with specific difficulty
+./voyage --difficulty hard
+
+# Combine options
+./voyage --seed 42 --genre cyberpunk --difficulty nightmare
+
 # Show version
 ./voyage --version
 
 # Show help
 ./voyage --help
 ```
+
+### Available Options
+
+| Flag | Values | Default | Description |
+|------|--------|---------|-------------|
+| `--seed` | integer | random | Master seed for procedural generation |
+| `--genre` | fantasy, scifi, horror, cyberpunk, postapoc | fantasy | Genre theme |
+| `--difficulty` | easy, normal, hard, nightmare | normal | Difficulty level |
+| `--version` | - | - | Show version information |
 
 ## Controls
 

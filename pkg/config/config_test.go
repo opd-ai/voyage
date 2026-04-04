@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 
 	"github.com/opd-ai/voyage/pkg/engine"
@@ -157,5 +158,182 @@ func TestActionName(t *testing.T) {
 	}
 	if name != "Move Up" {
 		t.Errorf("expected 'Move Up', got '%s'", name)
+	}
+}
+
+func TestParseDifficulty(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected Difficulty
+		valid    bool
+	}{
+		{"easy", DifficultyEasy, true},
+		{"Easy", DifficultyEasy, true},
+		{"normal", DifficultyNormal, true},
+		{"Normal", DifficultyNormal, true},
+		{"hard", DifficultyHard, true},
+		{"Hard", DifficultyHard, true},
+		{"nightmare", DifficultyNightmare, true},
+		{"Nightmare", DifficultyNightmare, true},
+		{"invalid", DifficultyNormal, false},
+		{"", DifficultyNormal, false},
+		{"EASY", DifficultyNormal, false}, // case sensitive except for first letter
+	}
+
+	for _, tt := range tests {
+		diff, ok := ParseDifficulty(tt.input)
+		if ok != tt.valid {
+			t.Errorf("ParseDifficulty(%q) valid = %v, want %v", tt.input, ok, tt.valid)
+		}
+		if diff != tt.expected {
+			t.Errorf("ParseDifficulty(%q) = %v, want %v", tt.input, diff, tt.expected)
+		}
+	}
+}
+
+func TestIsValidDifficulty(t *testing.T) {
+	validInputs := []string{"easy", "Easy", "normal", "Normal", "hard", "Hard", "nightmare", "Nightmare"}
+	for _, input := range validInputs {
+		if !IsValidDifficulty(input) {
+			t.Errorf("IsValidDifficulty(%q) = false, want true", input)
+		}
+	}
+
+	invalidInputs := []string{"invalid", "", "EASY", "medium", "insane"}
+	for _, input := range invalidInputs {
+		if IsValidDifficulty(input) {
+			t.Errorf("IsValidDifficulty(%q) = true, want false", input)
+		}
+	}
+}
+
+func TestConfigPath(t *testing.T) {
+	path := ConfigPath()
+	if path == "" {
+		t.Error("ConfigPath should return non-empty string")
+	}
+}
+
+func TestConfigFilePath(t *testing.T) {
+	path := ConfigFilePath()
+	if path == "" {
+		t.Error("ConfigFilePath should return non-empty string")
+	}
+	// Should end with config.json
+	if len(path) < 11 || path[len(path)-11:] != "config.json" {
+		t.Errorf("ConfigFilePath should end with config.json, got %s", path)
+	}
+}
+
+func TestSaveAndLoadConfig(t *testing.T) {
+	// Use temp dir for testing
+	tempDir := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", oldHome)
+
+	// Create and modify config
+	cfg := DefaultConfig()
+	cfg.Seed = 12345
+	cfg.ScreenWidth = 1024
+	cfg.Difficulty = DifficultyHard
+
+	// Save
+	err := SaveConfig(cfg)
+	if err != nil {
+		t.Fatalf("SaveConfig failed: %v", err)
+	}
+
+	// Verify exists
+	if !ConfigExists() {
+		t.Error("ConfigExists should return true after save")
+	}
+
+	// Load
+	loaded, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if loaded.Seed != cfg.Seed {
+		t.Errorf("loaded Seed = %d, want %d", loaded.Seed, cfg.Seed)
+	}
+	if loaded.ScreenWidth != cfg.ScreenWidth {
+		t.Errorf("loaded ScreenWidth = %d, want %d", loaded.ScreenWidth, cfg.ScreenWidth)
+	}
+	if loaded.Difficulty != cfg.Difficulty {
+		t.Errorf("loaded Difficulty = %v, want %v", loaded.Difficulty, cfg.Difficulty)
+	}
+
+	// Delete
+	err = DeleteConfig()
+	if err != nil {
+		t.Fatalf("DeleteConfig failed: %v", err)
+	}
+
+	if ConfigExists() {
+		t.Error("ConfigExists should return false after delete")
+	}
+}
+
+func TestLoadConfigDefault(t *testing.T) {
+	// Use temp dir with no config
+	tempDir := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", oldHome)
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	// Should return default config
+	if cfg.ScreenWidth != 800 || cfg.ScreenHeight != 600 {
+		t.Error("LoadConfig should return default config when file doesn't exist")
+	}
+}
+
+func TestInputConfigJSON(t *testing.T) {
+	ic := NewInputConfig()
+	ic.SetBinding(ActionMoveUp, 87, "W")
+
+	// Marshal
+	data, err := ic.MarshalJSON()
+	if err != nil {
+		t.Fatalf("MarshalJSON failed: %v", err)
+	}
+
+	// Unmarshal into new config
+	ic2 := &InputConfig{}
+	err = ic2.UnmarshalJSON(data)
+	if err != nil {
+		t.Fatalf("UnmarshalJSON failed: %v", err)
+	}
+
+	binding := ic2.GetBinding(ActionMoveUp)
+	if binding.KeyCode != 87 {
+		t.Errorf("restored keyCode = %d, want 87", binding.KeyCode)
+	}
+	if binding.KeyName != "W" {
+		t.Errorf("restored keyName = %s, want W", binding.KeyName)
+	}
+}
+
+func TestGetKeyCode(t *testing.T) {
+	ic := NewInputConfig()
+	
+	code := ic.GetKeyCode(ActionMoveUp)
+	if code == 0 {
+		t.Error("GetKeyCode should return non-zero for default binding")
+	}
+}
+
+func TestAllBindings(t *testing.T) {
+	ic := NewInputConfig()
+	
+	bindings := ic.AllBindings()
+	if len(bindings) < 10 {
+		t.Errorf("AllBindings should return at least 10 bindings, got %d", len(bindings))
 	}
 }

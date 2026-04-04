@@ -6,10 +6,11 @@
 //
 // Usage:
 //
-//	voyage                      # Start with random seed
-//	voyage --seed 12345         # Start with specific seed
-//	voyage --genre scifi        # Start with sci-fi theme
-//	voyage --help               # Show all options
+//	voyage                           # Start with random seed
+//	voyage --seed 12345              # Start with specific seed
+//	voyage --genre scifi             # Start with sci-fi theme
+//	voyage --difficulty hard         # Start with hard difficulty
+//	voyage --help                    # Show all options
 package main
 
 import (
@@ -19,15 +20,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/opd-ai/voyage/pkg/config"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 )
 
 var (
 	// Command line flags
-	seedFlag    = flag.Int64("seed", 0, "Master seed for procedural generation (0 = random)")
-	genreFlag   = flag.String("genre", "fantasy", "Genre theme: fantasy, scifi, horror, cyberpunk, postapoc")
-	versionFlag = flag.Bool("version", false, "Print version information")
+	seedFlag       = flag.Int64("seed", 0, "Master seed for procedural generation (0 = random)")
+	genreFlag      = flag.String("genre", "fantasy", "Genre theme: fantasy, scifi, horror, cyberpunk, postapoc")
+	difficultyFlag = flag.String("difficulty", "normal", "Difficulty: easy, normal, hard, nightmare")
+	versionFlag    = flag.Bool("version", false, "Print version information")
 )
 
 // Version information (set via ldflags in release builds)
@@ -50,12 +53,19 @@ func main() {
 	}
 	genre := engine.GenreID(*genreFlag)
 
+	// Validate difficulty
+	if !config.IsValidDifficulty(*difficultyFlag) {
+		log.Fatalf("Invalid difficulty: %s. Valid: easy, normal, hard, nightmare", *difficultyFlag)
+	}
+	difficulty, _ := config.ParseDifficulty(*difficultyFlag)
+
 	// Initialize seed
 	masterSeed := *seedFlag
 	if masterSeed == 0 {
 		masterSeed = time.Now().UnixNano()
 	}
-	fmt.Printf("Voyage starting with seed: %d, genre: %s\n", masterSeed, genre)
+	fmt.Printf("Voyage starting with seed: %d, genre: %s, difficulty: %s\n",
+		masterSeed, genre, config.DifficultyName(difficulty))
 
 	// Initialize world
 	registry := engine.NewComponentRegistry()

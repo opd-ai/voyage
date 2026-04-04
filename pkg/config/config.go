@@ -204,6 +204,29 @@ func AllDifficulties() []Difficulty {
 	}
 }
 
+// ParseDifficulty converts a string to a Difficulty level.
+// Returns DifficultyNormal and false if the string is invalid.
+func ParseDifficulty(s string) (Difficulty, bool) {
+	switch s {
+	case "easy", "Easy":
+		return DifficultyEasy, true
+	case "normal", "Normal":
+		return DifficultyNormal, true
+	case "hard", "Hard":
+		return DifficultyHard, true
+	case "nightmare", "Nightmare":
+		return DifficultyNightmare, true
+	default:
+		return DifficultyNormal, false
+	}
+}
+
+// IsValidDifficulty checks if a string is a valid difficulty level.
+func IsValidDifficulty(s string) bool {
+	_, ok := ParseDifficulty(s)
+	return ok
+}
+
 // DefaultConfig returns the default game configuration.
 func DefaultConfig() *Config {
 	return &Config{
