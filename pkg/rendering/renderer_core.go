@@ -6,6 +6,14 @@ import (
 	"github.com/opd-ai/voyage/pkg/engine"
 )
 
+// Camera represents the viewport into the game world.
+type Camera struct {
+	X, Y   float64
+	Width  int
+	Height int
+	Zoom   float64
+}
+
 // Palette defines the color scheme for rendering.
 type Palette struct {
 	Background color.Color
