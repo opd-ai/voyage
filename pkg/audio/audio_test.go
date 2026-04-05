@@ -597,3 +597,183 @@ func TestCrossfadeAllStates(t *testing.T) {
 		}
 	}
 }
+
+func TestSpatialAudio(t *testing.T) {
+	// Create test samples
+	samples := make([]float64, 1000)
+	for i := range samples {
+		samples[i] = 0.5 // Constant amplitude for easy testing
+	}
+
+	// Test with source at listener position
+	config := DefaultSpatialConfig()
+	left, right := ApplySpatialAudio(samples, config)
+
+	if len(left) != len(samples) || len(right) != len(samples) {
+		t.Errorf("output lengths: left=%d, right=%d, want %d", len(left), len(right), len(samples))
+	}
+
+	// At listener position, both channels should be approximately equal
+	if math.Abs(left[0]-right[0]) > 0.01 {
+		t.Errorf("at center: left=%f, right=%f, should be equal", left[0], right[0])
+	}
+}
+
+func TestSpatialAudioAttenuation(t *testing.T) {
+	samples := make([]float64, 100)
+	for i := range samples {
+		samples[i] = 1.0
+	}
+
+	config := DefaultSpatialConfig()
+	config.MaxDistance = 100
+
+	// Test near source (should be full volume)
+	config.SourceX = 1
+	left, _ := ApplySpatialAudio(samples, config)
+	nearSum := 0.0
+	for _, s := range left {
+		nearSum += math.Abs(s)
+	}
+
+	// Test far source (should be attenuated)
+	config.SourceX = 50
+	left, _ = ApplySpatialAudio(samples, config)
+	farSum := 0.0
+	for _, s := range left {
+		farSum += math.Abs(s)
+	}
+
+	if farSum >= nearSum {
+		t.Errorf("far sum=%f should be less than near sum=%f", farSum, nearSum)
+	}
+
+	// Test at max distance (should be silent)
+	config.SourceX = 100
+	left, _ = ApplySpatialAudio(samples, config)
+	maxSum := 0.0
+	for _, s := range left {
+		maxSum += math.Abs(s)
+	}
+
+	if maxSum > 0.01 {
+		t.Errorf("at max distance sum=%f, should be ~0", maxSum)
+	}
+}
+
+func TestSpatialAudioPanning(t *testing.T) {
+	samples := make([]float64, 100)
+	for i := range samples {
+		samples[i] = 1.0
+	}
+
+	config := DefaultSpatialConfig()
+	config.MaxDistance = 100
+
+	// Source on the left
+	config.SourceX = -10
+	config.SourceY = 0
+	left, right := ApplySpatialAudio(samples, config)
+
+	leftSum, rightSum := 0.0, 0.0
+	for i := range left {
+		leftSum += math.Abs(left[i])
+		rightSum += math.Abs(right[i])
+	}
+
+	if leftSum <= rightSum {
+		t.Errorf("source on left: leftSum=%f should be > rightSum=%f", leftSum, rightSum)
+	}
+
+	// Source on the right
+	config.SourceX = 10
+	left, right = ApplySpatialAudio(samples, config)
+
+	leftSum, rightSum = 0.0, 0.0
+	for i := range left {
+		leftSum += math.Abs(left[i])
+		rightSum += math.Abs(right[i])
+	}
+
+	if rightSum <= leftSum {
+		t.Errorf("source on right: rightSum=%f should be > leftSum=%f", rightSum, leftSum)
+	}
+}
+
+func TestSpatialAudioConfig(t *testing.T) {
+	config := DefaultSpatialConfig()
+
+	if config.MaxDistance != 100 {
+		t.Errorf("default max distance=%f, want 100", config.MaxDistance)
+	}
+
+	if config.RolloffFactor != 1.0 {
+		t.Errorf("default rolloff=%f, want 1.0", config.RolloffFactor)
+	}
+
+	// Test distance calculation
+	config.SourceX = 3
+	config.SourceY = 4
+	dist := config.Distance()
+	if math.Abs(dist-5) > 0.001 {
+		t.Errorf("distance=%f, want 5 (3-4-5 triangle)", dist)
+	}
+
+	// Test attenuation at distance
+	atten := config.Attenuation()
+	if atten <= 0 || atten >= 1 {
+		t.Errorf("attenuation=%f, should be between 0 and 1", atten)
+	}
+
+	// Test pan
+	left, right := config.Pan()
+	if left < 0 || left > 1 || right < 0 || right > 1 {
+		t.Errorf("pan left=%f, right=%f, both should be in [0,1]", left, right)
+	}
+}
+
+func TestSpatialAudioProcessor(t *testing.T) {
+	proc := NewSpatialAudioProcessor()
+
+	x, y := proc.ListenerPosition()
+	if x != 0 || y != 0 {
+		t.Errorf("initial position=(%f,%f), want (0,0)", x, y)
+	}
+
+	proc.SetListenerPosition(10, 20)
+	x, y = proc.ListenerPosition()
+	if x != 10 || y != 20 {
+		t.Errorf("position=(%f,%f), want (10,20)", x, y)
+	}
+
+	// Process a source
+	samples := make([]float64, 100)
+	for i := range samples {
+		samples[i] = 0.5
+	}
+
+	left, right := proc.ProcessSource(samples, 15, 20, 50)
+
+	if len(left) != len(samples) || len(right) != len(samples) {
+		t.Errorf("output lengths: left=%d, right=%d, want %d", len(left), len(right), len(samples))
+	}
+}
+
+func TestSpatialAudioStereo(t *testing.T) {
+	// Create stereo input
+	leftIn := make([]float64, 100)
+	rightIn := make([]float64, 100)
+	for i := range leftIn {
+		leftIn[i] = 0.8
+		rightIn[i] = 0.2
+	}
+
+	config := DefaultSpatialConfig()
+	config.SourceX = 10
+
+	leftOut, rightOut := ApplySpatialAudioStereo(leftIn, rightIn, config)
+
+	if len(leftOut) != len(leftIn) || len(rightOut) != len(rightIn) {
+		t.Error("output lengths should match input lengths")
+	}
+}
