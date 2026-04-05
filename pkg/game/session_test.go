@@ -5,6 +5,7 @@ package game
 import (
 	"testing"
 
+	"github.com/opd-ai/voyage/pkg/audio"
 	"github.com/opd-ai/voyage/pkg/config"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/world"
@@ -178,5 +179,60 @@ func TestDefaultSessionConfig(t *testing.T) {
 	}
 	if cfg.CrewSize != 4 {
 		t.Errorf("expected CrewSize 4, got %d", cfg.CrewSize)
+	}
+}
+
+func TestMusicStateTransitions(t *testing.T) {
+	cfg := DefaultSessionConfig()
+	cfg.Seed = 12345
+	cfg.MapWidth = 20
+	cfg.MapHeight = 20
+
+	session := NewGameSession(cfg)
+
+	// Initial music state should be peaceful
+	initialState := session.AudioPlayer().MusicState()
+	if initialState != audio.MusicPeaceful {
+		t.Errorf("expected initial music state Peaceful, got %s", audio.MusicStateName(initialState))
+	}
+
+	// Simulate advancing turns - music may change based on terrain/events
+	for i := 0; i < 5; i++ {
+		session.AdvanceTurn()
+	}
+
+	// Verify audio player still works
+	if session.AudioPlayer() == nil {
+		t.Error("audio player should not be nil after turns")
+	}
+}
+
+func TestMusicStateOnGameOver(t *testing.T) {
+	cfg := DefaultSessionConfig()
+	cfg.Seed = 12345
+	cfg.MapWidth = 20
+	cfg.MapHeight = 20
+
+	session := NewGameSession(cfg)
+
+	// Force a loss condition by killing all crew
+	party := session.Party()
+	for party.LivingCount() > 0 {
+		// Apply damage until all crew are dead
+		party.ApplyDamageToAll(100)
+	}
+
+	// Trigger condition check
+	session.AdvanceTurn()
+
+	// State should be game over with death music
+	if session.State() != StateGameOver {
+		t.Errorf("expected StateGameOver, got %v", session.State())
+	}
+
+	// Music should be death state
+	musicState := session.AudioPlayer().MusicState()
+	if musicState != audio.MusicDeath {
+		t.Errorf("expected music state Death on game over, got %s", audio.MusicStateName(musicState))
 	}
 }
