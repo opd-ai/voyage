@@ -76,7 +76,7 @@
 
 - [ ] **Low cohesion files detected** — `pkg/rendering/vessel_sprite.go`, `pkg/audio/sfx.go` — Files contain functions with unrelated responsibilities based on go-stats-generator analysis. — **Remediation:** Split `vessel_sprite.go` into `vessel_sprite_generation.go` and `vessel_sprite_damage.go` if file exceeds 200 lines. For sfx.go, separate effect types into individual files.
 
-- [ ] **Undocumented main() function** — `cmd/voyage/main.go:42` — Main entry point lacks doc comment. — **Remediation:** Add package-level documentation is sufficient (already present at line 1-14). No action needed for main() itself.
+- [x] **Undocumented main() function** — `cmd/voyage/main.go:42` — Main entry point lacks doc comment. — **Remediation:** Add package-level documentation is sufficient (already present at line 1-14). No action needed for main() itself.
 
 ---
 

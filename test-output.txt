@@ -1,42 +1,13 @@
-?   	github.com/opd-ai/voyage/cmd/voyage	[no test files]
-ok  	github.com/opd-ai/voyage/pkg/audio	5.834s
-ok  	github.com/opd-ai/voyage/pkg/benchmark	1.051s
-ok  	github.com/opd-ai/voyage/pkg/config	1.051s
-ok  	github.com/opd-ai/voyage/pkg/council	1.041s
-ok  	github.com/opd-ai/voyage/pkg/crew	1.045s
-ok  	github.com/opd-ai/voyage/pkg/destination	1.040s
-ok  	github.com/opd-ai/voyage/pkg/encounters	1.135s
-ok  	github.com/opd-ai/voyage/pkg/engine	1.030s
-ok  	github.com/opd-ai/voyage/pkg/events	1.041s
-glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
-panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
-
-goroutine 1 [running]:
-github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
-	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
-FAIL	github.com/opd-ai/voyage/pkg/game	0.073s
-ok  	github.com/opd-ai/voyage/pkg/npc	1.033s
-ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.023s
-ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.033s
-ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.098s
-glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
-panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
-
-goroutine 1 [running]:
-github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
-	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
-FAIL	github.com/opd-ai/voyage/pkg/rendering	0.089s
-ok  	github.com/opd-ai/voyage/pkg/resources	1.031s
-ok  	github.com/opd-ai/voyage/pkg/saveload	1.090s
-ok  	github.com/opd-ai/voyage/pkg/trading	1.061s
-glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
-panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
-
-goroutine 1 [running]:
-github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
-	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
-FAIL	github.com/opd-ai/voyage/pkg/ux	0.070s
-ok  	github.com/opd-ai/voyage/pkg/vessel	1.039s
-ok  	github.com/opd-ai/voyage/pkg/weather	1.029s
-ok  	github.com/opd-ai/voyage/pkg/world	1.025s
-FAIL
+# github.com/opd-ai/voyage/pkg/game
+pkg/game/session.go:403:32: undefined: engine
+pkg/game/session.go:408:35: undefined: world
+pkg/game/session.go:413:32: undefined: crew
+pkg/game/session.go:418:33: undefined: vessel
+pkg/game/session.go:423:36: undefined: resources
+pkg/game/session.go:428:37: undefined: events
+pkg/game/session.go:433:38: undefined: audio
+pkg/game/session.go:438:35: undefined: rendering
+pkg/game/session.go:453:40: undefined: world
+pkg/game/session.go:458:38: undefined: engine
+pkg/game/session.go:458:38: too many errors
+FAIL	github.com/opd-ai/voyage/cmd/voyage [build failed]
