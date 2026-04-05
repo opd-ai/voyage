@@ -269,7 +269,7 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] Genre-specific particle themes via `SetGenre()`
 
 #### Enhanced Sprite Generation
-- [ ] Animated overworld tiles (flowing water, wind-swept grass, flickering fires)
+- [x] Animated overworld tiles (flowing water, wind-swept grass, flickering fires)
 - [ ] Crew member portrait animation (idle breathing, hurt flinch, death fade)
 - [ ] Vessel damage states (pristine → worn → damaged → critical sprites)
 - [ ] Animated landmark icons (smoking ruins, blinking outpost lights)
