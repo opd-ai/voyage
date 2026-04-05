@@ -366,11 +366,11 @@ func (ps *ParticleSystem) drawParticle(screen *ebiten.Image, p *Particle) {
 
 	// Apply particle color using color scale
 	col := p.Color
-	alpha := float64(col.A) / 255.0 * p.Alpha
+	alpha := float32(float64(col.A)/255.0) * float32(p.Alpha)
 	op.ColorScale.Scale(
-		float64(col.R)/255.0,
-		float64(col.G)/255.0,
-		float64(col.B)/255.0,
+		float32(col.R)/255.0,
+		float32(col.G)/255.0,
+		float32(col.B)/255.0,
 		alpha,
 	)
 
