@@ -138,11 +138,7 @@ func (s *SlotSelectionScreen) CancelDelete() {
 // Draw renders the slot selection screen.
 func (s *SlotSelectionScreen) Draw(screen *ebiten.Image) {
 	// Draw semi-transparent background
-	overlay := ebiten.NewImage(s.screenWidth, s.screenHeight)
-	overlay.Fill(s.skin.PanelBackground)
-	op := &ebiten.DrawImageOptions{}
-	op.ColorScale.ScaleAlpha(0.8)
-	screen.DrawImage(overlay, op)
+	DrawOverlay(screen, s.skin, s.screenWidth, s.screenHeight)
 
 	// Calculate panel dimensions
 	panelWidth := 450
@@ -150,18 +146,12 @@ func (s *SlotSelectionScreen) Draw(screen *ebiten.Image) {
 	if panelHeight > s.screenHeight-60 {
 		panelHeight = s.screenHeight - 60
 	}
-	panelX := (s.screenWidth - panelWidth) / 2
-	panelY := (s.screenHeight - panelHeight) / 2
 
-	// Draw main panel
-	panel := ebiten.NewImage(panelWidth, panelHeight)
-	panel.Fill(s.skin.PanelBackground)
-	s.drawBorder(panel)
+	// Draw centered panel
+	panel, panelX, panelY := DrawCenteredPanel(screen, s.skin, s.screenWidth, s.screenHeight, panelWidth, panelHeight)
 
 	// Draw title
-	title := s.getTitle()
-	titleX := (panelWidth - len(title)*7) / 2
-	ebitenutil.DebugPrintAt(panel, title, titleX, 16)
+	DrawCenteredText(panel, s.getTitle(), 16)
 
 	// Draw slots
 	y := 50
@@ -178,9 +168,7 @@ func (s *SlotSelectionScreen) Draw(screen *ebiten.Image) {
 	}
 
 	// Draw panel to screen
-	opPanel := &ebiten.DrawImageOptions{}
-	opPanel.GeoM.Translate(float64(panelX), float64(panelY))
-	screen.DrawImage(panel, opPanel)
+	DrawPanelToScreen(screen, panel, panelX, panelY)
 
 	// Draw instructions at bottom
 	instructions := s.getInstructions()

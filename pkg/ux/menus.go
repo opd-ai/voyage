@@ -151,28 +151,18 @@ func (m *Menu) SetItemEnabled(id string, enabled bool) {
 func (m *Menu) Draw(screen *ebiten.Image) {
 	// Draw background overlay for pause/options
 	if m.menuType != MenuMain {
-		overlay := ebiten.NewImage(m.screenWidth, m.screenHeight)
-		overlay.Fill(m.skin.PanelBackground)
-		op := &ebiten.DrawImageOptions{}
-		op.ColorScale.ScaleAlpha(0.5)
-		screen.DrawImage(overlay, op)
+		DrawOverlay(screen, m.skin, m.screenWidth, m.screenHeight)
 	}
 
 	// Calculate menu dimensions
 	menuWidth := 300
 	menuHeight := 60 + len(m.items)*40
-	menuX := (m.screenWidth - menuWidth) / 2
-	menuY := (m.screenHeight - menuHeight) / 2
 
-	// Draw menu panel
-	panel := ebiten.NewImage(menuWidth, menuHeight)
-	panel.Fill(m.skin.PanelBackground)
-	m.drawBorder(panel)
+	// Draw centered panel
+	panel, menuX, menuY := DrawCenteredPanel(screen, m.skin, m.screenWidth, m.screenHeight, menuWidth, menuHeight)
 
 	// Draw title
-	title := m.getTitle()
-	titleX := (menuWidth - len(title)*7) / 2
-	ebitenutil.DebugPrintAt(panel, title, titleX, 16)
+	DrawCenteredText(panel, m.getTitle(), 16)
 
 	// Draw items
 	y := 50
@@ -192,9 +182,7 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 	}
 
 	// Draw panel to screen
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(menuX), float64(menuY))
-	screen.DrawImage(panel, op)
+	DrawPanelToScreen(screen, panel, menuX, menuY)
 
 	// Draw instructions at bottom
 	instructions := m.getInstructions()

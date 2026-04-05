@@ -136,7 +136,7 @@ The README claims "Early Development — Core engine complete. Full gameplay com
   ```
   **Validation:** `go test -v ./pkg/procgen/event/... ./pkg/world/...`
 
-- [ ] **Code duplication in UI drawing** — `pkg/ux/menus.go:164-178` and `pkg/ux/slots.go:153-167` — 15-line clone detected (0.36% duplication ratio).
+- [x] **Code duplication in UI drawing** — `pkg/ux/menus.go:164-178` and `pkg/ux/slots.go:153-167` — 15-line clone detected (0.36% duplication ratio).
 
   **Remediation:** Extract shared drawing logic to `pkg/ux/panel.go`:
   ```go

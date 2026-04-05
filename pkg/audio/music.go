@@ -7,6 +7,33 @@ import (
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 )
 
+// ADSR envelope constants for bass line.
+const (
+	bassAttack  = 0.5 // seconds to reach peak volume
+	bassDecay   = 0.3 // seconds to decay to sustain level
+	bassSustain = 0.6 // sustain level (0-1)
+	bassRelease = 0.5 // seconds to fade to silence
+	bassVolume  = 0.3 // mix volume for bass layer
+)
+
+// ADSR envelope constants for pad layer.
+const (
+	padAttack  = 1.0 // slow attack for ambient feel
+	padDecay   = 0.5
+	padSustain = 0.7
+	padRelease = 1.0 // long release for atmosphere
+	padVolume  = 0.2
+)
+
+// ADSR envelope constants for melody hints.
+const (
+	melodyAttack  = 0.1 // quick attack for plucky melody
+	melodyDecay   = 0.2
+	melodySustain = 0.3
+	melodyRelease = 0.4
+	melodyVolume  = 0.15
+)
+
 // MusicGenerator creates procedural ambient music.
 type MusicGenerator struct {
 	gen        *seed.Generator
@@ -63,7 +90,7 @@ func (m *MusicGenerator) GenerateLoop(bars int) []float64 {
 // generateBassLine adds a low drone/bass layer to the mix.
 func (m *MusicGenerator) generateBassLine(result []float64, params *MusicParams, bars int, barDuration float64) {
 	osc := NewOscillator(params.BassWave, params.RootNote, 0.25)
-	env := NewEnvelope(0.5, 0.3, 0.6, 0.5)
+	env := NewEnvelope(bassAttack, bassDecay, bassSustain, bassRelease)
 	env.NoteOn()
 
 	for i := range result {
@@ -74,7 +101,7 @@ func (m *MusicGenerator) generateBassLine(result []float64, params *MusicParams,
 		}
 		bassNote := m.getBassNote(params, bar)
 		osc.SetFrequency(bassNote)
-		result[i] += osc.Sample() * env.Sample() * 0.3
+		result[i] += osc.Sample() * env.Sample() * bassVolume
 	}
 }
 
@@ -85,7 +112,7 @@ func (m *MusicGenerator) generatePadLayer(result []float64, params *MusicParams,
 	for i, note := range chord {
 		oscs[i] = NewOscillator(params.PadWave, note, 0.15)
 	}
-	env := NewEnvelope(1.0, 0.5, 0.7, 1.0)
+	env := NewEnvelope(padAttack, padDecay, padSustain, padRelease)
 	env.NoteOn()
 
 	for i := range result {
@@ -93,14 +120,14 @@ func (m *MusicGenerator) generatePadLayer(result []float64, params *MusicParams,
 		for _, osc := range oscs {
 			padSample += osc.Sample()
 		}
-		result[i] += padSample * env.Sample() * 0.2
+		result[i] += padSample * env.Sample() * padVolume
 	}
 }
 
 // generateMelodyHints adds subtle melodic elements.
 func (m *MusicGenerator) generateMelodyHints(result []float64, params *MusicParams, bars int, barDuration float64) {
 	osc := NewOscillator(params.MelodyWave, params.RootNote*2, 0.2)
-	env := NewEnvelope(0.1, 0.2, 0.3, 0.4)
+	env := NewEnvelope(melodyAttack, melodyDecay, melodySustain, melodyRelease)
 	noteActive := false
 	nextNoteTime := 0.0
 	noteDuration := 60.0 / m.bpm
@@ -116,7 +143,7 @@ func (m *MusicGenerator) generateMelodyHints(result []float64, params *MusicPara
 			nextNoteTime = t + noteDuration*(0.5+m.gen.Float64())
 		}
 		if noteActive {
-			result[i] += osc.Sample() * env.Sample() * 0.15
+			result[i] += osc.Sample() * env.Sample() * melodyVolume
 			if !env.IsActive() {
 				noteActive = false
 			}
