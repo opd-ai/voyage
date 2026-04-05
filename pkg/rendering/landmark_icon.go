@@ -74,6 +74,28 @@ type LandmarkIconGenerator struct {
 	iconSize int
 }
 
+// drawRect draws a filled rectangle with bounds checking.
+func (lig *LandmarkIconGenerator) drawRect(img *ebiten.Image, x1, y1, x2, y2 int, c color.Color) {
+	size := lig.iconSize
+	for y := y1; y < y2; y++ {
+		for x := x1; x <= x2; x++ {
+			if x >= 0 && x < size && y >= 0 && y < size {
+				img.Set(x, y, c)
+			}
+		}
+	}
+}
+
+// drawVerticalLine draws a vertical line with bounds checking.
+func (lig *LandmarkIconGenerator) drawVerticalLine(img *ebiten.Image, x, y1, y2 int, c color.Color) {
+	size := lig.iconSize
+	for y := y1; y < y2; y++ {
+		if y >= 0 && y < size {
+			img.Set(x, y, c)
+		}
+	}
+}
+
 // NewLandmarkIconGenerator creates a new landmark icon generator.
 func NewLandmarkIconGenerator(masterSeed int64, iconSize int) *LandmarkIconGenerator {
 	return &LandmarkIconGenerator{
@@ -254,21 +276,11 @@ func (lig *LandmarkIconGenerator) drawOutpostBase(img *ebiten.Image, c color.Col
 	// Main building
 	buildingWidth := size / 3
 	buildingHeight := size / 2
-	for y := groundY - buildingHeight; y < groundY; y++ {
-		for x := centerX - buildingWidth/2; x <= centerX+buildingWidth/2; x++ {
-			if x >= 0 && x < size && y >= 0 && y < size {
-				img.Set(x, y, c)
-			}
-		}
-	}
+	lig.drawRect(img, centerX-buildingWidth/2, groundY-buildingHeight, centerX+buildingWidth/2, groundY, c)
 
 	// Tower/antenna
 	towerHeight := size / 4
-	for y := groundY - buildingHeight - towerHeight; y < groundY-buildingHeight; y++ {
-		if y >= 0 && y < size {
-			img.Set(centerX, y, c)
-		}
-	}
+	lig.drawVerticalLine(img, centerX, groundY-buildingHeight-towerHeight, groundY-buildingHeight, c)
 }
 
 // drawBlinkingLights draws lights that blink on different frames.
@@ -405,23 +417,15 @@ func (lig *LandmarkIconGenerator) drawShrineBase(img *ebiten.Image, c color.Colo
 	// Altar/pedestal
 	pedestalWidth := size / 3
 	pedestalHeight := size / 6
-	for y := groundY - pedestalHeight; y < groundY; y++ {
-		for x := centerX - pedestalWidth/2; x <= centerX+pedestalWidth/2; x++ {
-			if x >= 0 && x < size && y >= 0 && y < size {
-				img.Set(x, y, c)
-			}
-		}
-	}
+	lig.drawRect(img, centerX-pedestalWidth/2, groundY-pedestalHeight, centerX+pedestalWidth/2, groundY, c)
 
-	// Central pillar/artifact
+	// Central pillar/artifact (3 pixels wide)
 	pillarHeight := size / 3
-	for y := groundY - pedestalHeight - pillarHeight; y < groundY-pedestalHeight; y++ {
-		if y >= 0 && y < size {
-			img.Set(centerX, y, c)
-			img.Set(centerX-1, y, c)
-			img.Set(centerX+1, y, c)
-		}
-	}
+	pillarTop := groundY - pedestalHeight - pillarHeight
+	pillarBottom := groundY - pedestalHeight
+	lig.drawVerticalLine(img, centerX, pillarTop, pillarBottom, c)
+	lig.drawVerticalLine(img, centerX-1, pillarTop, pillarBottom, c)
+	lig.drawVerticalLine(img, centerX+1, pillarTop, pillarBottom, c)
 }
 
 // drawShrineGlow draws the pulsing glow effect.
@@ -481,32 +485,24 @@ func (lig *LandmarkIconGenerator) drawOriginMarker(img *ebiten.Image, markerColo
 	centerX := size / 2
 	centerY := size / 2
 
-	// Pulsing circle
+	// Calculate pulse size based on animation frame
 	progress := float64(frame) / float64(totalFrames)
 	pulseSize := size/4 + int(float64(size/8)*sinApprox(progress*6.28))
 
-	// Draw glow
-	for dy := -pulseSize; dy <= pulseSize; dy++ {
-		for dx := -pulseSize; dx <= pulseSize; dx++ {
-			dist := dx*dx + dy*dy
-			if dist <= pulseSize*pulseSize {
-				px, py := centerX+dx, centerY+dy
-				if px >= 0 && px < size && py >= 0 && py < size {
-					img.Set(px, py, glowColor)
-				}
-			}
-		}
-	}
+	// Draw glow and center marker
+	lig.drawFilledCircle(img, centerX, centerY, pulseSize, glowColor)
+	lig.drawFilledCircle(img, centerX, centerY, size/6, markerColor)
+}
 
-	// Draw center marker
-	markerRadius := size / 6
-	for dy := -markerRadius; dy <= markerRadius; dy++ {
-		for dx := -markerRadius; dx <= markerRadius; dx++ {
-			dist := dx*dx + dy*dy
-			if dist <= markerRadius*markerRadius {
+// drawFilledCircle draws a filled circle at the given center point with the specified radius.
+func (lig *LandmarkIconGenerator) drawFilledCircle(img *ebiten.Image, centerX, centerY, radius int, c color.Color) {
+	size := lig.iconSize
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if dx*dx+dy*dy <= radius*radius {
 				px, py := centerX+dx, centerY+dy
 				if px >= 0 && px < size && py >= 0 && py < size {
-					img.Set(px, py, markerColor)
+					img.Set(px, py, c)
 				}
 			}
 		}
@@ -534,7 +530,13 @@ func (lig *LandmarkIconGenerator) drawDestinationMarker(img *ebiten.Image, marke
 	centerX := size / 2
 	groundY := size * 3 / 4
 
-	// Draw base structure (star/flag shape)
+	lig.drawDestinationBase(img, centerX, groundY, markerColor)
+	lig.drawBeaconBeam(img, centerX, groundY, beamColor, frame, totalFrames)
+}
+
+// drawDestinationBase draws the base structure (star/flag shape) for a destination marker.
+func (lig *LandmarkIconGenerator) drawDestinationBase(img *ebiten.Image, centerX, groundY int, markerColor color.Color) {
+	size := lig.iconSize
 	for y := groundY - size/3; y < groundY; y++ {
 		width := (groundY - y) / 3
 		if width < 1 {
@@ -546,8 +548,11 @@ func (lig *LandmarkIconGenerator) drawDestinationMarker(img *ebiten.Image, marke
 			}
 		}
 	}
+}
 
-	// Draw rising beam
+// drawBeaconBeam draws the rising beam effect for a destination marker.
+func (lig *LandmarkIconGenerator) drawBeaconBeam(img *ebiten.Image, centerX, groundY int, beamColor color.Color, frame, totalFrames int) {
+	size := lig.iconSize
 	beamOffset := (frame * size / totalFrames) % size
 	r, g, b, _ := beamColor.RGBA()
 

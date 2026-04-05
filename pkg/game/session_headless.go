@@ -37,21 +37,6 @@ func (s *GameSession) AdvanceTurn() {
 	s.checkConditions()
 }
 
-// consumeResources depletes resources based on turn progression.
-func (s *GameSession) consumeResources() {
-	crewCount := float64(s.party.LivingCount())
-	s.resources.Consume(resources.ResourceFood, crewCount*0.5)
-	s.resources.Consume(resources.ResourceWater, crewCount*0.3)
-	s.resources.Consume(resources.ResourceFuel, s.vessel.Speed())
-
-	if s.resources.IsDepleted(resources.ResourceFood) {
-		s.resources.Add(resources.ResourceMorale, -5)
-	}
-	if s.resources.IsDepleted(resources.ResourceWater) {
-		s.resources.Add(resources.ResourceMorale, -8)
-	}
-}
-
 // maybeGenerateEvent potentially generates an event.
 func (s *GameSession) maybeGenerateEvent() {
 	tile := s.worldMap.GetTile(s.playerPos.X, s.playerPos.Y)
@@ -124,20 +109,7 @@ func (s *GameSession) ResolveEvent(eventID, choiceID int) {
 		return
 	}
 
-	s.resources.Add(resources.ResourceFood, outcome.FoodDelta)
-	s.resources.Add(resources.ResourceWater, outcome.WaterDelta)
-	s.resources.Add(resources.ResourceFuel, outcome.FuelDelta)
-	s.resources.Add(resources.ResourceMedicine, outcome.MedicineDelta)
-	s.resources.Add(resources.ResourceMorale, outcome.MoraleDelta)
-	s.resources.Add(resources.ResourceCurrency, outcome.CurrencyDelta)
-
-	if outcome.VesselDamage > 0 {
-		s.vessel.TakeDamage(outcome.VesselDamage)
-	}
-
-	if outcome.CrewDamage > 0 {
-		s.party.ApplyDamageToAll(outcome.CrewDamage)
-	}
+	s.applyOutcome(outcome)
 
 	for i := 0; i < outcome.TimeAdvance; i++ {
 		s.AdvanceTurn()
@@ -203,13 +175,5 @@ func (s *GameSession) PlayerPosition() world.Point {
 
 // SetGenre changes the genre for all subsystems.
 func (s *GameSession) SetGenre(genre engine.GenreID) {
-	s.config.Genre = genre
-	s.ecsWorld.SetGenre(genre)
-	s.party.SetGenre(genre)
-	s.relationships.SetGenre(genre)
-	s.vessel.SetGenre(genre)
-	s.resources.SetGenre(genre)
-	s.eventQueue.SetGenre(genre)
-	s.audioPlayer.SetGenre(genre)
-	s.renderer.SetGenre(genre)
+	s.propagateGenre(genre)
 }

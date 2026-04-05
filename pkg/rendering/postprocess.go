@@ -11,27 +11,14 @@ import (
 
 // PostProcessor applies post-processing effects to rendered images.
 type PostProcessor struct {
-	genre        engine.GenreID
-	vignetteOn   bool
-	vignetteInt  float64
-	scanlinesOn  bool
-	scanlinesDen float64
-	filmGrainOn  bool
-	filmGrainInt float64
-	chromaticOn  bool
-	chromaticOff float64
-	sepiaOn      bool
-	sepiaInt     float64
+	genre  engine.GenreID
+	config PostProcessorConfig
 }
 
 // NewPostProcessor creates a new post processor.
 func NewPostProcessor(genre engine.GenreID) *PostProcessor {
 	pp := &PostProcessor{
-		vignetteInt:  0.3,
-		scanlinesDen: 2.0,
-		filmGrainInt: 0.15,
-		chromaticOff: 2.0,
-		sepiaInt:     0.5,
+		config: DefaultPostProcessorConfig(),
 	}
 	pp.SetGenre(genre)
 	return pp
@@ -40,36 +27,7 @@ func NewPostProcessor(genre engine.GenreID) *PostProcessor {
 // SetGenre configures the post processor for a specific genre.
 func (pp *PostProcessor) SetGenre(genre engine.GenreID) {
 	pp.genre = genre
-	// Reset all effects
-	pp.vignetteOn = false
-	pp.scanlinesOn = false
-	pp.filmGrainOn = false
-	pp.chromaticOn = false
-	pp.sepiaOn = false
-
-	// Enable genre-specific effects
-	switch genre {
-	case engine.GenreFantasy:
-		pp.vignetteOn = true
-		pp.vignetteInt = 0.2
-	case engine.GenreScifi:
-		pp.vignetteOn = true
-		pp.vignetteInt = 0.3
-		pp.scanlinesOn = true
-	case engine.GenreHorror:
-		pp.vignetteOn = true
-		pp.vignetteInt = 0.5
-		pp.filmGrainOn = true
-	case engine.GenreCyberpunk:
-		pp.vignetteOn = true
-		pp.vignetteInt = 0.4
-		pp.scanlinesOn = true
-		pp.chromaticOn = true
-	case engine.GenrePostapoc:
-		pp.vignetteOn = true
-		pp.vignetteInt = 0.35
-		pp.sepiaOn = true
-	}
+	pp.config = ConfigureForGenre(genre)
 }
 
 // Genre returns the current genre.
@@ -86,20 +44,20 @@ func (pp *PostProcessor) Apply(img *ebiten.Image, seed int64) *ebiten.Image {
 	result := img
 
 	// Apply effects in order
-	if pp.vignetteOn {
-		result = pp.ApplyVignette(result, pp.vignetteInt)
+	if pp.config.VignetteOn {
+		result = pp.ApplyVignette(result, pp.config.VignetteInt)
 	}
-	if pp.scanlinesOn {
-		result = pp.ApplyScanlines(result, pp.scanlinesDen, 0.15)
+	if pp.config.ScanlinesOn {
+		result = pp.ApplyScanlines(result, pp.config.ScanlinesDen, 0.15)
 	}
-	if pp.filmGrainOn {
-		result = pp.ApplyFilmGrain(result, seed, pp.filmGrainInt)
+	if pp.config.FilmGrainOn {
+		result = pp.ApplyFilmGrain(result, seed, pp.config.FilmGrainInt)
 	}
-	if pp.chromaticOn {
-		result = pp.ApplyChromaticAberration(result, pp.chromaticOff)
+	if pp.config.ChromaticOn {
+		result = pp.ApplyChromaticAberration(result, pp.config.ChromaticOff)
 	}
-	if pp.sepiaOn {
-		result = pp.ApplySepia(result, pp.sepiaInt)
+	if pp.config.SepiaOn {
+		result = pp.ApplySepia(result, pp.config.SepiaInt)
 	}
 
 	return result
@@ -286,38 +244,27 @@ func (pp *PostProcessor) ApplySepia(img *ebiten.Image, intensity float64) *ebite
 	return result
 }
 
-// clampUint8 clamps a float64 to uint8 range.
-func clampUint8(v float64) uint8 {
-	if v < 0 {
-		return 0
-	}
-	if v > 255 {
-		return 255
-	}
-	return uint8(v)
-}
-
 // SetVignetteIntensity sets the vignette darkening strength.
 func (pp *PostProcessor) SetVignetteIntensity(intensity float64) {
-	pp.vignetteInt = intensity
+	pp.config.VignetteInt = intensity
 }
 
 // SetScanlinesEnabled toggles scanline effect.
 func (pp *PostProcessor) SetScanlinesEnabled(enabled bool) {
-	pp.scanlinesOn = enabled
+	pp.config.ScanlinesOn = enabled
 }
 
 // SetFilmGrainEnabled toggles film grain effect.
 func (pp *PostProcessor) SetFilmGrainEnabled(enabled bool) {
-	pp.filmGrainOn = enabled
+	pp.config.FilmGrainOn = enabled
 }
 
 // SetChromaticEnabled toggles chromatic aberration effect.
 func (pp *PostProcessor) SetChromaticEnabled(enabled bool) {
-	pp.chromaticOn = enabled
+	pp.config.ChromaticOn = enabled
 }
 
 // SetSepiaEnabled toggles sepia effect.
 func (pp *PostProcessor) SetSepiaEnabled(enabled bool) {
-	pp.sepiaOn = enabled
+	pp.config.SepiaOn = enabled
 }

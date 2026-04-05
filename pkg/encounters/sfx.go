@@ -236,37 +236,25 @@ func (g *SFXGenerator) generateRoleAssign() []float64 {
 }
 
 func (g *SFXGenerator) generatePause() []float64 {
-	duration := 0.15
-	samples := int(g.sampleRate * duration)
-	result := make([]float64, samples)
-
-	// Descending two-tone
-	for i := 0; i < samples; i++ {
-		t := float64(i) / g.sampleRate
-		env := 1.0 - float64(i)/float64(samples)
-		freq := 600.0
-		if i > samples/2 {
-			freq = 400.0
-		}
-		wave := sin(2 * pi * freq * t)
-		result[i] = wave * env * 0.25
-	}
-
-	return result
+	return g.generateTwoTone(600.0, 400.0) // Descending
 }
 
 func (g *SFXGenerator) generateResume() []float64 {
+	return g.generateTwoTone(400.0, 600.0) // Rising
+}
+
+// generateTwoTone creates a two-tone sound effect with configurable frequencies.
+func (g *SFXGenerator) generateTwoTone(freqFirst, freqSecond float64) []float64 {
 	duration := 0.15
 	samples := int(g.sampleRate * duration)
 	result := make([]float64, samples)
 
-	// Rising two-tone
 	for i := 0; i < samples; i++ {
 		t := float64(i) / g.sampleRate
 		env := 1.0 - float64(i)/float64(samples)
-		freq := 400.0
+		freq := freqFirst
 		if i > samples/2 {
-			freq = 600.0
+			freq = freqSecond
 		}
 		wave := sin(2 * pi * freq * t)
 		result[i] = wave * env * 0.25

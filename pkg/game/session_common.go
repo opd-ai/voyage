@@ -70,6 +70,52 @@ type GameSession struct {
 	height int
 }
 
+// applyOutcome applies an event outcome to game state.
+func (s *GameSession) applyOutcome(outcome *events.EventOutcome) {
+	s.resources.Add(resources.ResourceFood, outcome.FoodDelta)
+	s.resources.Add(resources.ResourceWater, outcome.WaterDelta)
+	s.resources.Add(resources.ResourceFuel, outcome.FuelDelta)
+	s.resources.Add(resources.ResourceMedicine, outcome.MedicineDelta)
+	s.resources.Add(resources.ResourceMorale, outcome.MoraleDelta)
+	s.resources.Add(resources.ResourceCurrency, outcome.CurrencyDelta)
+
+	if outcome.VesselDamage > 0 {
+		s.vessel.TakeDamage(outcome.VesselDamage)
+	}
+
+	if outcome.CrewDamage > 0 {
+		s.party.ApplyDamageToAll(outcome.CrewDamage)
+	}
+}
+
+// propagateGenre sets genre on all subsystems.
+func (s *GameSession) propagateGenre(genre engine.GenreID) {
+	s.config.Genre = genre
+	s.ecsWorld.SetGenre(genre)
+	s.party.SetGenre(genre)
+	s.relationships.SetGenre(genre)
+	s.vessel.SetGenre(genre)
+	s.resources.SetGenre(genre)
+	s.eventQueue.SetGenre(genre)
+	s.audioPlayer.SetGenre(genre)
+	s.renderer.SetGenre(genre)
+}
+
+// consumeResources depletes resources based on turn progression.
+func (s *GameSession) consumeResources() {
+	crewCount := float64(s.party.LivingCount())
+	s.resources.Consume(resources.ResourceFood, crewCount*0.5)
+	s.resources.Consume(resources.ResourceWater, crewCount*0.3)
+	s.resources.Consume(resources.ResourceFuel, s.vessel.Speed())
+
+	if s.resources.IsDepleted(resources.ResourceFood) {
+		s.resources.Add(resources.ResourceMorale, -5)
+	}
+	if s.resources.IsDepleted(resources.ResourceWater) {
+		s.resources.Add(resources.ResourceMorale, -8)
+	}
+}
+
 // initializeSession creates and initializes all subsystems for a game session.
 // This is the common initialization logic shared by both headless and non-headless builds.
 func initializeSession(cfg SessionConfig) *GameSession {

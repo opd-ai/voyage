@@ -8,6 +8,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/opd-ai/voyage/pkg/audio"
+	"github.com/opd-ai/voyage/pkg/crew"
+	"github.com/opd-ai/voyage/pkg/engine"
+	"github.com/opd-ai/voyage/pkg/events"
+	"github.com/opd-ai/voyage/pkg/procgen/world"
+	"github.com/opd-ai/voyage/pkg/rendering"
+	"github.com/opd-ai/voyage/pkg/resources"
+	"github.com/opd-ai/voyage/pkg/vessel"
 )
 
 // NewGameSession creates a new game session with all subsystems initialized.
@@ -75,28 +82,29 @@ func (s *GameSession) handlePlayingInput() {
 // handleMovement processes arrow key input for vessel movement.
 // Returns true if the player moved.
 func (s *GameSession) handleMovement() bool {
-	var newPos world.Point
-	moved := false
-
-	if ebiten.IsKeyPressed(ebiten.KeyUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
-		newPos = world.Point{X: s.playerPos.X, Y: s.playerPos.Y - 1}
-		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
-		newPos = world.Point{X: s.playerPos.X, Y: s.playerPos.Y + 1}
-		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
-		newPos = world.Point{X: s.playerPos.X - 1, Y: s.playerPos.Y}
-		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
-		newPos = world.Point{X: s.playerPos.X + 1, Y: s.playerPos.Y}
-		moved = true
-	}
-
+	newPos, moved := s.getMovementInput()
 	if moved && s.worldMap.IsValidMove(s.playerPos, newPos) {
 		s.playerPos = newPos
 		return true
 	}
 	return false
+}
+
+// getMovementInput checks for directional key presses and returns the target position.
+func (s *GameSession) getMovementInput() (world.Point, bool) {
+	if ebiten.IsKeyPressed(ebiten.KeyUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
+		return world.Point{X: s.playerPos.X, Y: s.playerPos.Y - 1}, true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
+		return world.Point{X: s.playerPos.X, Y: s.playerPos.Y + 1}, true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
+		return world.Point{X: s.playerPos.X - 1, Y: s.playerPos.Y}, true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
+		return world.Point{X: s.playerPos.X + 1, Y: s.playerPos.Y}, true
+	}
+	return world.Point{}, false
 }
 
 // handleEventChoices processes number key input for event choice selection.
@@ -128,23 +136,7 @@ func (s *GameSession) resolveEvent(eventID, choiceID int) {
 		return
 	}
 
-	// Apply resource changes
-	s.resources.Add(resources.ResourceFood, outcome.FoodDelta)
-	s.resources.Add(resources.ResourceWater, outcome.WaterDelta)
-	s.resources.Add(resources.ResourceFuel, outcome.FuelDelta)
-	s.resources.Add(resources.ResourceMedicine, outcome.MedicineDelta)
-	s.resources.Add(resources.ResourceMorale, outcome.MoraleDelta)
-	s.resources.Add(resources.ResourceCurrency, outcome.CurrencyDelta)
-
-	// Apply vessel damage
-	if outcome.VesselDamage > 0 {
-		s.vessel.TakeDamage(outcome.VesselDamage)
-	}
-
-	// Apply crew damage
-	if outcome.CrewDamage > 0 {
-		s.party.ApplyDamageToAll(outcome.CrewDamage)
-	}
+	s.applyOutcome(outcome)
 
 	// Advance time if needed
 	for i := 0; i < outcome.TimeAdvance; i++ {
@@ -167,25 +159,6 @@ func (s *GameSession) advanceTurn() {
 
 	// Check win/lose conditions
 	s.checkConditions()
-}
-
-// consumeResources depletes resources based on turn progression.
-func (s *GameSession) consumeResources() {
-	// Consume food and water based on crew size
-	crewCount := float64(s.party.LivingCount())
-	s.resources.Consume(resources.ResourceFood, crewCount*0.5)
-	s.resources.Consume(resources.ResourceWater, crewCount*0.3)
-
-	// Consume fuel based on vessel speed
-	s.resources.Consume(resources.ResourceFuel, s.vessel.Speed())
-
-	// Morale changes based on resource status
-	if s.resources.IsDepleted(resources.ResourceFood) {
-		s.resources.Add(resources.ResourceMorale, -5)
-	}
-	if s.resources.IsDepleted(resources.ResourceWater) {
-		s.resources.Add(resources.ResourceMorale, -8)
-	}
 }
 
 // maybeGenerateEvent potentially generates an event at the current position.
@@ -306,36 +279,35 @@ func (s *GameSession) drawGame(screen *ebiten.Image) {
 func (s *GameSession) drawWorldMap(screen *ebiten.Image) {
 	tileSize := s.renderer.TileSize()
 	viewWidth := s.width / tileSize
-	viewHeight := (s.height - 100) / tileSize // Leave space for HUD
+	viewHeight := (s.height - 100) / tileSize
 
-	// Calculate view offset to center on player
 	offsetX := s.playerPos.X - viewWidth/2
 	offsetY := s.playerPos.Y - viewHeight/2
 
 	for screenY := 0; screenY < viewHeight; screenY++ {
 		for screenX := 0; screenX < viewWidth; screenX++ {
-			mapX := screenX + offsetX
-			mapY := screenY + offsetY
-
-			tile := s.worldMap.GetTile(mapX, mapY)
-			if tile == nil {
-				continue
-			}
-
-			// Draw terrain
-			tileType := int(tile.Terrain)
-			s.renderer.DrawTile(screen, screenX, screenY, tileType)
-
-			// Draw player marker
-			if mapX == s.playerPos.X && mapY == s.playerPos.Y {
-				s.renderer.DrawTile(screen, screenX, screenY, 10) // Player tile type
-			}
-
-			// Draw destination marker
-			if mapX == s.worldMap.Destination.X && mapY == s.worldMap.Destination.Y {
-				s.renderer.DrawTile(screen, screenX, screenY, 11) // Destination tile type
-			}
+			s.drawTileAt(screen, screenX, screenY, offsetX, offsetY)
 		}
+	}
+}
+
+// drawTileAt renders a single tile at the given screen position.
+func (s *GameSession) drawTileAt(screen *ebiten.Image, screenX, screenY, offsetX, offsetY int) {
+	mapX := screenX + offsetX
+	mapY := screenY + offsetY
+
+	tile := s.worldMap.GetTile(mapX, mapY)
+	if tile == nil {
+		return
+	}
+
+	s.renderer.DrawTile(screen, screenX, screenY, int(tile.Terrain))
+
+	if mapX == s.playerPos.X && mapY == s.playerPos.Y {
+		s.renderer.DrawTile(screen, screenX, screenY, 10)
+	}
+	if mapX == s.worldMap.Destination.X && mapY == s.worldMap.Destination.Y {
+		s.renderer.DrawTile(screen, screenX, screenY, 11)
 	}
 }
 
@@ -468,15 +440,7 @@ func (s *GameSession) PlayerPosition() world.Point {
 
 // SetGenre changes the genre for all subsystems.
 func (s *GameSession) SetGenre(genre engine.GenreID) {
-	s.config.Genre = genre
-	s.ecsWorld.SetGenre(genre)
-	s.party.SetGenre(genre)
-	s.relationships.SetGenre(genre)
-	s.vessel.SetGenre(genre)
-	s.resources.SetGenre(genre)
-	s.eventQueue.SetGenre(genre)
-	s.audioPlayer.SetGenre(genre)
-	s.renderer.SetGenre(genre)
+	s.propagateGenre(genre)
 }
 
 // drawCenteredText is a helper to draw debug text.

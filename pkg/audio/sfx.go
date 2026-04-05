@@ -111,68 +111,75 @@ func (g *SFXGenerator) GenerateBytes(sfxType SFXType) []byte {
 	return bytes
 }
 
+// sfxContext holds common setup for SFX generation.
+type sfxContext struct {
+	samples []float64
+	osc     *Oscillator
+	env     *Envelope
+	count   int
+}
+
+// prepareSFX creates common audio generation context.
+func (g *SFXGenerator) prepareSFX(duration float64, wave Waveform, freq, amp float64, env *Envelope) *sfxContext {
+	count := int(g.sampleRate * duration)
+	return &sfxContext{
+		samples: make([]float64, count),
+		osc:     NewOscillator(wave, freq, amp),
+		env:     env,
+		count:   count,
+	}
+}
+
 // generateTravel creates ambient travel sound.
 func (g *SFXGenerator) generateTravel() []float64 {
-	duration := 0.5 // seconds
-	samples := int(g.sampleRate * duration)
-	result := make([]float64, samples)
-
 	preset := g.getGenrePreset()
-	osc := NewOscillator(preset.TravelWave, preset.TravelFreq, 0.3)
 	env := SlowEnvelope()
 	env.NoteOn()
+	ctx := g.prepareSFX(0.5, preset.TravelWave, preset.TravelFreq, 0.3, env)
 
-	for i := 0; i < samples; i++ {
-		result[i] = osc.Sample() * env.Sample()
+	for i := 0; i < ctx.count; i++ {
+		ctx.samples[i] = ctx.osc.Sample() * ctx.env.Sample()
 	}
 
-	return result
+	return ctx.samples
 }
 
 // generateEvent creates event notification sound.
 func (g *SFXGenerator) generateEvent() []float64 {
-	duration := 0.3
-	samples := int(g.sampleRate * duration)
-	result := make([]float64, samples)
-
 	preset := g.getGenrePreset()
-	osc := NewOscillator(preset.EventWave, preset.EventFreq, 0.5)
 	env := QuickEnvelope()
 	env.NoteOn()
+	ctx := g.prepareSFX(0.3, preset.EventWave, preset.EventFreq, 0.5, env)
 
 	// Two-tone alert
 	freqMod := 1.0
-	for i := 0; i < samples; i++ {
-		if i > samples/2 {
+	for i := 0; i < ctx.count; i++ {
+		if i > ctx.count/2 {
 			freqMod = 1.25 // Pitch up second half
 		}
-		osc.SetFrequency(preset.EventFreq * freqMod)
-		result[i] = osc.Sample() * env.Sample()
+		ctx.osc.SetFrequency(preset.EventFreq * freqMod)
+		ctx.samples[i] = ctx.osc.Sample() * ctx.env.Sample()
 	}
 
-	return result
+	return ctx.samples
 }
 
 // generateCrisis creates crisis alert sound.
 func (g *SFXGenerator) generateCrisis() []float64 {
-	duration := 0.5
-	samples := int(g.sampleRate * duration)
-	result := make([]float64, samples)
-
 	preset := g.getGenrePreset()
-	osc := NewOscillator(preset.CrisisWave, preset.CrisisFreq, 0.7)
 	env := QuickEnvelope()
 	env.NoteOn()
+	ctx := g.prepareSFX(0.5, preset.CrisisWave, preset.CrisisFreq, 0.7, env)
 
 	// Rapid pulse effect
 	pulseRate := 15.0 // Hz
-	for i := 0; i < samples; i++ {
+	for i := 0; i < ctx.count; i++ {
 		t := float64(i) / g.sampleRate
 		pulse := 0.5 + 0.5*float64(int(t*pulseRate)%2)
-		result[i] = osc.Sample() * env.Sample() * pulse
+		ctx.samples[i] = ctx.osc.Sample() * ctx.env.Sample() * pulse
 	}
 
-	return result
+	return ctx.samples
 }
 
 // generateSuccess creates success sound.
