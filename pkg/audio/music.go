@@ -7,6 +7,40 @@ import (
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 )
 
+// MusicState represents the current emotional state of the music.
+type MusicState int
+
+const (
+	// MusicPeaceful is calm ambient music for normal travel.
+	MusicPeaceful MusicState = iota
+	// MusicTense is building tension for risky situations.
+	MusicTense
+	// MusicCombat is intense music for encounters and battles.
+	MusicCombat
+	// MusicVictory is triumphant music for positive outcomes.
+	MusicVictory
+	// MusicDeath is somber music for crew death or loss.
+	MusicDeath
+)
+
+// MusicStateName returns a human-readable name for the music state.
+func MusicStateName(s MusicState) string {
+	switch s {
+	case MusicPeaceful:
+		return "Peaceful"
+	case MusicTense:
+		return "Tense"
+	case MusicCombat:
+		return "Combat"
+	case MusicVictory:
+		return "Victory"
+	case MusicDeath:
+		return "Death"
+	default:
+		return "Unknown"
+	}
+}
+
 // ADSR envelope constants for bass line.
 const (
 	bassAttack  = 0.5 // seconds to reach peak volume
@@ -40,6 +74,7 @@ type MusicGenerator struct {
 	genre      engine.GenreID
 	sampleRate float64
 	bpm        float64
+	state      MusicState
 }
 
 // NewMusicGenerator creates a new music generator.
@@ -49,12 +84,37 @@ func NewMusicGenerator(masterSeed int64, genre engine.GenreID) *MusicGenerator {
 		genre:      genre,
 		sampleRate: 44100,
 		bpm:        80,
+		state:      MusicPeaceful,
 	}
 }
 
 // SetGenre changes the music style.
 func (m *MusicGenerator) SetGenre(genre engine.GenreID) {
 	m.genre = genre
+}
+
+// SetMusicState changes the music intensity state.
+// This affects BPM, melody density, and waveform selection.
+func (m *MusicGenerator) SetMusicState(state MusicState) {
+	m.state = state
+	// Adjust BPM based on state
+	switch state {
+	case MusicPeaceful:
+		m.bpm = 80
+	case MusicTense:
+		m.bpm = 100
+	case MusicCombat:
+		m.bpm = 140
+	case MusicVictory:
+		m.bpm = 120
+	case MusicDeath:
+		m.bpm = 60
+	}
+}
+
+// MusicState returns the current music state.
+func (m *MusicGenerator) MusicState() MusicState {
+	return m.state
 }
 
 // SetBPM changes the tempo.
@@ -72,6 +132,8 @@ func (m *MusicGenerator) SetBPM(bpm float64) {
 // Returns samples in the range [-1, 1].
 func (m *MusicGenerator) GenerateLoop(bars int) []float64 {
 	params := m.getGenreMusicParams()
+	// Apply state-dependent modifications
+	params = m.applyStateMods(params)
 	beatsPerBar := 4
 	beatDuration := 60.0 / m.bpm
 	barDuration := beatDuration * float64(beatsPerBar)
@@ -233,6 +295,51 @@ func (m *MusicGenerator) getGenreMusicParams() *MusicParams {
 		params = genreMusicParams[engine.GenreFantasy]
 	}
 	return params
+}
+
+// applyStateMods modifies music parameters based on the current music state.
+// Returns a copy of params with state-dependent modifications applied.
+func (m *MusicGenerator) applyStateMods(params *MusicParams) *MusicParams {
+	// Create a copy to avoid modifying the original
+	modded := &MusicParams{
+		BassWave:         params.BassWave,
+		PadWave:          params.PadWave,
+		MelodyWave:       params.MelodyWave,
+		RootNote:         params.RootNote,
+		ChordProgression: params.ChordProgression,
+		ChordIntervals:   params.ChordIntervals,
+		ScaleNotes:       params.ScaleNotes,
+		MelodyDensity:    params.MelodyDensity,
+	}
+
+	switch m.state {
+	case MusicPeaceful:
+		// Keep defaults - calm, sparse
+		modded.MelodyDensity *= 0.8
+	case MusicTense:
+		// Increase tension - more dissonance, higher density
+		modded.MelodyDensity *= 1.5
+		modded.MelodyWave = WaveSawtooth
+	case MusicCombat:
+		// Intense - heavy bass, high density, aggressive waveforms
+		modded.MelodyDensity *= 2.5
+		modded.BassWave = WaveSawtooth
+		modded.MelodyWave = WaveSquare
+		modded.RootNote *= 0.8 // Drop pitch for heavier feel
+	case MusicVictory:
+		// Triumphant - brighter, major feel, higher pitch
+		modded.MelodyDensity *= 1.8
+		modded.MelodyWave = WaveSine
+		modded.RootNote *= 1.25 // Brighter pitch
+	case MusicDeath:
+		// Somber - sparse, low, slow decay
+		modded.MelodyDensity *= 0.3
+		modded.BassWave = WaveTriangle
+		modded.MelodyWave = WaveTriangle
+		modded.RootNote *= 0.5 // Very low
+	}
+
+	return modded
 }
 
 var genreMusicParams = map[engine.GenreID]*MusicParams{
