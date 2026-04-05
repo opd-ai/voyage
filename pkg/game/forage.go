@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 	"github.com/opd-ai/voyage/pkg/procgen/world"
@@ -137,7 +139,7 @@ func (fm *ForageManager) Forage(tile *world.Tile, turn int) *ForageResult {
 
 // tileKey creates a unique string key for a tile position.
 func (fm *ForageManager) tileKey(x, y int) string {
-	return string(rune(x)) + "," + string(rune(y))
+	return fmt.Sprintf("%d,%d", x, y)
 }
 
 // calculateYieldModifier returns a multiplier based on times foraged.
