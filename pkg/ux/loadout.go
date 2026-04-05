@@ -25,9 +25,6 @@ type LoadoutScreen struct {
 	moduleSystem    *vessel.ModuleSystem
 }
 
-// DefaultStartingPoints is the number of upgrade points available at start.
-const DefaultStartingPoints = 5
-
 // NewLoadoutScreen creates a new loadout configuration screen.
 func NewLoadoutScreen(genre engine.GenreID, screenWidth, screenHeight int) *LoadoutScreen {
 	return &LoadoutScreen{
@@ -101,38 +98,12 @@ func (ls *LoadoutScreen) SelectPrev() {
 
 // UpgradeSelected attempts to upgrade the selected module.
 func (ls *LoadoutScreen) UpgradeSelected() bool {
-	if ls.pointsRemaining <= 0 {
-		return false
-	}
-
-	moduleTypes := vessel.AllModuleTypes()
-	mt := moduleTypes[ls.selectedSlot]
-	m := ls.moduleSystem.GetModule(mt)
-
-	if m.Tier() >= 3 { // Max starting tier is 3
-		return false
-	}
-
-	if ls.moduleSystem.UpgradeModule(mt) {
-		ls.pointsRemaining--
-		return true
-	}
-	return false
+	return TryUpgradeModule(ls.moduleSystem, ls.selectedSlot, &ls.pointsRemaining)
 }
 
 // DowngradeSelected attempts to downgrade the selected module.
 func (ls *LoadoutScreen) DowngradeSelected() bool {
-	moduleTypes := vessel.AllModuleTypes()
-	mt := moduleTypes[ls.selectedSlot]
-	m := ls.moduleSystem.GetModule(mt)
-
-	if m.Tier() <= 1 {
-		return false
-	}
-
-	m.SetTier(m.Tier() - 1)
-	ls.pointsRemaining++
-	return true
+	return TryDowngradeModule(ls.moduleSystem, ls.selectedSlot, &ls.pointsRemaining)
 }
 
 // Draw renders the loadout screen.
@@ -226,15 +197,6 @@ func (ls *LoadoutScreen) moduleDescription(mt vessel.ModuleType) string {
 // drawBorder draws a border around the panel.
 func (ls *LoadoutScreen) drawBorder(panel *ebiten.Image) {
 	DrawBorder(panel, ls.skin)
-}
-
-// LoadoutConfiguration represents a saved loadout configuration.
-type LoadoutConfiguration struct {
-	EngineTier     int
-	CargoTier      int
-	MedicalTier    int
-	NavigationTier int
-	DefenseTier    int
 }
 
 // GetConfiguration returns the current loadout configuration.
