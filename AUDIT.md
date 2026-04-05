@@ -56,7 +56,7 @@
 
 - [x] **Low test coverage in pkg/game** — `pkg/game/*` — Coverage is 54%, with critical gameplay logic like `advanceTurn()` and `checkConditions()` potentially untested. — **Remediation:** Add tests in `pkg/game/session_test.go` for turn advancement, resource consumption, and win/lose state transitions. Use table-driven tests with mock subsystems. Validate with `go test -tags headless -cover ./pkg/game/...`.
 
-- [ ] **Low test coverage in pkg/rendering** — `pkg/rendering/*` — Coverage is 58.9% for a 22-file package with complex procedural sprite generation. High-complexity functions like `generateRuinsPattern` (cyclomatic: 15) lack thorough testing. — **Remediation:** Add tests for high-complexity functions in `pkg/rendering/landmark_icon_test.go` and `pkg/rendering/tilegen_test.go`. Validate with `go test -tags headless -cover ./pkg/rendering/...`.
+- [x] **Low test coverage in pkg/rendering** — `pkg/rendering/*` — Coverage is 58.9% for a 22-file package with complex procedural sprite generation. High-complexity functions like `generateRuinsPattern` (cyclomatic: 15) lack thorough testing. — **Remediation:** Add tests for high-complexity functions in `pkg/rendering/landmark_icon_test.go` and `pkg/rendering/tilegen_test.go`. Validate with `go test -tags headless -cover ./pkg/rendering/...`.
 
 ### MEDIUM
 

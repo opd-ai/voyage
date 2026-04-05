@@ -316,11 +316,11 @@ func TestSinApprox(t *testing.T) {
 		epsilon  float64
 	}{
 		{0, 0, 0.05},
-		{0.5, 0.479, 0.05},       // sin(0.5) ≈ 0.479
-		{1.0, 0.841, 0.05},       // sin(1.0) ≈ 0.841
-		{1.5708, 1.0, 0.2},       // ~π/2, may diverge slightly
-		{-0.5, -0.479, 0.15},     // sin(-0.5), wrapping may add error
-		{6.283, 0, 0.3},          // ~2π should wrap to ~0
+		{0.5, 0.479, 0.05},   // sin(0.5) ≈ 0.479
+		{1.0, 0.841, 0.05},   // sin(1.0) ≈ 0.841
+		{1.5708, 1.0, 0.2},   // ~π/2, may diverge slightly
+		{-0.5, -0.479, 0.15}, // sin(-0.5), wrapping may add error
+		{6.283, 0, 0.3},      // ~2π should wrap to ~0
 	}
 
 	for _, tt := range tests {
