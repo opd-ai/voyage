@@ -122,3 +122,31 @@ func (p *Player) GenerateAmbientMusic(bars int) *AmbientLoop {
 
 	return loop
 }
+
+// SetMusicState changes the music intensity state.
+// Use this to transition music based on game events.
+func (p *Player) SetMusicState(state MusicState) {
+	p.musicGen.SetMusicState(state)
+}
+
+// MusicState returns the current music state.
+func (p *Player) MusicState() MusicState {
+	return p.musicGen.MusicState()
+}
+
+// CrossfadeMusicTo generates a crossfade transition to a new music state.
+// Returns audio samples for the transition period.
+func (p *Player) CrossfadeMusicTo(targetState MusicState, durationMs int) []float64 {
+	if p.muted {
+		return nil
+	}
+
+	samples := p.musicGen.CrossfadeTo(targetState, durationMs)
+
+	// Apply volume
+	for i := range samples {
+		samples[i] *= p.volume
+	}
+
+	return samples
+}
