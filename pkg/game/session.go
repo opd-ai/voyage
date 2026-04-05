@@ -234,7 +234,7 @@ func (s *GameSession) handleEventChoices() {
 	choiceKeys := []ebiten.Key{ebiten.Key1, ebiten.Key2, ebiten.Key3, ebiten.Key4}
 
 	for i, key := range choiceKeys {
-		if ebiten.IsKeyPressed(key) && i < len(currentEvent.Choices()) {
+		if ebiten.IsKeyPressed(key) && i < len(currentEvent.Choices) {
 			s.resolveEvent(currentEvent.ID, i)
 			break
 		}
@@ -472,8 +472,8 @@ func (s *GameSession) drawEventOverlay(screen *ebiten.Image) {
 	}
 
 	event := pending[0]
-	msg := fmt.Sprintf("=== %s ===\n%s\n\n", event.Title(), event.Description())
-	for i, choice := range event.Choices() {
+	msg := fmt.Sprintf("=== %s ===\n%s\n\n", event.Title, event.Description)
+	for i, choice := range event.Choices {
 		msg += fmt.Sprintf("[%d] %s\n", i+1, choice.Text)
 	}
 
