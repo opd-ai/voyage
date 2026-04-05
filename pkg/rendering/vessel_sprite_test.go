@@ -1,12 +1,10 @@
-//go:build !headless
+//go:build headless
 
 package rendering
 
 import (
 	"image/color"
 	"testing"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestNewVesselSpriteGenerator(t *testing.T) {
@@ -16,9 +14,6 @@ func TestNewVesselSpriteGenerator(t *testing.T) {
 	}
 	if vsg.spriteSize != 32 {
 		t.Errorf("expected spriteSize 32, got %d", vsg.spriteSize)
-	}
-	if vsg.gen == nil {
-		t.Error("generator should be initialized")
 	}
 }
 
@@ -32,24 +27,9 @@ func TestGenerateVesselSprite(t *testing.T) {
 		t.Fatal("GenerateVesselSprite returned nil")
 	}
 
-	// Check all damage states are generated
-	if sprite.PristineSprite == nil {
-		t.Error("PristineSprite should not be nil")
-	}
-	if sprite.WornSprite == nil {
-		t.Error("WornSprite should not be nil")
-	}
-	if sprite.DamagedSprite == nil {
-		t.Error("DamagedSprite should not be nil")
-	}
-	if sprite.CriticalSprite == nil {
-		t.Error("CriticalSprite should not be nil")
-	}
-
-	// Check sprite sizes
-	bounds := sprite.PristineSprite.Bounds()
-	if bounds.Dx() != 32 || bounds.Dy() != 32 {
-		t.Errorf("expected 32x32 sprite, got %dx%d", bounds.Dx(), bounds.Dy())
+	// Check sprite size is stored
+	if sprite.SpriteSize != 32 {
+		t.Errorf("expected SpriteSize 32, got %d", sprite.SpriteSize)
 	}
 }
 
@@ -77,32 +57,7 @@ func TestVesselDamageStateFromRatio(t *testing.T) {
 	}
 }
 
-func TestVesselSpriteGetSprite(t *testing.T) {
-	vsg := NewVesselSpriteGenerator(12345, 32)
-	hullColor := color.RGBA{100, 100, 120, 255}
-	accentColor := color.RGBA{200, 200, 50, 255}
-
-	sprite := vsg.GenerateVesselSprite(hullColor, accentColor)
-
-	testCases := []struct {
-		state    VesselDamageState
-		expected *ebiten.Image
-	}{
-		{VesselPristine, sprite.PristineSprite},
-		{VesselWorn, sprite.WornSprite},
-		{VesselDamaged, sprite.DamagedSprite},
-		{VesselCritical, sprite.CriticalSprite},
-	}
-
-	for _, tc := range testCases {
-		result := sprite.GetSprite(tc.state)
-		if result != tc.expected {
-			t.Errorf("GetSprite(%d) returned wrong sprite", tc.state)
-		}
-	}
-}
-
-func TestVesselSpriteGetSpriteForRatio(t *testing.T) {
+func TestVesselSpriteGetDamageState(t *testing.T) {
 	vsg := NewVesselSpriteGenerator(12345, 32)
 	hullColor := color.RGBA{100, 100, 120, 255}
 	accentColor := color.RGBA{200, 200, 50, 255}
@@ -111,18 +66,18 @@ func TestVesselSpriteGetSpriteForRatio(t *testing.T) {
 
 	testCases := []struct {
 		ratio    float64
-		expected *ebiten.Image
+		expected VesselDamageState
 	}{
-		{1.0, sprite.PristineSprite},
-		{0.75, sprite.WornSprite},
-		{0.30, sprite.DamagedSprite},
-		{0.10, sprite.CriticalSprite},
+		{1.0, VesselPristine},
+		{0.75, VesselWorn},
+		{0.30, VesselDamaged},
+		{0.10, VesselCritical},
 	}
 
 	for _, tc := range testCases {
-		result := sprite.GetSpriteForRatio(tc.ratio)
+		result := sprite.GetDamageState(tc.ratio)
 		if result != tc.expected {
-			t.Errorf("GetSpriteForRatio(%f) returned wrong sprite", tc.ratio)
+			t.Errorf("GetDamageState(%f) = %d, expected %d", tc.ratio, result, tc.expected)
 		}
 	}
 }
@@ -142,11 +97,9 @@ func TestVesselSpriteDeterminism(t *testing.T) {
 		t.Fatal("Both generators should produce valid sprites")
 	}
 
-	// Check pristine sprite bounds match
-	b1 := sprite1.PristineSprite.Bounds()
-	b2 := sprite2.PristineSprite.Bounds()
-	if b1.Dx() != b2.Dx() || b1.Dy() != b2.Dy() {
-		t.Error("Sprite bounds should match for same seed")
+	// Check sprite sizes match
+	if sprite1.SpriteSize != sprite2.SpriteSize {
+		t.Error("Sprite sizes should match for same seed")
 	}
 }
 

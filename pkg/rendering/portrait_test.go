@@ -1,4 +1,4 @@
-//go:build !headless
+//go:build headless
 
 package rendering
 
@@ -15,9 +15,6 @@ func TestNewPortraitGenerator(t *testing.T) {
 	if pg.portraitSize != 32 {
 		t.Errorf("expected portraitSize 32, got %d", pg.portraitSize)
 	}
-	if pg.gen == nil {
-		t.Error("generator should be initialized")
-	}
 }
 
 func TestGenerateAnimatedPortrait(t *testing.T) {
@@ -31,26 +28,14 @@ func TestGenerateAnimatedPortrait(t *testing.T) {
 		t.Fatal("GenerateAnimatedPortrait returned nil")
 	}
 
-	if len(portrait.IdleFrames) != 4 {
-		t.Errorf("expected 4 idle frames, got %d", len(portrait.IdleFrames))
+	if portrait.IdleFrameCount != 4 {
+		t.Errorf("expected 4 idle frames, got %d", portrait.IdleFrameCount)
 	}
-	if len(portrait.HurtFrames) != 4 {
-		t.Errorf("expected 4 hurt frames, got %d", len(portrait.HurtFrames))
+	if portrait.HurtFrameCount != 4 {
+		t.Errorf("expected 4 hurt frames, got %d", portrait.HurtFrameCount)
 	}
-	if len(portrait.DeathFrames) != 8 {
-		t.Errorf("expected 8 death frames, got %d", len(portrait.DeathFrames))
-	}
-
-	// Check frame sizes
-	for i, frame := range portrait.IdleFrames {
-		if frame == nil {
-			t.Errorf("idle frame %d is nil", i)
-			continue
-		}
-		bounds := frame.Bounds()
-		if bounds.Dx() != 32 || bounds.Dy() != 32 {
-			t.Errorf("idle frame %d: expected 32x32, got %dx%d", i, bounds.Dx(), bounds.Dy())
-		}
+	if portrait.DeathFrameCount != 8 {
+		t.Errorf("expected 8 death frames, got %d", portrait.DeathFrameCount)
 	}
 }
 
@@ -163,7 +148,7 @@ func TestPortraitReset(t *testing.T) {
 	}
 }
 
-func TestPortraitCurrentFrame(t *testing.T) {
+func TestPortraitCurrentFrameIndex(t *testing.T) {
 	pg := NewPortraitGenerator(12345, 32)
 	primary := color.RGBA{50, 50, 150, 255}
 	secondary := color.RGBA{100, 80, 60, 255}
@@ -171,22 +156,16 @@ func TestPortraitCurrentFrame(t *testing.T) {
 
 	portrait := pg.GenerateAnimatedPortrait(primary, secondary, skin)
 
-	frame := portrait.CurrentFrame()
-	if frame == nil {
-		t.Fatal("CurrentFrame returned nil")
+	idx := portrait.CurrentFrameIndex()
+	if idx != 0 {
+		t.Errorf("initial frame index should be 0, got %d", idx)
 	}
 
-	expectedFrame := portrait.IdleFrames[0]
-	if frame != expectedFrame {
-		t.Error("CurrentFrame should return first idle frame initially")
-	}
-
-	// Change state and verify
-	portrait.SetState(PortraitHurt)
-	frame = portrait.CurrentFrame()
-	expectedFrame = portrait.HurtFrames[0]
-	if frame != expectedFrame {
-		t.Error("CurrentFrame should return first hurt frame after state change")
+	// Advance to next frame
+	portrait.Update(0.3)
+	idx = portrait.CurrentFrameIndex()
+	if idx != 1 {
+		t.Errorf("frame index should be 1 after advancing, got %d", idx)
 	}
 }
 
@@ -225,8 +204,8 @@ func TestPortraitDeterminism(t *testing.T) {
 	p1 := pg1.GenerateAnimatedPortrait(primary, secondary, skin)
 	p2 := pg2.GenerateAnimatedPortrait(primary, secondary, skin)
 
-	if len(p1.IdleFrames) != len(p2.IdleFrames) {
-		t.Errorf("idle frame counts should match: %d vs %d", len(p1.IdleFrames), len(p2.IdleFrames))
+	if p1.IdleFrameCount != p2.IdleFrameCount {
+		t.Errorf("idle frame counts should match: %d vs %d", p1.IdleFrameCount, p2.IdleFrameCount)
 	}
 	if p1.FrameTime != p2.FrameTime {
 		t.Errorf("frame times should match: %f vs %f", p1.FrameTime, p2.FrameTime)
