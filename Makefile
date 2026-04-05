@@ -1,5 +1,5 @@
 # Voyage Makefile
-# Build targets for native and WebAssembly builds
+# Build targets for native, WebAssembly, and mobile builds
 
 # Version information (override via environment or ldflags)
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -16,6 +16,8 @@ GOMOD := $(GOCMD) mod
 # Output directories
 BUILD_DIR := build
 WASM_DIR := $(BUILD_DIR)/wasm
+ANDROID_DIR := $(BUILD_DIR)/android
+IOS_DIR := $(BUILD_DIR)/ios
 
 # Source files
 MAIN_PKG := ./cmd/voyage
@@ -23,7 +25,13 @@ MAIN_PKG := ./cmd/voyage
 # Test settings
 TEST_FLAGS := -tags headless -race
 
-.PHONY: all build build-wasm clean test lint vet tidy run help serve-wasm
+# Mobile settings
+ANDROID_SDK ?= $(ANDROID_HOME)
+MIN_ANDROID_API ?= 21
+APP_ID := ai.opd.voyage
+APP_NAME := Voyage
+
+.PHONY: all build build-wasm build-android build-ios clean test lint vet tidy run help serve-wasm mobile-setup
 
 # Default target
 all: build
@@ -105,14 +113,85 @@ clean:
 	rm -f voyage
 	@echo "Clean complete"
 
+# Setup gomobile for mobile builds
+mobile-setup:
+	@echo "Setting up gomobile..."
+	@if ! command -v gomobile > /dev/null; then \
+		echo "Installing gomobile..."; \
+		go install golang.org/x/mobile/cmd/gomobile@latest; \
+		gomobile init; \
+	else \
+		echo "gomobile already installed"; \
+	fi
+
+# Build Android APK
+build-android: mobile-setup
+	@echo "Building Android APK..."
+	@mkdir -p $(ANDROID_DIR)
+	@if [ -z "$(ANDROID_SDK)" ]; then \
+		echo "Error: ANDROID_HOME or ANDROID_SDK not set"; \
+		echo "Please install Android SDK and set ANDROID_HOME"; \
+		exit 1; \
+	fi
+	gomobile build -target=android/arm64,android/arm \
+		-androidapi $(MIN_ANDROID_API) \
+		-o $(ANDROID_DIR)/$(APP_NAME).apk \
+		$(MAIN_PKG)
+	@echo "Android APK built: $(ANDROID_DIR)/$(APP_NAME).apk"
+
+# Build iOS app (requires macOS with Xcode)
+build-ios: mobile-setup
+	@echo "Building iOS app..."
+	@mkdir -p $(IOS_DIR)
+	@if [ "$$(uname)" != "Darwin" ]; then \
+		echo "Error: iOS builds require macOS with Xcode"; \
+		exit 1; \
+	fi
+	gomobile build -target=ios \
+		-bundleid $(APP_ID) \
+		-o $(IOS_DIR)/$(APP_NAME).app \
+		$(MAIN_PKG)
+	@echo "iOS app built: $(IOS_DIR)/$(APP_NAME).app"
+
+# Build iOS framework for integration
+build-ios-framework: mobile-setup
+	@echo "Building iOS framework..."
+	@mkdir -p $(IOS_DIR)
+	@if [ "$$(uname)" != "Darwin" ]; then \
+		echo "Error: iOS builds require macOS with Xcode"; \
+		exit 1; \
+	fi
+	gomobile bind -target=ios \
+		-bundleid $(APP_ID) \
+		-o $(IOS_DIR)/Voyage.xcframework \
+		$(MAIN_PKG)
+	@echo "iOS framework built: $(IOS_DIR)/Voyage.xcframework"
+
+# Build Android AAR library
+build-android-aar: mobile-setup
+	@echo "Building Android AAR..."
+	@mkdir -p $(ANDROID_DIR)
+	gomobile bind -target=android \
+		-androidapi $(MIN_ANDROID_API) \
+		-o $(ANDROID_DIR)/voyage.aar \
+		$(MAIN_PKG)
+	@echo "Android AAR built: $(ANDROID_DIR)/voyage.aar"
+
 # Show help
 help:
 	@echo "Voyage Build Targets"
 	@echo "===================="
 	@echo ""
 	@echo "Building:"
-	@echo "  make build        - Build native binary"
-	@echo "  make build-wasm   - Build WebAssembly binary for browsers"
+	@echo "  make build          - Build native binary"
+	@echo "  make build-wasm     - Build WebAssembly binary for browsers"
+	@echo "  make build-android  - Build Android APK (requires Android SDK)"
+	@echo "  make build-ios      - Build iOS app (requires macOS + Xcode)"
+	@echo ""
+	@echo "Mobile Libraries:"
+	@echo "  make build-android-aar - Build Android AAR library"
+	@echo "  make build-ios-framework - Build iOS XCFramework"
+	@echo "  make mobile-setup   - Install gomobile if not present"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test         - Run all tests"
@@ -131,3 +210,5 @@ help:
 	@echo "Variables:"
 	@echo "  VERSION=$(VERSION)"
 	@echo "  BUILD_TIME=$(BUILD_TIME)"
+	@echo "  ANDROID_SDK=$(ANDROID_SDK)"
+	@echo "  MIN_ANDROID_API=$(MIN_ANDROID_API)"

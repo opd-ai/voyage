@@ -55,8 +55,8 @@ func (m *Manager) CreateConvoy(seed int64, genre string, maxPlayers int, hostID 
 	return convoy, nil
 }
 
-// GetConvoy returns a convoy by ID.
-func (m *Manager) GetConvoy(id ConvoyID) (*Convoy, error) {
+// lookupConvoy is a helper that performs a locked lookup with closed-check.
+func (m *Manager) lookupConvoy(lookup func() (*Convoy, bool)) (*Convoy, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -64,43 +64,35 @@ func (m *Manager) GetConvoy(id ConvoyID) (*Convoy, error) {
 		return nil, ErrManagerClosed
 	}
 
-	convoy, ok := m.convoys[id]
+	convoy, ok := lookup()
 	if !ok {
 		return nil, ErrConvoyNotFound
 	}
 	return convoy, nil
+}
+
+// GetConvoy returns a convoy by ID.
+func (m *Manager) GetConvoy(id ConvoyID) (*Convoy, error) {
+	return m.lookupConvoy(func() (*Convoy, bool) {
+		c, ok := m.convoys[id]
+		return c, ok
+	})
 }
 
 // GetConvoyByCode returns a convoy by its shareable code.
 func (m *Manager) GetConvoyByCode(code string) (*Convoy, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if m.closed {
-		return nil, ErrManagerClosed
-	}
-
-	convoy, ok := m.byCode[code]
-	if !ok {
-		return nil, ErrConvoyNotFound
-	}
-	return convoy, nil
+	return m.lookupConvoy(func() (*Convoy, bool) {
+		c, ok := m.byCode[code]
+		return c, ok
+	})
 }
 
 // GetPlayerConvoy returns the convoy a player is currently in.
 func (m *Manager) GetPlayerConvoy(playerID PlayerID) (*Convoy, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if m.closed {
-		return nil, ErrManagerClosed
-	}
-
-	convoy, ok := m.byPlayer[playerID]
-	if !ok {
-		return nil, ErrConvoyNotFound
-	}
-	return convoy, nil
+	return m.lookupConvoy(func() (*Convoy, bool) {
+		c, ok := m.byPlayer[playerID]
+		return c, ok
+	})
 }
 
 // JoinConvoy adds a player to a convoy by code.

@@ -1,0 +1,342 @@
+{
+    "id": "steampunk-genre",
+    "name": "Steampunk Genre Preset",
+    "version": "1.0.0",
+    "author": "Voyage Team",
+    "description": "A complete steampunk genre preset with Victorian-era clockwork aesthetics, featuring airships, automatons, and brass-and-copper technology.",
+    "genres": [
+        {
+            "id": "steampunk",
+            "name": "Steampunk",
+            "description": "A world of brass gears, steam power, and Victorian innovation. Airships ply the skies while clockwork automatons serve the great industrial empires.",
+            "biomes": [
+                "Clockwork Foundry",
+                "Brass Wasteland",
+                "Aether Heights",
+                "Smog District",
+                "Copper Mines",
+                "Steam Vents",
+                "Gear Gardens",
+                "Cog Fortress",
+                "Pneumatic Plains",
+                "Boiler Depths"
+            ],
+            "resources": [
+                "Coal",
+                "Steam Cores",
+                "Brass Ingots",
+                "Aether Crystals",
+                "Clockwork Gears",
+                "Copper Wire"
+            ],
+            "factions": [
+                "Gear Guild",
+                "Aether Pirates",
+                "Clockwork Union",
+                "Steam Barons",
+                "Automaton Collective",
+                "Brass Militia"
+            ],
+            "vessel_types": [
+                "Steam Crawler",
+                "Aether Frigate",
+                "Clockwork Carriage",
+                "Brass Behemoth",
+                "Pneumatic Skipper"
+            ],
+            "crew_roles": [
+                "Gearwright",
+                "Aether Navigator",
+                "Steam Engineer",
+                "Automaton Tender",
+                "Brass Smith",
+                "Coal Stoker"
+            ],
+            "category_names": {
+                "weather": "atmospheric disturbance",
+                "encounter": "clockwork confrontation",
+                "discovery": "mechanical marvel",
+                "hardship": "gear malfunction",
+                "windfall": "salvage fortune",
+                "hazard": "steam hazard",
+                "crew": "personnel matter"
+            }
+        }
+    ],
+    "events": [
+        {
+            "category": "encounter",
+            "genre": "steampunk",
+            "title": "Aether Pirates Attack",
+            "description": "A brass-hulled airship descends from the smog clouds, its crew of goggled pirates demanding tribute. Their captain, adorned in leather and brass fittings, calls for your cargo or your lives.",
+            "choices": [
+                {
+                    "text": "Prepare the steam cannons for battle",
+                    "outcome": {
+                        "description": "Your crew mans the weapons. Brass shells exchange through the air, and after a fierce engagement, the pirates retreat into the smog.",
+                        "morale_delta": 10,
+                        "vessel_damage": 15,
+                        "crew_damage": 5
+                    }
+                },
+                {
+                    "text": "Pay the tribute in brass ingots",
+                    "outcome": {
+                        "description": "You hand over a portion of your brass stores. The pirates tip their goggles in mock courtesy and ascend back into the clouds.",
+                        "currency_delta": -25,
+                        "morale_delta": -5
+                    }
+                },
+                {
+                    "text": "Attempt to outrun them with full steam",
+                    "outcome": {
+                        "description": "Your engineers pour coal into the furnace. The vessel lurches forward, leaving the slower pirate ship behind in a trail of steam.",
+                        "fuel_delta": -20,
+                        "morale_delta": 5
+                    }
+                },
+                {
+                    "text": "Offer to trade information for safe passage",
+                    "outcome": {
+                        "description": "You share knowledge of a wealthy merchant route. The pirates, intrigued by potential larger prey, let you pass with a knowing nod.",
+                        "morale_delta": -2
+                    },
+                    "require_skill": "navigator"
+                }
+            ],
+            "weight": 1.2
+        },
+        {
+            "category": "discovery",
+            "genre": "steampunk",
+            "title": "Abandoned Automaton Factory",
+            "description": "Your crew discovers a derelict factory half-buried in rust and weeds. Inside, rows of dormant automatons stand like metal soldiers, and intact blueprints litter the workbenches.",
+            "choices": [
+                {
+                    "text": "Salvage the automatons for parts",
+                    "outcome": {
+                        "description": "Your gearwrights dismantle several automatons, recovering valuable gears and steam cores.",
+                        "currency_delta": 30,
+                        "time_advance": 1
+                    }
+                },
+                {
+                    "text": "Study the blueprints carefully",
+                    "outcome": {
+                        "description": "The blueprints reveal advanced engineering techniques. Your crew's understanding of clockwork mechanisms improves.",
+                        "morale_delta": 8,
+                        "time_advance": 1
+                    },
+                    "require_skill": "mechanic"
+                },
+                {
+                    "text": "Attempt to reactivate an automaton",
+                    "outcome": {
+                        "description": "With careful work, you bring one automaton back to life. It now serves as a tireless helper for your crew.",
+                        "morale_delta": 15,
+                        "time_advance": 2
+                    },
+                    "require_skill": "mechanic"
+                },
+                {
+                    "text": "Mark the location and move on",
+                    "outcome": {
+                        "description": "You note the factory's position for future reference and continue your journey.",
+                        "morale_delta": 2
+                    }
+                }
+            ],
+            "weight": 0.8
+        },
+        {
+            "category": "weather",
+            "genre": "steampunk",
+            "title": "Aether Storm",
+            "description": "The sky crackles with unnatural energy as an aether storm rolls across the region. Lightning dances between brass spires, and strange harmonics fill the air.",
+            "choices": [
+                {
+                    "text": "Ground the vessel and wait it out",
+                    "outcome": {
+                        "description": "Your crew deploys copper grounding rods. The storm passes overhead, its fury spent on the earth around you.",
+                        "time_advance": 2,
+                        "morale_delta": -3
+                    }
+                },
+                {
+                    "text": "Attempt to harvest the aether energy",
+                    "outcome": {
+                        "description": "Your engineers rig collectors to capture the storm's energy. The risk pays off with a bounty of aether crystals.",
+                        "currency_delta": 40,
+                        "vessel_damage": 10
+                    },
+                    "require_skill": "mechanic"
+                },
+                {
+                    "text": "Push through at maximum speed",
+                    "outcome": {
+                        "description": "Your vessel takes a beating but emerges on the other side. Some systems are damaged but you saved time.",
+                        "vessel_damage": 25,
+                        "fuel_delta": -15
+                    }
+                }
+            ],
+            "weight": 1.0
+        },
+        {
+            "category": "hardship",
+            "genre": "steampunk",
+            "title": "Boiler Failure",
+            "description": "A critical rupture in the main boiler sends steam venting dangerously. Without repairs, your vessel cannot move.",
+            "choices": [
+                {
+                    "text": "Attempt emergency repairs",
+                    "outcome": {
+                        "description": "Your engineers work feverishly, welding brass plates over the rupture. The repair holds, but barely.",
+                        "vessel_damage": 5,
+                        "currency_delta": -15,
+                        "time_advance": 1
+                    },
+                    "require_skill": "mechanic"
+                },
+                {
+                    "text": "Cannibalize secondary systems for parts",
+                    "outcome": {
+                        "description": "You strip non-essential systems to patch the boiler. The vessel limps on, but with reduced capability.",
+                        "vessel_damage": 8,
+                        "morale_delta": -5
+                    }
+                },
+                {
+                    "text": "Send a crew member for help",
+                    "outcome": {
+                        "description": "A volunteer ventures out and returns with a traveling tinker who makes proper repairs—for a price.",
+                        "currency_delta": -40,
+                        "time_advance": 2
+                    }
+                }
+            ],
+            "weight": 0.9
+        },
+        {
+            "category": "windfall",
+            "genre": "steampunk",
+            "title": "Brass Baron's Gratitude",
+            "description": "You encounter a stranded brass baron whose personal crawler broke down. After your crew assists with repairs, he offers generous compensation.",
+            "choices": [
+                {
+                    "text": "Accept payment in brass ingots",
+                    "outcome": {
+                        "description": "The baron hands over a chest of gleaming brass ingots, more than fair payment for the assistance.",
+                        "currency_delta": 50
+                    }
+                },
+                {
+                    "text": "Request supplies instead",
+                    "outcome": {
+                        "description": "The baron's attendants load your vessel with coal, food, and medical supplies.",
+                        "fuel_delta": 25,
+                        "food_delta": 20,
+                        "medicine_delta": 15
+                    }
+                },
+                {
+                    "text": "Ask for a letter of passage",
+                    "outcome": {
+                        "description": "The baron provides a sealed letter granting safe passage through territories controlled by the Steam Barons faction.",
+                        "morale_delta": 20
+                    }
+                }
+            ],
+            "weight": 0.6
+        },
+        {
+            "category": "crew",
+            "genre": "steampunk",
+            "title": "Gearwright's Innovation",
+            "description": "Your lead gearwright approaches with blueprints for a modification that could improve vessel efficiency, but it requires resources to implement.",
+            "choices": [
+                {
+                    "text": "Fund the modification project",
+                    "outcome": {
+                        "description": "The gearwright's innovation proves successful. Your vessel now consumes less fuel during travel.",
+                        "currency_delta": -30,
+                        "fuel_delta": 10,
+                        "morale_delta": 12
+                    },
+                    "require_min_resource": {
+                        "currency": 30
+                    }
+                },
+                {
+                    "text": "Table the idea for later",
+                    "outcome": {
+                        "description": "You acknowledge the innovation but explain resources are tight. The gearwright understands but seems disappointed.",
+                        "morale_delta": -3
+                    }
+                },
+                {
+                    "text": "Suggest simpler improvements first",
+                    "outcome": {
+                        "description": "Together you identify smaller optimizations that don't require significant resources. Minor improvements are made.",
+                        "morale_delta": 5,
+                        "vessel_damage": -5
+                    }
+                }
+            ],
+            "weight": 0.7
+        }
+    ],
+    "biomes": [
+        {
+            "genre": "steampunk",
+            "names": [
+                "Iron Archipelago",
+                "Mercury Falls",
+                "Gaslight District",
+                "Turbine Valley",
+                "Piston Peaks"
+            ]
+        }
+    ],
+    "resources": [
+        {
+            "id": "aether_crystals",
+            "name": "Aether Crystals",
+            "genre": "steampunk",
+            "description": "Crystallized aether energy, used to power advanced clockwork devices and airship engines.",
+            "max_stack": 100,
+            "tradeable": true
+        },
+        {
+            "id": "clockwork_gears",
+            "name": "Clockwork Gears",
+            "genre": "steampunk",
+            "description": "Precision-machined brass gears essential for automaton repair and vessel maintenance.",
+            "max_stack": 500,
+            "tradeable": true
+        }
+    ],
+    "factions": [
+        {
+            "id": "gear_guild",
+            "name": "Gear Guild",
+            "genre": "steampunk",
+            "description": "A powerful union of engineers and mechanics who control most industrial production. Their approval opens many doors.",
+            "hostile": false
+        },
+        {
+            "id": "aether_pirates",
+            "name": "Aether Pirates",
+            "genre": "steampunk",
+            "description": "Sky-faring raiders who prey on trade routes from their hidden cloud fortresses.",
+            "hostile": true
+        },
+        {
+            "id": "automaton_collective",
+            "name": "Automaton Collective",
+            "genre": "steampunk",
+            "description": "A mysterious organization of self-aware automatons seeking equal rights in a human-dominated world.",
+            "hostile": false
+        }
+    ]
+}

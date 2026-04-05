@@ -237,7 +237,15 @@ func (c *Convoy) RecordRunResult(playerID PlayerID, result *RunData) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Find and update the player's run
+	c.updatePlayerRun(playerID, result)
+	c.markPlayerFinished(playerID)
+	c.checkConvoyCompletion()
+
+	return nil
+}
+
+// updatePlayerRun copies result data into the player's run record.
+func (c *Convoy) updatePlayerRun(playerID PlayerID, result *RunData) {
 	for _, run := range c.Runs {
 		if run.PlayerID == playerID {
 			run.FinishedAt = time.Now().UTC()
@@ -246,31 +254,29 @@ func (c *Convoy) RecordRunResult(playerID PlayerID, result *RunData) error {
 			run.DaysTraveled = result.DaysTraveled
 			run.Survivors = result.Survivors
 			run.EventsSeen = result.EventsSeen
-			break
+			return
 		}
 	}
+}
 
-	// Mark player as finished
+// markPlayerFinished sets HasFinished flag for a player.
+func (c *Convoy) markPlayerFinished(playerID PlayerID) {
 	for _, p := range c.Players {
 		if p.ID == playerID {
 			p.HasFinished = true
-			break
+			return
 		}
 	}
+}
 
-	// Check if all players have finished
-	allFinished := true
+// checkConvoyCompletion marks convoy complete if all players finished.
+func (c *Convoy) checkConvoyCompletion() {
 	for _, p := range c.Players {
 		if !p.HasFinished {
-			allFinished = false
-			break
+			return
 		}
 	}
-	if allFinished {
-		c.State = StateCompleted
-	}
-
-	return nil
+	c.State = StateCompleted
 }
 
 // GetPlayer returns a player by ID.

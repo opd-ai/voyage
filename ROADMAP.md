@@ -391,19 +391,19 @@ All SFX and music are procedurally synthesized at runtime — no pre-recorded or
 
 #### Modding System
 - [x] JSON-based event grammar extension point (add custom event tables without code changes)
-- [ ] WASM-sandboxed mod loader (capability-based security)
-- [ ] Example mod: custom genre preset with new biome names, resource names, faction archetypes
+- [x] WASM-sandboxed mod loader (capability-based security)
+- [x] Example mod: custom genre preset with new biome names, resource names, faction archetypes
 
 #### Mobile Support
-- [ ] Android APK build via `gomobile`
-- [ ] iOS build via `gomobile`
-- [ ] Touch controls (tap to move, swipe to scroll map, tap to select options)
+- [x] Android APK build via `gomobile`
+- [x] iOS build via `gomobile`
+- [x] Touch controls (tap to move, swipe to scroll map, tap to select options)
 
 #### Run Sharing
-- [ ] Export any completed run as a compact shareable code (seed + genre + decision sequence encoded as base58 string)
-- [ ] Import a run code to replay another player's exact route and choices as a ghost overlay
-- [ ] Ghost mode: player plays the same seed while a translucent ghost vessel shows the shared run's path and timing
-- [ ] Share codes copyable from the end-screen with a single button press
+- [x] Export any completed run as a compact shareable code (seed + genre + decision sequence encoded as base58 string)
+- [x] Import a run code to replay another player's exact route and choices as a ghost overlay
+- [x] Ghost mode: player plays the same seed while a translucent ghost vessel shows the shared run's path and timing
+- [x] Share codes copyable from the end-screen with a single button press
 
 ---
 

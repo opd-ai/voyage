@@ -262,75 +262,7 @@ func (t *AchievementTracker) CheckAchievements() []*Achievement {
 		if a.Earned {
 			continue
 		}
-
-		earned := false
-		switch a.ID {
-		// Survival achievements
-		case "survive_10":
-			earned = a.UpdateProgress(t.Stats.DaysSurvived)
-		case "survive_30":
-			earned = a.UpdateProgress(t.Stats.DaysSurvived)
-		case "survive_100":
-			earned = a.UpdateProgress(t.Stats.DaysSurvived)
-		case "no_losses":
-			earned = a.UpdateProgress(t.Stats.DaysWithoutLoss)
-		case "full_crew":
-			if t.Stats.CrewSurvived >= t.Stats.CrewStarted && t.Stats.DaysSurvived > 0 {
-				earned = a.UpdateProgress(1)
-			}
-
-		// Trade achievements
-		case "trader":
-			earned = a.UpdateProgress(t.Stats.TradesCompleted)
-		case "merchant":
-			earned = a.UpdateProgress(t.Stats.TradesCompleted)
-		case "tycoon":
-			earned = a.UpdateProgress(t.Stats.TotalGoldEarned)
-		case "regional_trader":
-			earned = a.UpdateProgress(t.Stats.RegionsTraded)
-
-		// Exploration achievements
-		case "explorer":
-			earned = a.UpdateProgress(t.Stats.DistanceTraveled)
-		case "cartographer":
-			earned = a.UpdateProgress(t.Stats.RegionsVisited)
-		case "discoverer":
-			earned = a.UpdateProgress(t.Stats.DiscoveriesMade)
-		case "lore_keeper":
-			earned = a.UpdateProgress(t.Stats.LoreCollected)
-		case "secret_finder":
-			earned = a.UpdateProgress(t.Stats.SecretsFound)
-
-		// Combat achievements
-		case "warrior":
-			earned = a.UpdateProgress(t.Stats.EnemiesDefeated)
-		case "champion":
-			earned = a.UpdateProgress(t.Stats.BattlesWon)
-		case "flawless":
-			earned = a.UpdateProgress(t.Stats.FlawlessVictories)
-
-		// Social achievements
-		case "diplomat":
-			earned = a.UpdateProgress(t.Stats.FactionAllies)
-		case "helper":
-			earned = a.UpdateProgress(t.Stats.NPCsHelped)
-		case "questor":
-			earned = a.UpdateProgress(t.Stats.QuestsCompleted)
-		case "recruiter":
-			earned = a.UpdateProgress(t.Stats.CompanionsRecruited)
-
-		// Special achievements
-		case "perfect_run":
-			if t.Stats.CrewSurvived >= t.Stats.CrewStarted && t.Stats.DaysSurvived >= 30 {
-				earned = a.UpdateProgress(1)
-			}
-		case "close_calls":
-			earned = a.UpdateProgress(t.Stats.CloseCallsSurvived)
-		case "critical_master":
-			earned = a.UpdateProgress(t.Stats.CriticalSuccesses)
-		}
-
-		if earned {
+		if t.checkAchievement(a) {
 			a.EarnedAt = t.CurrentDay
 			newlyEarned = append(newlyEarned, a)
 			if t.OnEarned != nil {
@@ -340,6 +272,82 @@ func (t *AchievementTracker) CheckAchievements() []*Achievement {
 	}
 
 	return newlyEarned
+}
+
+// checkAchievement evaluates a single achievement against current stats.
+func (t *AchievementTracker) checkAchievement(a *Achievement) bool {
+	switch a.ID {
+	// Survival achievements
+	case "survive_10", "survive_30", "survive_100":
+		return a.UpdateProgress(t.Stats.DaysSurvived)
+	case "no_losses":
+		return a.UpdateProgress(t.Stats.DaysWithoutLoss)
+	case "full_crew":
+		return t.checkFullCrew(a)
+
+	// Trade achievements
+	case "trader", "merchant":
+		return a.UpdateProgress(t.Stats.TradesCompleted)
+	case "tycoon":
+		return a.UpdateProgress(t.Stats.TotalGoldEarned)
+	case "regional_trader":
+		return a.UpdateProgress(t.Stats.RegionsTraded)
+
+	// Exploration achievements
+	case "explorer":
+		return a.UpdateProgress(t.Stats.DistanceTraveled)
+	case "cartographer":
+		return a.UpdateProgress(t.Stats.RegionsVisited)
+	case "discoverer":
+		return a.UpdateProgress(t.Stats.DiscoveriesMade)
+	case "lore_keeper":
+		return a.UpdateProgress(t.Stats.LoreCollected)
+	case "secret_finder":
+		return a.UpdateProgress(t.Stats.SecretsFound)
+
+	// Combat achievements
+	case "warrior":
+		return a.UpdateProgress(t.Stats.EnemiesDefeated)
+	case "champion":
+		return a.UpdateProgress(t.Stats.BattlesWon)
+	case "flawless":
+		return a.UpdateProgress(t.Stats.FlawlessVictories)
+
+	// Social achievements
+	case "diplomat":
+		return a.UpdateProgress(t.Stats.FactionAllies)
+	case "helper":
+		return a.UpdateProgress(t.Stats.NPCsHelped)
+	case "questor":
+		return a.UpdateProgress(t.Stats.QuestsCompleted)
+	case "recruiter":
+		return a.UpdateProgress(t.Stats.CompanionsRecruited)
+
+	// Special achievements
+	case "perfect_run":
+		return t.checkPerfectRun(a)
+	case "close_calls":
+		return a.UpdateProgress(t.Stats.CloseCallsSurvived)
+	case "critical_master":
+		return a.UpdateProgress(t.Stats.CriticalSuccesses)
+	}
+	return false
+}
+
+// checkFullCrew checks if full crew survived at least one day.
+func (t *AchievementTracker) checkFullCrew(a *Achievement) bool {
+	if t.Stats.CrewSurvived >= t.Stats.CrewStarted && t.Stats.DaysSurvived > 0 {
+		return a.UpdateProgress(1)
+	}
+	return false
+}
+
+// checkPerfectRun checks if a perfect run was achieved.
+func (t *AchievementTracker) checkPerfectRun(a *Achievement) bool {
+	if t.Stats.CrewSurvived >= t.Stats.CrewStarted && t.Stats.DaysSurvived >= 30 {
+		return a.UpdateProgress(1)
+	}
+	return false
 }
 
 // Tick advances the day counter

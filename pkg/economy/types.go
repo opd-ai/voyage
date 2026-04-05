@@ -370,37 +370,41 @@ func (e *EconomyManager) propagatePrices() {
 		if from == nil || to == nil {
 			continue
 		}
+		e.propagatePricesBetweenMarkets(from, to, route.Distance)
+	}
+}
 
-		// For each good, prices tend to equalize along routes
-		for goodID, fromGood := range from.Goods {
-			toGood := to.Goods[goodID]
-			if toGood == nil {
-				continue
-			}
-
-			priceDiff := fromGood.CurrentPrice - toGood.CurrentPrice
-			adjustment := int(float64(priceDiff) * e.PropagationRate / float64(route.Distance+1))
-
-			// Equalize toward middle
-			if adjustment != 0 {
-				fromGood.CurrentPrice -= adjustment / 2
-				toGood.CurrentPrice += adjustment / 2
-
-				// Clamp
-				if fromGood.CurrentPrice < fromGood.MinPrice {
-					fromGood.CurrentPrice = fromGood.MinPrice
-				}
-				if fromGood.CurrentPrice > fromGood.MaxPrice {
-					fromGood.CurrentPrice = fromGood.MaxPrice
-				}
-				if toGood.CurrentPrice < toGood.MinPrice {
-					toGood.CurrentPrice = toGood.MinPrice
-				}
-				if toGood.CurrentPrice > toGood.MaxPrice {
-					toGood.CurrentPrice = toGood.MaxPrice
-				}
-			}
+// propagatePricesBetweenMarkets equalizes prices for shared goods between two markets.
+func (e *EconomyManager) propagatePricesBetweenMarkets(from, to *Market, distance int) {
+	for goodID, fromGood := range from.Goods {
+		toGood := to.Goods[goodID]
+		if toGood == nil {
+			continue
 		}
+		e.adjustPricePair(fromGood, toGood, distance)
+	}
+}
+
+// adjustPricePair equalizes prices between two instances of the same good.
+func (e *EconomyManager) adjustPricePair(fromGood, toGood *TradeGood, distance int) {
+	priceDiff := fromGood.CurrentPrice - toGood.CurrentPrice
+	adjustment := int(float64(priceDiff) * e.PropagationRate / float64(distance+1))
+	if adjustment == 0 {
+		return
+	}
+	fromGood.CurrentPrice -= adjustment / 2
+	toGood.CurrentPrice += adjustment / 2
+	clampPrice(fromGood)
+	clampPrice(toGood)
+}
+
+// clampPrice ensures a good's price stays within its min/max bounds.
+func clampPrice(g *TradeGood) {
+	if g.CurrentPrice < g.MinPrice {
+		g.CurrentPrice = g.MinPrice
+	}
+	if g.CurrentPrice > g.MaxPrice {
+		g.CurrentPrice = g.MaxPrice
 	}
 }
 

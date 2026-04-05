@@ -50,15 +50,31 @@ func (c *Convoy) Compare() *ComparisonResult {
 		return result
 	}
 
-	// Build player name map
+	nameMap := c.buildPlayerNameMap()
+	result.Rankings = c.buildRankings(nameMap)
+	c.sortAndAssignRanks(result.Rankings)
+	result.WinnerID = c.findWinner(result.Rankings)
+	result.FastestID = c.findFastest(result.Rankings)
+	result.FirstToFinish = c.findFirstToFinish()
+	result.Comparisons = c.generateStatComparisons(nameMap)
+
+	return result
+}
+
+// buildPlayerNameMap creates a map of player IDs to names.
+func (c *Convoy) buildPlayerNameMap() map[PlayerID]string {
 	nameMap := make(map[PlayerID]string)
 	for _, p := range c.Players {
 		nameMap[p.ID] = p.Name
 	}
+	return nameMap
+}
 
-	// Create rankings
+// buildRankings creates player rankings from run data.
+func (c *Convoy) buildRankings(nameMap map[PlayerID]string) []*PlayerRanking {
+	rankings := make([]*PlayerRanking, 0, len(c.Runs))
 	for _, run := range c.Runs {
-		result.Rankings = append(result.Rankings, &PlayerRanking{
+		rankings = append(rankings, &PlayerRanking{
 			PlayerID:  run.PlayerID,
 			Name:      nameMap[run.PlayerID],
 			Score:     run.Score,
@@ -67,122 +83,129 @@ func (c *Convoy) Compare() *ComparisonResult {
 			Survivors: run.Survivors,
 		})
 	}
+	return rankings
+}
 
-	// Sort rankings by score (descending), then by days (ascending)
-	sort.Slice(result.Rankings, func(i, j int) bool {
-		if result.Rankings[i].Score != result.Rankings[j].Score {
-			return result.Rankings[i].Score > result.Rankings[j].Score
+// sortAndAssignRanks sorts rankings by score/days and assigns rank numbers.
+func (c *Convoy) sortAndAssignRanks(rankings []*PlayerRanking) {
+	sort.Slice(rankings, func(i, j int) bool {
+		if rankings[i].Score != rankings[j].Score {
+			return rankings[i].Score > rankings[j].Score
 		}
-		return result.Rankings[i].Days < result.Rankings[j].Days
+		return rankings[i].Days < rankings[j].Days
 	})
-
-	// Assign ranks
-	for i, r := range result.Rankings {
+	for i, r := range rankings {
 		r.Rank = i + 1
 	}
+}
 
-	// Determine winner (highest score with victory)
-	for _, r := range result.Rankings {
+// findWinner returns the player ID of the highest-scoring victor.
+func (c *Convoy) findWinner(rankings []*PlayerRanking) PlayerID {
+	for _, r := range rankings {
 		if r.Victory {
-			result.WinnerID = r.PlayerID
-			break
+			return r.PlayerID
 		}
 	}
+	return ""
+}
 
-	// Find fastest (fewest days with victory)
-	fastestDays := int(^uint(0) >> 1) // Max int
-	for _, r := range result.Rankings {
+// findFastest returns the player ID with fewest days among victors.
+func (c *Convoy) findFastest(rankings []*PlayerRanking) PlayerID {
+	fastestDays := int(^uint(0) >> 1)
+	var fastestID PlayerID
+	for _, r := range rankings {
 		if r.Victory && r.Days < fastestDays {
 			fastestDays = r.Days
-			result.FastestID = r.PlayerID
+			fastestID = r.PlayerID
 		}
 	}
+	return fastestID
+}
 
-	// Find first to finish
+// findFirstToFinish returns the player ID who finished their run first.
+func (c *Convoy) findFirstToFinish() PlayerID {
+	if len(c.Runs) == 0 {
+		return ""
+	}
 	earliestFinish := c.Runs[0].FinishedAt
-	result.FirstToFinish = c.Runs[0].PlayerID
+	firstID := c.Runs[0].PlayerID
 	for _, run := range c.Runs {
 		if !run.FinishedAt.IsZero() && run.FinishedAt.Before(earliestFinish) {
 			earliestFinish = run.FinishedAt
-			result.FirstToFinish = run.PlayerID
+			firstID = run.PlayerID
 		}
 	}
-
-	// Generate stat comparisons
-	result.Comparisons = c.generateStatComparisons(nameMap)
-
-	return result
+	return firstID
 }
 
 // generateStatComparisons creates detailed comparisons for each stat.
 func (c *Convoy) generateStatComparisons(nameMap map[PlayerID]string) []*StatComparison {
-	comparisons := make([]*StatComparison, 0)
+	comparisons := make([]*StatComparison, 0, 4)
+	comparisons = append(comparisons, c.buildScoreComparison(nameMap))
+	comparisons = append(comparisons, c.buildDaysComparison(nameMap))
+	comparisons = append(comparisons, c.buildSurvivorComparison(nameMap))
+	comparisons = append(comparisons, c.buildEventsComparison(nameMap))
+	return comparisons
+}
 
-	// Score comparison
-	scoreComp := &StatComparison{
-		Stat:   "Score",
-		Values: make(map[PlayerID]int),
-	}
+// buildScoreComparison creates a score comparison across all runs.
+func (c *Convoy) buildScoreComparison(nameMap map[PlayerID]string) *StatComparison {
+	comp := &StatComparison{Stat: "Score", Values: make(map[PlayerID]int)}
 	var bestScore int
 	for _, run := range c.Runs {
-		scoreComp.Values[run.PlayerID] = run.Score
+		comp.Values[run.PlayerID] = run.Score
 		if run.Score > bestScore {
 			bestScore = run.Score
-			scoreComp.BestID = run.PlayerID
-			scoreComp.BestName = nameMap[run.PlayerID]
+			comp.BestID = run.PlayerID
+			comp.BestName = nameMap[run.PlayerID]
 		}
 	}
-	comparisons = append(comparisons, scoreComp)
+	return comp
+}
 
-	// Days comparison (lower is better)
-	daysComp := &StatComparison{
-		Stat:   "Days Traveled",
-		Values: make(map[PlayerID]int),
-	}
-	bestDays := int(^uint(0) >> 1) // Max int
+// buildDaysComparison creates a days-traveled comparison (lower is better).
+func (c *Convoy) buildDaysComparison(nameMap map[PlayerID]string) *StatComparison {
+	comp := &StatComparison{Stat: "Days Traveled", Values: make(map[PlayerID]int)}
+	bestDays := int(^uint(0) >> 1)
 	for _, run := range c.Runs {
-		daysComp.Values[run.PlayerID] = run.DaysTraveled
+		comp.Values[run.PlayerID] = run.DaysTraveled
 		if run.DaysTraveled < bestDays && run.DaysTraveled > 0 {
 			bestDays = run.DaysTraveled
-			daysComp.BestID = run.PlayerID
-			daysComp.BestName = nameMap[run.PlayerID]
+			comp.BestID = run.PlayerID
+			comp.BestName = nameMap[run.PlayerID]
 		}
 	}
-	comparisons = append(comparisons, daysComp)
+	return comp
+}
 
-	// Survivors comparison
-	survivorComp := &StatComparison{
-		Stat:   "Survivors",
-		Values: make(map[PlayerID]int),
-	}
+// buildSurvivorComparison creates a survivors comparison across all runs.
+func (c *Convoy) buildSurvivorComparison(nameMap map[PlayerID]string) *StatComparison {
+	comp := &StatComparison{Stat: "Survivors", Values: make(map[PlayerID]int)}
 	var bestSurvivors int
 	for _, run := range c.Runs {
-		survivorComp.Values[run.PlayerID] = run.Survivors
+		comp.Values[run.PlayerID] = run.Survivors
 		if run.Survivors > bestSurvivors {
 			bestSurvivors = run.Survivors
-			survivorComp.BestID = run.PlayerID
-			survivorComp.BestName = nameMap[run.PlayerID]
+			comp.BestID = run.PlayerID
+			comp.BestName = nameMap[run.PlayerID]
 		}
 	}
-	comparisons = append(comparisons, survivorComp)
+	return comp
+}
 
-	// Events seen comparison
-	eventsComp := &StatComparison{
-		Stat:   "Events Faced",
-		Values: make(map[PlayerID]int),
-	}
+// buildEventsComparison creates an events-seen comparison across all runs.
+func (c *Convoy) buildEventsComparison(nameMap map[PlayerID]string) *StatComparison {
+	comp := &StatComparison{Stat: "Events Faced", Values: make(map[PlayerID]int)}
 	var mostEvents int
 	for _, run := range c.Runs {
-		eventsComp.Values[run.PlayerID] = run.EventsSeen
+		comp.Values[run.PlayerID] = run.EventsSeen
 		if run.EventsSeen > mostEvents {
 			mostEvents = run.EventsSeen
-			eventsComp.BestID = run.PlayerID
-			eventsComp.BestName = nameMap[run.PlayerID]
+			comp.BestID = run.PlayerID
+			comp.BestName = nameMap[run.PlayerID]
 		}
 	}
-	comparisons = append(comparisons, eventsComp)
-
-	return comparisons
+	return comp
 }
 
 // GetWinner returns the winning player and their run data.

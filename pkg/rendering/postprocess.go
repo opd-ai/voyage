@@ -35,6 +35,19 @@ func (pp *PostProcessor) Genre() engine.GenreID {
 	return pp.genre
 }
 
+// copyImage creates a new image copy with the same dimensions and content.
+// Returns nil if the input is nil.
+func copyImage(img *ebiten.Image) (*ebiten.Image, int, int) {
+	if img == nil {
+		return nil, 0, 0
+	}
+	bounds := img.Bounds()
+	w, h := bounds.Dx(), bounds.Dy()
+	result := ebiten.NewImage(w, h)
+	result.DrawImage(img, nil)
+	return result, w, h
+}
+
 // Apply processes an image with all enabled post-processing effects.
 func (pp *PostProcessor) Apply(img *ebiten.Image, seed int64) *ebiten.Image {
 	if img == nil {
@@ -107,14 +120,10 @@ func (pp *PostProcessor) ApplyVignette(img *ebiten.Image, intensity float64) *eb
 
 // ApplyScanlines adds horizontal scanline effect for retro/sci-fi feel.
 func (pp *PostProcessor) ApplyScanlines(img *ebiten.Image, density, alpha float64) *ebiten.Image {
-	if img == nil {
+	result, w, h := copyImage(img)
+	if result == nil {
 		return nil
 	}
-
-	bounds := img.Bounds()
-	w, h := bounds.Dx(), bounds.Dy()
-	result := ebiten.NewImage(w, h)
-	result.DrawImage(img, nil)
 
 	// Add scanlines every N pixels
 	spacing := int(density)
@@ -138,14 +147,10 @@ func (pp *PostProcessor) ApplyScanlines(img *ebiten.Image, density, alpha float6
 
 // ApplyFilmGrain adds random noise for a gritty film effect.
 func (pp *PostProcessor) ApplyFilmGrain(img *ebiten.Image, seed int64, intensity float64) *ebiten.Image {
-	if img == nil {
+	result, w, h := copyImage(img)
+	if result == nil {
 		return nil
 	}
-
-	bounds := img.Bounds()
-	w, h := bounds.Dx(), bounds.Dy()
-	result := ebiten.NewImage(w, h)
-	result.DrawImage(img, nil)
 
 	// Simple LCG for deterministic noise
 	rng := uint64(seed)

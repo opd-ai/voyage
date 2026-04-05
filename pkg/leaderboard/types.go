@@ -134,28 +134,26 @@ func (b *Board) GetAll() []*Entry {
 	return result
 }
 
-// GetBySeed returns all entries for a specific seed, sorted by score.
-func (b *Board) GetBySeed(seed int64) []*Entry {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
-	entries := b.bySeed[seed]
+// copyAndSortEntries returns a sorted copy of the given entries slice.
+func copyAndSortEntries(entries []*Entry) []*Entry {
 	result := make([]*Entry, len(entries))
 	copy(result, entries)
 	sortByScore(result)
 	return result
 }
 
+// GetBySeed returns all entries for a specific seed, sorted by score.
+func (b *Board) GetBySeed(seed int64) []*Entry {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return copyAndSortEntries(b.bySeed[seed])
+}
+
 // GetByGenre returns all entries for a specific genre, sorted by score.
 func (b *Board) GetByGenre(genre engine.GenreID) []*Entry {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
-	entries := b.byGenre[genre]
-	result := make([]*Entry, len(entries))
-	copy(result, entries)
-	sortByScore(result)
-	return result
+	return copyAndSortEntries(b.byGenre[genre])
 }
 
 // GetBySeedAndGenre returns entries matching both seed and genre.

@@ -83,47 +83,57 @@ func (m *Manager) Update() {
 
 // processKeyboard handles keyboard input.
 func (m *Manager) processKeyboard() {
-	// Check direction keys (with repeat)
+	m.processDirectionInput()
+	m.processActionKeys()
+	m.processOptionKeys()
+}
+
+// processDirectionInput handles arrow/WASD key input with repeat.
+func (m *Manager) processDirectionInput() {
 	dir := m.getKeyboardDirection()
 	if dir != DirectionNone {
-		now := time.Now()
-		if dir != m.lastDirection {
-			// New direction
-			m.lastDirection = dir
-			m.directionHeldSince = now
-			m.lastDirectionRepeat = now
-			m.currentState.Direction = dir
-		} else {
-			// Same direction held
-			heldDuration := now.Sub(m.directionHeldSince)
-			if heldDuration >= m.keyRepeatDelay {
-				// Key repeat active
-				sinceLast := now.Sub(m.lastDirectionRepeat)
-				if sinceLast >= m.keyRepeatInterval {
-					m.lastDirectionRepeat = now
-					m.currentState.Direction = dir
-				}
-			}
-		}
+		m.handleDirectionPressed(dir)
 	} else {
 		m.lastDirection = DirectionNone
 	}
+}
 
-	// Check action keys (just pressed)
+// handleDirectionPressed processes a direction key being held.
+func (m *Manager) handleDirectionPressed(dir Direction) {
+	now := time.Now()
+	if dir != m.lastDirection {
+		m.lastDirection = dir
+		m.directionHeldSince = now
+		m.lastDirectionRepeat = now
+		m.currentState.Direction = dir
+		return
+	}
+	// Same direction held - check for repeat
+	heldDuration := now.Sub(m.directionHeldSince)
+	if heldDuration >= m.keyRepeatDelay {
+		if now.Sub(m.lastDirectionRepeat) >= m.keyRepeatInterval {
+			m.lastDirectionRepeat = now
+			m.currentState.Direction = dir
+		}
+	}
+}
+
+// processActionKeys handles confirm, cancel, and debug keys.
+func (m *Manager) processActionKeys() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) ||
 		inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		m.currentState.Actions = append(m.currentState.Actions, ActionConfirm)
 	}
-
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		m.currentState.Actions = append(m.currentState.Actions, ActionCancel)
 	}
-
 	if inpututil.IsKeyJustPressed(ebiten.KeyF3) {
 		m.currentState.Actions = append(m.currentState.Actions, ActionDebug)
 	}
+}
 
-	// Number keys for options
+// processOptionKeys handles number keys 1-9 for options.
+func (m *Manager) processOptionKeys() {
 	optionKeys := []ebiten.Key{
 		ebiten.Key1, ebiten.Key2, ebiten.Key3,
 		ebiten.Key4, ebiten.Key5, ebiten.Key6,
@@ -160,13 +170,17 @@ func (m *Manager) getKeyboardDirection() Direction {
 
 // processTouch handles touch input.
 func (m *Manager) processTouch() {
-	// Get current touch IDs
 	touchIDs := ebiten.AppendTouchIDs(nil)
+	m.trackNewTouches(touchIDs)
+	m.handleEndedTouches(touchIDs)
+	m.prevTouchIDs = touchIDs
+}
 
-	// Track new touches
+// trackNewTouches registers new touch points and updates existing ones.
+func (m *Manager) trackNewTouches(touchIDs []ebiten.TouchID) {
 	for _, id := range touchIDs {
+		x, y := ebiten.TouchPosition(id)
 		if _, exists := m.touches[id]; !exists {
-			x, y := ebiten.TouchPosition(id)
 			m.touches[id] = &TouchState{
 				ID:        int(id),
 				StartX:    x,
@@ -177,30 +191,26 @@ func (m *Manager) processTouch() {
 				IsActive:  true,
 			}
 		} else {
-			// Update position
-			x, y := ebiten.TouchPosition(id)
 			m.touches[id].CurrentX = x
 			m.touches[id].CurrentY = y
 		}
 	}
+}
 
-	// Check for ended touches (swipes and taps)
+// handleEndedTouches processes touches that ended this frame.
+func (m *Manager) handleEndedTouches(currentIDs []ebiten.TouchID) {
 	currentIDSet := make(map[ebiten.TouchID]bool)
-	for _, id := range touchIDs {
+	for _, id := range currentIDs {
 		currentIDSet[id] = true
 	}
-
 	for _, prevID := range m.prevTouchIDs {
 		if !currentIDSet[prevID] {
-			// Touch ended
 			if touch, exists := m.touches[prevID]; exists {
 				m.handleTouchEnd(touch)
 				delete(m.touches, prevID)
 			}
 		}
 	}
-
-	m.prevTouchIDs = touchIDs
 }
 
 // handleTouchEnd processes a touch that just ended.

@@ -181,10 +181,21 @@ func (rm *ReplayManager) GetChallengeSeeds(limit int) []*ReplayInfo {
 		return nil
 	}
 
-	// Get seeds with the most attempts (popular/interesting worlds)
 	entries := rm.board.GetAll()
+	stats := rm.buildSeedStats(entries)
+	rm.sortSeedStatsByCount(stats)
+	return rm.buildReplayInfos(stats, limit)
+}
 
-	// Count attempts per seed
+// seedStats holds aggregated statistics for a single seed.
+type seedStats struct {
+	seed  int64
+	count int
+	entry *Entry
+}
+
+// buildSeedStats aggregates attempt counts and top scores per seed.
+func (rm *ReplayManager) buildSeedStats(entries []*Entry) []seedStats {
 	seedCounts := make(map[int64]int)
 	seedTopScore := make(map[int64]*Entry)
 
@@ -195,18 +206,15 @@ func (rm *ReplayManager) GetChallengeSeeds(limit int) []*ReplayInfo {
 		}
 	}
 
-	// Sort seeds by attempt count (descending) using simple selection
-	type seedStats struct {
-		seed  int64
-		count int
-		entry *Entry
-	}
-	var stats []seedStats
+	stats := make([]seedStats, 0, len(seedCounts))
 	for seed, count := range seedCounts {
 		stats = append(stats, seedStats{seed, count, seedTopScore[seed]})
 	}
+	return stats
+}
 
-	// Simple sort by count descending
+// sortSeedStatsByCount sorts seed stats by attempt count descending.
+func (rm *ReplayManager) sortSeedStatsByCount(stats []seedStats) {
 	for i := 0; i < len(stats); i++ {
 		for j := i + 1; j < len(stats); j++ {
 			if stats[j].count > stats[i].count {
@@ -214,16 +222,16 @@ func (rm *ReplayManager) GetChallengeSeeds(limit int) []*ReplayInfo {
 			}
 		}
 	}
+}
 
-	// Take top N
+// buildReplayInfos converts seed stats to ReplayInfo slice.
+func (rm *ReplayManager) buildReplayInfos(stats []seedStats, limit int) []*ReplayInfo {
 	if limit > len(stats) {
 		limit = len(stats)
 	}
-
 	result := make([]*ReplayInfo, limit)
 	for i := 0; i < limit; i++ {
 		result[i] = NewReplayInfo(stats[i].entry)
 	}
-
 	return result
 }

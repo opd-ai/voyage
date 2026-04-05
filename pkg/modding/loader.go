@@ -152,8 +152,8 @@ func (l *Loader) ListEnabled() []*Mod {
 	return result
 }
 
-// Enable enables a mod.
-func (l *Loader) Enable(modID string) error {
+// setModEnabled sets the enabled state of a mod.
+func (l *Loader) setModEnabled(modID string, enabled bool) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -162,22 +162,18 @@ func (l *Loader) Enable(modID string) error {
 		return ErrModNotFound
 	}
 
-	mod.Enabled = true
+	mod.Enabled = enabled
 	return nil
+}
+
+// Enable enables a mod.
+func (l *Loader) Enable(modID string) error {
+	return l.setModEnabled(modID, true)
 }
 
 // Disable disables a mod.
 func (l *Loader) Disable(modID string) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	mod, exists := l.mods[modID]
-	if !exists {
-		return ErrModNotFound
-	}
-
-	mod.Enabled = false
-	return nil
+	return l.setModEnabled(modID, false)
 }
 
 // LoadDirectory loads all .json files from a directory.

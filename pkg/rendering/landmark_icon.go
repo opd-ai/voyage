@@ -39,6 +39,21 @@ func NewAnimatedLandmarkIcon(frames []*ebiten.Image, frameTime float64) *Animate
 	}
 }
 
+// generateAnimatedIcon creates an animated icon using provided draw functions.
+func (lig *LandmarkIconGenerator) generateAnimatedIcon(
+	frameCount int,
+	frameTime float64,
+	drawFrame func(img *ebiten.Image, frame int),
+) *AnimatedLandmarkIcon {
+	frames := make([]*ebiten.Image, frameCount)
+	for f := 0; f < frameCount; f++ {
+		img := ebiten.NewImage(lig.iconSize, lig.iconSize)
+		drawFrame(img, f)
+		frames[f] = img
+	}
+	return NewAnimatedLandmarkIcon(frames, frameTime)
+}
+
 // Update advances the landmark animation by the given delta time.
 func (ali *AnimatedLandmarkIcon) Update(dt float64) {
 	if len(ali.Frames) <= 1 {
@@ -233,20 +248,11 @@ func (lig *LandmarkIconGenerator) drawSmoke(img *ebiten.Image, smokeColor color.
 
 // generateOutpostIcon creates an outpost with blinking lights.
 func (lig *LandmarkIconGenerator) generateOutpostIcon(buildingColor, lightColor color.Color) *AnimatedLandmarkIcon {
-	const frameCount = 4
-	frames := make([]*ebiten.Image, frameCount)
-	size := lig.iconSize
-
-	lightPositions := lig.generateLightPositions(size)
-
-	for f := 0; f < frameCount; f++ {
-		img := ebiten.NewImage(size, size)
+	lightPositions := lig.generateLightPositions(lig.iconSize)
+	return lig.generateAnimatedIcon(4, 0.3, func(img *ebiten.Image, frame int) {
 		lig.drawOutpostBase(img, buildingColor)
-		lig.drawBlinkingLights(img, lightPositions, lightColor, f)
-		frames[f] = img
-	}
-
-	return NewAnimatedLandmarkIcon(frames, 0.3)
+		lig.drawBlinkingLights(img, lightPositions, lightColor, frame)
+	})
 }
 
 // generateLightPositions returns positions for outpost lights.
@@ -327,20 +333,11 @@ func (lig *LandmarkIconGenerator) drawLight(img *ebiten.Image, x, y int, c color
 
 // generateTownIcon creates a town with flickering window lights.
 func (lig *LandmarkIconGenerator) generateTownIcon(buildingColor, lightColor color.Color) *AnimatedLandmarkIcon {
-	const frameCount = 4
-	frames := make([]*ebiten.Image, frameCount)
-	size := lig.iconSize
-
-	windowPositions := lig.generateWindowPositions(size)
-
-	for f := 0; f < frameCount; f++ {
-		img := ebiten.NewImage(size, size)
+	windowPositions := lig.generateWindowPositions(lig.iconSize)
+	return lig.generateAnimatedIcon(4, 0.25, func(img *ebiten.Image, frame int) {
 		lig.drawTownBase(img, buildingColor)
-		lig.drawFlickeringWindows(img, windowPositions, lightColor, f)
-		frames[f] = img
-	}
-
-	return NewAnimatedLandmarkIcon(frames, 0.25)
+		lig.drawFlickeringWindows(img, windowPositions, lightColor, frame)
+	})
 }
 
 // generateWindowPositions returns positions for town windows.
@@ -395,17 +392,10 @@ func (lig *LandmarkIconGenerator) drawFlickeringWindows(img *ebiten.Image, posit
 // generateShrineIcon creates a shrine with glowing effect.
 func (lig *LandmarkIconGenerator) generateShrineIcon(stoneColor, glowColor color.Color) *AnimatedLandmarkIcon {
 	const frameCount = 4
-	frames := make([]*ebiten.Image, frameCount)
-	size := lig.iconSize
-
-	for f := 0; f < frameCount; f++ {
-		img := ebiten.NewImage(size, size)
+	return lig.generateAnimatedIcon(frameCount, 0.2, func(img *ebiten.Image, frame int) {
 		lig.drawShrineBase(img, stoneColor)
-		lig.drawShrineGlow(img, glowColor, f, frameCount)
-		frames[f] = img
-	}
-
-	return NewAnimatedLandmarkIcon(frames, 0.2)
+		lig.drawShrineGlow(img, glowColor, frame, frameCount)
+	})
 }
 
 // drawShrineBase draws the shrine structure.
