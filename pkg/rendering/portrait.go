@@ -1,0 +1,319 @@
+//go:build !headless
+
+package rendering
+
+import (
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/opd-ai/voyage/pkg/procgen/seed"
+)
+
+// PortraitAnimState represents the animation state of a crew portrait.
+type PortraitAnimState int
+
+const (
+	PortraitIdle PortraitAnimState = iota
+	PortraitHurt
+	PortraitDeath
+)
+
+// AnimatedPortrait represents a crew member portrait with animation frames.
+type AnimatedPortrait struct {
+	IdleFrames  []*ebiten.Image
+	HurtFrames  []*ebiten.Image
+	DeathFrames []*ebiten.Image
+	FrameTime   float64
+
+	state        PortraitAnimState
+	currentFrame int
+	elapsed      float64
+}
+
+// NewAnimatedPortrait creates a new animated portrait from pre-generated frames.
+func NewAnimatedPortrait(idle, hurt, death []*ebiten.Image, frameTime float64) *AnimatedPortrait {
+	return &AnimatedPortrait{
+		IdleFrames:   idle,
+		HurtFrames:   hurt,
+		DeathFrames:  death,
+		FrameTime:    frameTime,
+		state:        PortraitIdle,
+		currentFrame: 0,
+		elapsed:      0,
+	}
+}
+
+// SetState changes the portrait animation state.
+func (ap *AnimatedPortrait) SetState(state PortraitAnimState) {
+	if ap.state != state {
+		ap.state = state
+		ap.currentFrame = 0
+		ap.elapsed = 0
+	}
+}
+
+// State returns the current animation state.
+func (ap *AnimatedPortrait) State() PortraitAnimState {
+	return ap.state
+}
+
+// Update advances the portrait animation by the given delta time.
+func (ap *AnimatedPortrait) Update(dt float64) {
+	frames := ap.currentFrameSet()
+	if len(frames) <= 1 {
+		return
+	}
+
+	ap.elapsed += dt
+	if ap.elapsed >= ap.FrameTime {
+		ap.elapsed -= ap.FrameTime
+		ap.currentFrame++
+
+		if ap.state == PortraitDeath {
+			if ap.currentFrame >= len(frames) {
+				ap.currentFrame = len(frames) - 1
+			}
+		} else {
+			if ap.currentFrame >= len(frames) {
+				ap.currentFrame = 0
+			}
+		}
+	}
+}
+
+// CurrentFrame returns the current animation frame image.
+func (ap *AnimatedPortrait) CurrentFrame() *ebiten.Image {
+	frames := ap.currentFrameSet()
+	if len(frames) == 0 {
+		return nil
+	}
+	return frames[ap.currentFrame]
+}
+
+// currentFrameSet returns the frame set for the current state.
+func (ap *AnimatedPortrait) currentFrameSet() []*ebiten.Image {
+	switch ap.state {
+	case PortraitHurt:
+		return ap.HurtFrames
+	case PortraitDeath:
+		return ap.DeathFrames
+	default:
+		return ap.IdleFrames
+	}
+}
+
+// Reset resets the animation to the first frame of the current state.
+func (ap *AnimatedPortrait) Reset() {
+	ap.currentFrame = 0
+	ap.elapsed = 0
+}
+
+// PortraitGenerator creates animated crew member portraits.
+type PortraitGenerator struct {
+	gen          *seed.Generator
+	portraitSize int
+}
+
+// NewPortraitGenerator creates a new portrait generator.
+func NewPortraitGenerator(masterSeed int64, portraitSize int) *PortraitGenerator {
+	return &PortraitGenerator{
+		gen:          seed.NewGenerator(masterSeed, "portrait"),
+		portraitSize: portraitSize,
+	}
+}
+
+// GenerateAnimatedPortrait creates an animated portrait with all animation states.
+func (pg *PortraitGenerator) GenerateAnimatedPortrait(primaryColor, secondaryColor, skinColor color.Color) *AnimatedPortrait {
+	basePortrait := pg.generateBasePortrait(primaryColor, secondaryColor, skinColor)
+
+	idleFrames := pg.generateIdleAnimation(basePortrait)
+	hurtFrames := pg.generateHurtAnimation(basePortrait)
+	deathFrames := pg.generateDeathAnimation(basePortrait)
+
+	return NewAnimatedPortrait(idleFrames, hurtFrames, deathFrames, 0.25)
+}
+
+// generateBasePortrait creates the base portrait image.
+func (pg *PortraitGenerator) generateBasePortrait(primaryColor, secondaryColor, skinColor color.Color) *ebiten.Image {
+	size := pg.portraitSize
+	img := ebiten.NewImage(size, size)
+
+	// Generate face region (center of portrait)
+	faceTop := size / 6
+	faceBottom := size * 5 / 6
+	faceLeft := size / 4
+	faceRight := size * 3 / 4
+
+	// Draw face
+	for y := faceTop; y < faceBottom; y++ {
+		for x := faceLeft; x < faceRight; x++ {
+			img.Set(x, y, skinColor)
+		}
+	}
+
+	// Draw body (bottom portion)
+	bodyTop := faceBottom
+	for y := bodyTop; y < size; y++ {
+		for x := size / 6; x < size*5/6; x++ {
+			img.Set(x, y, primaryColor)
+		}
+	}
+
+	// Draw hair (top portion with variation)
+	hairBottom := faceTop + size/8
+	for y := 0; y < hairBottom; y++ {
+		hairWidth := size/4 + (size/4)*y/hairBottom
+		for x := size/2 - hairWidth; x < size/2+hairWidth; x++ {
+			if x >= 0 && x < size && pg.gen.Chance(0.8) {
+				img.Set(x, y, secondaryColor)
+			}
+		}
+	}
+
+	// Draw eyes
+	eyeY := faceTop + (faceBottom-faceTop)/3
+	leftEyeX := faceLeft + (faceRight-faceLeft)/4
+	rightEyeX := faceRight - (faceRight-faceLeft)/4
+
+	eyeColor := color.RGBA{30, 30, 30, 255}
+	pg.drawEye(img, leftEyeX, eyeY, eyeColor)
+	pg.drawEye(img, rightEyeX, eyeY, eyeColor)
+
+	return img
+}
+
+// drawEye draws a simple eye at the given position.
+func (pg *PortraitGenerator) drawEye(img *ebiten.Image, x, y int, c color.Color) {
+	eyeSize := pg.portraitSize / 10
+	if eyeSize < 2 {
+		eyeSize = 2
+	}
+	for dy := -eyeSize / 2; dy <= eyeSize/2; dy++ {
+		for dx := -eyeSize / 2; dx <= eyeSize/2; dx++ {
+			if dx*dx+dy*dy <= (eyeSize/2)*(eyeSize/2) {
+				px, py := x+dx, y+dy
+				if px >= 0 && px < pg.portraitSize && py >= 0 && py < pg.portraitSize {
+					img.Set(px, py, c)
+				}
+			}
+		}
+	}
+}
+
+// generateIdleAnimation creates idle breathing animation frames.
+func (pg *PortraitGenerator) generateIdleAnimation(base *ebiten.Image) []*ebiten.Image {
+	const frameCount = 4
+	frames := make([]*ebiten.Image, frameCount)
+	size := pg.portraitSize
+
+	for f := 0; f < frameCount; f++ {
+		frame := ebiten.NewImage(size, size)
+		frame.DrawImage(base, nil)
+
+		breathOffset := 0
+		if f == 1 || f == 2 {
+			breathOffset = 1
+		}
+
+		if breathOffset > 0 {
+			pg.applyBreathingEffect(frame, breathOffset)
+		}
+
+		frames[f] = frame
+	}
+
+	return frames
+}
+
+// applyBreathingEffect applies a subtle vertical shift for breathing.
+func (pg *PortraitGenerator) applyBreathingEffect(img *ebiten.Image, offset int) {
+	size := pg.portraitSize
+	bodyStart := size * 5 / 6
+
+	// Shift body portion down slightly
+	if offset > 0 && bodyStart+offset < size {
+		tempImg := ebiten.NewImage(size, size-bodyStart)
+		for y := bodyStart; y < size-offset; y++ {
+			for x := 0; x < size; x++ {
+				c := img.At(x, y)
+				tempImg.Set(x, y-bodyStart, c)
+			}
+		}
+
+		// Clear original body area
+		for y := bodyStart; y < size; y++ {
+			for x := 0; x < size; x++ {
+				img.Set(x, y, color.Transparent)
+			}
+		}
+
+		// Draw shifted body
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(0, float64(bodyStart+offset))
+		img.DrawImage(tempImg, op)
+	}
+}
+
+// generateHurtAnimation creates hurt flinch animation frames.
+func (pg *PortraitGenerator) generateHurtAnimation(base *ebiten.Image) []*ebiten.Image {
+	const frameCount = 4
+	frames := make([]*ebiten.Image, frameCount)
+	size := pg.portraitSize
+
+	hurtTint := color.RGBA{200, 100, 100, 255}
+
+	for f := 0; f < frameCount; f++ {
+		frame := ebiten.NewImage(size, size)
+
+		// Horizontal shake offsets
+		shakeOffsets := []int{0, -2, 2, 0}
+		shakeX := shakeOffsets[f]
+
+		// Draw with shake and tint
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(shakeX), 0)
+
+		// Apply red tint intensity based on frame
+		tintIntensity := []float64{0.0, 0.3, 0.2, 0.0}
+		if tintIntensity[f] > 0 {
+			op.ColorScale.Scale(
+				1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.R)/255,
+				1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.G)/255,
+				1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.B)/255,
+				1.0,
+			)
+		}
+
+		frame.DrawImage(base, op)
+		frames[f] = frame
+	}
+
+	return frames
+}
+
+// generateDeathAnimation creates death fade animation frames.
+func (pg *PortraitGenerator) generateDeathAnimation(base *ebiten.Image) []*ebiten.Image {
+	const frameCount = 8
+	frames := make([]*ebiten.Image, frameCount)
+	size := pg.portraitSize
+
+	for f := 0; f < frameCount; f++ {
+		frame := ebiten.NewImage(size, size)
+
+		// Calculate fade progress
+		fadeProgress := float64(f) / float64(frameCount-1)
+
+		op := &ebiten.DrawImageOptions{}
+
+		// Desaturate and darken as death progresses
+		grayScale := 1.0 - fadeProgress*0.7
+		alphaScale := 1.0 - fadeProgress*0.8
+
+		op.ColorScale.Scale(grayScale, grayScale, grayScale, alphaScale)
+
+		frame.DrawImage(base, op)
+		frames[f] = frame
+	}
+
+	return frames
+}
