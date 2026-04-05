@@ -394,3 +394,189 @@ func TestCategoryCrewInAllCategories(t *testing.T) {
 		t.Error("CategoryCrew should be in AllEventCategories")
 	}
 }
+
+func TestQueueGenre(t *testing.T) {
+	queue := NewQueue(12345, engine.GenreFantasy)
+
+	if queue.Genre() != engine.GenreFantasy {
+		t.Errorf("Genre() = %v, want %v", queue.Genre(), engine.GenreFantasy)
+	}
+
+	queue.SetGenre(engine.GenreScifi)
+	if queue.Genre() != engine.GenreScifi {
+		t.Errorf("Genre() after SetGenre = %v, want %v", queue.Genre(), engine.GenreScifi)
+	}
+}
+
+func TestQueueClear(t *testing.T) {
+	queue := NewQueue(12345, engine.GenreFantasy)
+
+	// Generate some events
+	queue.Generate(0, 0, 1)
+	queue.Generate(1, 0, 1)
+	queue.Generate(0, 1, 1)
+
+	if !queue.HasPending() {
+		t.Fatal("queue should have pending events")
+	}
+
+	queue.Clear()
+
+	if queue.HasPending() {
+		t.Error("queue should be empty after Clear")
+	}
+	if len(queue.Pending()) != 0 {
+		t.Errorf("Pending() = %d, want 0", len(queue.Pending()))
+	}
+}
+
+func TestResolverCanChoose(t *testing.T) {
+	resolver := NewResolver()
+	gen := crew.NewGenerator(12345, engine.GenreFantasy)
+	party := crew.NewParty(engine.GenreFantasy, 4)
+	member := gen.Generate()
+	party.Add(member)
+
+	// Choice without skill requirement
+	choiceNoSkill := &Choice{
+		Text:         "Regular choice",
+		RequireSkill: "",
+	}
+	if !resolver.CanChoose(choiceNoSkill, party) {
+		t.Error("should be able to choose when no skill required")
+	}
+
+	// Choice requiring a skill the party has
+	skillName := crew.SkillName(member.Skill, party.Genre())
+	choiceWithSkill := &Choice{
+		Text:         "Skilled choice",
+		RequireSkill: skillName,
+	}
+	if !resolver.CanChoose(choiceWithSkill, party) {
+		t.Error("should be able to choose when party has the skill")
+	}
+
+	// Choice requiring a skill the party doesn't have
+	choiceImpossible := &Choice{
+		Text:         "Impossible choice",
+		RequireSkill: "NonExistentSkill",
+	}
+	if resolver.CanChoose(choiceImpossible, party) {
+		t.Error("should not be able to choose when party lacks the skill")
+	}
+}
+
+func TestResolverGetSkillBonus(t *testing.T) {
+	resolver := NewResolver()
+
+	// Create party with a medic
+	gen := crew.NewGenerator(12345, engine.GenreFantasy)
+	party := crew.NewParty(engine.GenreFantasy, 4)
+	member := gen.Generate()
+	member.Skill = crew.SkillMedic
+	party.Add(member)
+
+	// Hardship events benefit from medic
+	hardshipEvent := NewEvent(1, CategoryHardship, "Test", "Test", engine.GenreFantasy)
+	bonus := resolver.GetSkillBonus(hardshipEvent, party)
+	if bonus != 0.2 {
+		t.Errorf("medic bonus for hardship = %f, want 0.2", bonus)
+	}
+
+	// Weather events don't benefit from medic
+	weatherEvent := NewEvent(2, CategoryWeather, "Test", "Test", engine.GenreFantasy)
+	noBonus := resolver.GetSkillBonus(weatherEvent, party)
+	if noBonus != 0 {
+		t.Errorf("medic bonus for weather = %f, want 0", noBonus)
+	}
+}
+
+func TestResolverModifyOutcome(t *testing.T) {
+	resolver := NewResolver()
+
+	outcome := &EventOutcome{
+		CrewDamage:    10,
+		VesselDamage:  20,
+		MoraleDelta:   -15,
+		FoodDelta:     50,
+		WaterDelta:    25,
+		CurrencyDelta: 100,
+	}
+
+	bonus := 0.2 // 20% bonus
+	modified := resolver.ModifyOutcome(outcome, bonus)
+
+	// Negative effects should be reduced
+	expectedCrewDamage := 10 * (1 - 0.2) // 8
+	if modified.CrewDamage != expectedCrewDamage {
+		t.Errorf("CrewDamage = %f, want %f", modified.CrewDamage, expectedCrewDamage)
+	}
+
+	expectedVesselDamage := 20 * (1 - 0.2) // 16
+	if modified.VesselDamage != expectedVesselDamage {
+		t.Errorf("VesselDamage = %f, want %f", modified.VesselDamage, expectedVesselDamage)
+	}
+
+	expectedMorale := -15 * (1 - 0.2) // -12
+	if modified.MoraleDelta != expectedMorale {
+		t.Errorf("MoraleDelta = %f, want %f", modified.MoraleDelta, expectedMorale)
+	}
+
+	// Positive effects should be increased
+	expectedFood := 50 * (1 + 0.2) // 60
+	if modified.FoodDelta != expectedFood {
+		t.Errorf("FoodDelta = %f, want %f", modified.FoodDelta, expectedFood)
+	}
+
+	expectedWater := 25 * (1 + 0.2) // 30
+	if modified.WaterDelta != expectedWater {
+		t.Errorf("WaterDelta = %f, want %f", modified.WaterDelta, expectedWater)
+	}
+
+	expectedCurrency := 100 * (1 + 0.2) // 120
+	if modified.CurrencyDelta != expectedCurrency {
+		t.Errorf("CurrencyDelta = %f, want %f", modified.CurrencyDelta, expectedCurrency)
+	}
+}
+
+func TestResolverReduceFunctions(t *testing.T) {
+	resolver := NewResolver()
+
+	// reduceNegativeEffect only reduces positive damage values
+	damage := 10.0
+	reducedDamage := resolver.reduceNegativeEffect(damage, 0.2)
+	if reducedDamage != 8.0 {
+		t.Errorf("reduced damage = %f, want 8.0", reducedDamage)
+	}
+
+	// Zero damage unchanged
+	zeroDamage := resolver.reduceNegativeEffect(0, 0.2)
+	if zeroDamage != 0 {
+		t.Errorf("zero damage should stay 0, got %f", zeroDamage)
+	}
+
+	// reduceNegativeDelta only reduces negative deltas
+	negativeDelta := -10.0
+	reducedDelta := resolver.reduceNegativeDelta(negativeDelta, 0.2)
+	if reducedDelta != -8.0 {
+		t.Errorf("reduced delta = %f, want -8.0", reducedDelta)
+	}
+
+	// Positive delta unchanged
+	positiveDelta := resolver.reduceNegativeDelta(10.0, 0.2)
+	if positiveDelta != 10.0 {
+		t.Errorf("positive delta should stay 10, got %f", positiveDelta)
+	}
+
+	// increasePositiveDelta only increases positive deltas
+	positiveIncrease := resolver.increasePositiveDelta(10.0, 0.2)
+	if positiveIncrease != 12.0 {
+		t.Errorf("increased positive = %f, want 12.0", positiveIncrease)
+	}
+
+	// Negative delta unchanged
+	negativeUnchanged := resolver.increasePositiveDelta(-10.0, 0.2)
+	if negativeUnchanged != -10.0 {
+		t.Errorf("negative delta should stay -10, got %f", negativeUnchanged)
+	}
+}

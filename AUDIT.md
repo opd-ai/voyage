@@ -64,9 +64,9 @@
 
 - [x] **High cyclomatic complexity in GenerateCrewRelationshipEvent** — `pkg/events/relationships.go` — Complexity score 14.0 with 56 lines. Event generation has many conditional branches. — **Remediation:** Use a strategy pattern with relationship type handlers instead of switch cascades. Create `RelationshipEventGenerator` interface with implementations per relationship type. Target complexity ≤10.
 
-- [ ] **Code duplication between session.go and session_headless.go** — `pkg/game/session.go:82-135` and `pkg/game/session_headless.go:78-131` — 54 lines of exact duplication (NewGameSession initialization logic). — **Remediation:** Extract common initialization into `newSessionCore(cfg SessionConfig) *gameSessionCore` in a shared file `pkg/game/session_common.go`. Both session variants should embed and extend this core.
+- [x] **Code duplication between session.go and session_headless.go** — `pkg/game/session.go:82-135` and `pkg/game/session_headless.go:78-131` — 54 lines of exact duplication (NewGameSession initialization logic). — **Remediation:** Extract common initialization into `newSessionCore(cfg SessionConfig) *gameSessionCore` in a shared file `pkg/game/session_common.go`. Both session variants should embed and extend this core.
 
-- [ ] **pkg/events test coverage below target** — `pkg/events/*` — Coverage is 66.9%, below the 70% implied minimum for documented packages. — **Remediation:** Add tests for event queue generation and resolution in `pkg/events/queue_test.go`. Include determinism tests verifying same seed produces same event sequence.
+- [x] **pkg/events test coverage below target** — `pkg/events/*` — Coverage is 66.9%, below the 70% implied minimum for documented packages. — **Remediation:** Add tests for event queue generation and resolution in `pkg/events/queue_test.go`. Include determinism tests verifying same seed produces same event sequence.
 
 - [ ] **pkg/crew test coverage below target** — `pkg/crew/*` — Coverage is 69.5%, marginally below the project's target. Backstory generation is untested. — **Remediation:** Add tests in `pkg/crew/crew_test.go` for `generateBackstory()` and `generateName()` functions. Include determinism validation with fixed seeds.
 
