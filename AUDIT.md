@@ -52,7 +52,7 @@
 
 ### HIGH
 
-- [ ] **Low test coverage in pkg/ux** — `pkg/ux/*` — Coverage is 15.3%, significantly below the project's stated 40% target. This package handles user-facing menus and HUD, which are critical for gameplay. — **Remediation:** Add test file `pkg/ux/hud_test.go` with table-driven tests for `DrawResourceBar`, `DrawCrewPanel`, and menu state transitions. Validate with `go test -tags headless -cover ./pkg/ux/...` to achieve ≥40% coverage.
+- [x] **Low test coverage in pkg/ux** — `pkg/ux/*` — Coverage is 15.3%, significantly below the project's stated 40% target. This package handles user-facing menus and HUD, which are critical for gameplay. — **Remediation:** Add test file `pkg/ux/hud_test.go` with table-driven tests for `DrawResourceBar`, `DrawCrewPanel`, and menu state transitions. Validate with `go test -tags headless -cover ./pkg/ux/...` to achieve ≥40% coverage.
 
 - [ ] **Low test coverage in pkg/game** — `pkg/game/*` — Coverage is 54%, with critical gameplay logic like `advanceTurn()` and `checkConditions()` potentially untested. — **Remediation:** Add tests in `pkg/game/session_test.go` for turn advancement, resource consumption, and win/lose state transitions. Use table-driven tests with mock subsystems. Validate with `go test -tags headless -cover ./pkg/game/...`.
 
