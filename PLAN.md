@@ -110,7 +110,7 @@
   go test -tags headless -v ./pkg/game/... -run TestMusicStateTransitions
   ```
 
-### Step 6: Create Post-Processing Effects Foundation
+### Step 6: Create Post-Processing Effects Foundation ✅ COMPLETE
 
 - **Deliverable**: 
   - Create `pkg/rendering/postprocess.go` with `PostProcessor` struct
@@ -119,12 +119,13 @@
 - **Dependencies**: None
 - **Goal Impact**: Foundation for all genre-specific visual effects (ROADMAP v3.0)
 - **Acceptance**: Vignette effect visibly darkens screen edges at intensity > 0.5
+- **Status**: ✅ Implemented PostProcessor with ApplyVignette, ApplyScanlines, ApplyFilmGrain, ApplyChromaticAberration, ApplySepia. Both headless and non-headless versions.
 - **Validation**: 
   ```bash
   go test -tags headless -v ./pkg/rendering/... -run TestVignette
   ```
 
-### Step 7: Implement Genre-Specific Post-Processing Effects
+### Step 7: Implement Genre-Specific Post-Processing Effects ✅ COMPLETE
 
 - **Deliverable**: 
   - Add `ApplyScanlines(img, density, alpha float64)` for sci-fi
@@ -135,6 +136,7 @@
 - **Dependencies**: Step 6 (PostProcessor foundation)
 - **Goal Impact**: Addresses all 5 genre post-processing requirements from ROADMAP v3.0
 - **Acceptance**: Each genre displays distinct visual style; effects are procedural (no bundled textures)
+- **Status**: ✅ All effects implemented and wired via SetGenre(). Tests verify different genres produce different visual results.
 - **Validation**: 
   ```bash
   go test -tags headless -v ./pkg/rendering/... -run TestGenrePostProcessing
