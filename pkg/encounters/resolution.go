@@ -127,32 +127,45 @@ func (r *Resolver) calculateTeamEffectiveness(enc *Encounter, party *crew.Party)
 		return 0.1 // Minimum effectiveness
 	}
 
+	total, count := r.sumAssignmentEffectiveness(enc, party)
+	if count == 0 {
+		return 0.3 // Base effectiveness with no assignments
+	}
+	return total / float64(count)
+}
+
+// sumAssignmentEffectiveness calculates total effectiveness of all assigned crew.
+func (r *Resolver) sumAssignmentEffectiveness(enc *Encounter, party *crew.Party) (float64, int) {
 	total := 0.0
 	count := 0
-
 	for role, memberID := range enc.Assignments {
 		member := party.Get(memberID)
 		if member != nil && member.IsAlive {
-			eff := CalculateRoleEffectiveness(member, role)
-
-			// Bonus for optimal roles
-			for _, optRole := range enc.OptimalRoles {
-				if role == optRole {
-					eff *= 1.2
-					break
-				}
-			}
-
+			eff := r.calculateMemberEffectiveness(member, role, enc.OptimalRoles)
 			total += eff
 			count++
 		}
 	}
+	return total, count
+}
 
-	if count == 0 {
-		return 0.3 // Base effectiveness with no assignments
+// calculateMemberEffectiveness calculates effectiveness for a single crew member in a role.
+func (r *Resolver) calculateMemberEffectiveness(member *crew.CrewMember, role EncounterRole, optimalRoles []EncounterRole) float64 {
+	eff := CalculateRoleEffectiveness(member, role)
+	if isOptimalRole(role, optimalRoles) {
+		eff *= 1.2
 	}
+	return eff
+}
 
-	return total / float64(count)
+// isOptimalRole checks if a role is in the list of optimal roles.
+func isOptimalRole(role EncounterRole, optimalRoles []EncounterRole) bool {
+	for _, optRole := range optimalRoles {
+		if role == optRole {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Resolver) calculateExpGains(enc *Encounter, party *crew.Party, success bool) map[int]float64 {
@@ -362,49 +375,55 @@ var outcomeDescriptions = map[engine.GenreID]map[EncounterOutcome][]string{
 
 // ApplyResult applies encounter results to game state.
 func (r *Resolver) ApplyResult(result *EncounterResult, res *resources.Resources, party *crew.Party, v *vessel.Vessel) []string {
-	var deaths []string
+	applyResourceDeltas(result, res)
+	applyVesselDamage(result, v)
+	deaths := applyCrewDamage(result, party)
+	applyCrewExpGains(result, party)
+	return deaths
+}
 
-	// Apply resource changes
-	if result.FoodDelta != 0 {
-		res.Add(resources.ResourceFood, result.FoodDelta)
+// applyResourceDeltas applies all resource changes from an encounter result.
+func applyResourceDeltas(result *EncounterResult, res *resources.Resources) {
+	deltas := map[resources.ResourceType]float64{
+		resources.ResourceFood:     result.FoodDelta,
+		resources.ResourceWater:    result.WaterDelta,
+		resources.ResourceFuel:     result.FuelDelta,
+		resources.ResourceMedicine: result.MedicineDelta,
+		resources.ResourceMorale:   result.MoraleDelta,
+		resources.ResourceCurrency: result.CurrencyDelta,
 	}
-	if result.WaterDelta != 0 {
-		res.Add(resources.ResourceWater, result.WaterDelta)
+	for resType, delta := range deltas {
+		if delta != 0 {
+			res.Add(resType, delta)
+		}
 	}
-	if result.FuelDelta != 0 {
-		res.Add(resources.ResourceFuel, result.FuelDelta)
-	}
-	if result.MedicineDelta != 0 {
-		res.Add(resources.ResourceMedicine, result.MedicineDelta)
-	}
-	if result.MoraleDelta != 0 {
-		res.Add(resources.ResourceMorale, result.MoraleDelta)
-	}
-	if result.CurrencyDelta != 0 {
-		res.Add(resources.ResourceCurrency, result.CurrencyDelta)
-	}
+}
 
-	// Apply vessel damage
+// applyVesselDamage applies vessel damage from an encounter result.
+func applyVesselDamage(result *EncounterResult, v *vessel.Vessel) {
 	if result.VesselDamage > 0 {
 		v.TakeDamage(result.VesselDamage)
 	}
+}
 
-	// Apply crew damage and skill exp
+// applyCrewDamage applies damage to crew members and returns names of any deaths.
+func applyCrewDamage(result *EncounterResult, party *crew.Party) []string {
+	var deaths []string
 	for memberID, damage := range result.CrewDamage {
 		member := party.Get(memberID)
-		if member != nil {
-			if member.TakeDamage(damage) {
-				deaths = append(deaths, member.Name)
-			}
+		if member != nil && member.TakeDamage(damage) {
+			deaths = append(deaths, member.Name)
 		}
 	}
+	return deaths
+}
 
+// applyCrewExpGains applies skill experience gains to crew members.
+func applyCrewExpGains(result *EncounterResult, party *crew.Party) {
 	for memberID, exp := range result.SkillExpGains {
 		member := party.Get(memberID)
 		if member != nil {
 			member.GainSkillExp(exp)
 		}
 	}
-
-	return deaths
 }

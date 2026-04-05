@@ -155,13 +155,16 @@ var titlesByGenreType = map[engine.GenreID]map[NPCType][]string{
 
 func (g *Generator) determineAlignment(npcType NPCType) Alignment {
 	defaultAlign := GetDefaultAlignment(npcType)
-
-	// Add some variance
 	roll := g.gen.Float64()
+	return applyAlignmentVariance(defaultAlign, roll)
+}
+
+// applyAlignmentVariance applies random variance to the default alignment.
+func applyAlignmentVariance(defaultAlign Alignment, roll float64) Alignment {
 	switch defaultAlign {
 	case AlignmentHostile:
 		if roll < 0.15 {
-			return AlignmentSuspicious // Sometimes bandits can be reasoned with
+			return AlignmentSuspicious
 		}
 	case AlignmentNeutral:
 		if roll < 0.2 {
@@ -180,7 +183,6 @@ func (g *Generator) determineAlignment(npcType NPCType) Alignment {
 			return AlignmentHostile
 		}
 	}
-
 	return defaultAlign
 }
 
@@ -360,32 +362,39 @@ var descriptionsByGenreType = map[engine.GenreID]map[NPCType][]string{
 }
 
 func (g *Generator) generateDialogue(npcType NPCType, alignment Alignment) []string {
+	alignDialogues := g.getDialogueOptions(alignment)
+	if len(alignDialogues) == 0 {
+		return []string{"..."}
+	}
+	return g.selectRandomDialogues(alignDialogues)
+}
+
+// getDialogueOptions retrieves dialogue options for the given alignment.
+func (g *Generator) getDialogueOptions(alignment Alignment) []string {
 	dialogues := dialogueByGenreAlignment[g.genre]
 	if dialogues == nil {
 		dialogues = dialogueByGenreAlignment[engine.GenreFantasy]
 	}
-	alignDialogues := dialogues[alignment]
-	if len(alignDialogues) == 0 {
-		return []string{"..."}
-	}
+	return dialogues[alignment]
+}
 
-	// Pick 2-3 dialogue options
+// selectRandomDialogues picks 2-3 random dialogue options without duplicates.
+func (g *Generator) selectRandomDialogues(options []string) []string {
 	count := 2 + g.gen.Intn(2)
-	if count > len(alignDialogues) {
-		count = len(alignDialogues)
+	if count > len(options) {
+		count = len(options)
 	}
 
 	result := make([]string, 0, count)
 	used := make(map[int]bool)
 
 	for len(result) < count {
-		idx := g.gen.Intn(len(alignDialogues))
+		idx := g.gen.Intn(len(options))
 		if !used[idx] {
 			used[idx] = true
-			result = append(result, alignDialogues[idx])
+			result = append(result, options[idx])
 		}
 	}
-
 	return result
 }
 

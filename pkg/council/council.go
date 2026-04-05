@@ -71,39 +71,44 @@ func (c *Council) HoldVote(decision *Decision, party *crew.Party) *VoteResult {
 // ApplyChoice applies the player's decision and calculates morale effects.
 func (c *Council) ApplyChoice(result *VoteResult, choice VoteOption) {
 	result.PlayerChoice = choice
-
-	// Determine if player overruled
-	majorityRisky := result.RiskyVotes > result.SafeVotes
-	majorityChoice := OptionRisky
-	if !majorityRisky {
-		majorityChoice = OptionSafe
-	}
-
+	majorityChoice := c.determineMajorityChoice(result)
 	result.Overruled = (choice != majorityChoice) && !result.Unanimous
+	result.MoraleDelta = c.calculateMoraleDelta(result, choice, majorityChoice)
+}
 
-	// Calculate morale delta
-	if result.Unanimous && choice == majorityChoice {
-		// Unanimous agreement with player - bonus
-		result.MoraleDelta = 0.1
-	} else if result.Overruled {
-		// Overruled - penalty proportional to dissent
-		totalVotes := result.RiskyVotes + result.SafeVotes
-		if totalVotes == 0 {
-			result.MoraleDelta = 0
-			return
-		}
-		var dissent int
-		if choice == OptionRisky {
-			dissent = result.SafeVotes
-		} else {
-			dissent = result.RiskyVotes
-		}
-		dissentRatio := float64(dissent) / float64(totalVotes)
-		result.MoraleDelta = -0.15 * dissentRatio
-	} else {
-		// Followed the vote - no change
-		result.MoraleDelta = 0
+// determineMajorityChoice returns the option favored by the majority.
+func (c *Council) determineMajorityChoice(result *VoteResult) VoteOption {
+	if result.RiskyVotes > result.SafeVotes {
+		return OptionRisky
 	}
+	return OptionSafe
+}
+
+// calculateMoraleDelta computes morale change based on the voting outcome.
+func (c *Council) calculateMoraleDelta(result *VoteResult, choice, majorityChoice VoteOption) float64 {
+	if result.Unanimous && choice == majorityChoice {
+		return 0.1 // Unanimous agreement bonus
+	}
+	if result.Overruled {
+		return c.calculateDissentPenalty(result, choice)
+	}
+	return 0 // Followed the vote - no change
+}
+
+// calculateDissentPenalty computes the morale penalty for overruling the crew.
+func (c *Council) calculateDissentPenalty(result *VoteResult, choice VoteOption) float64 {
+	totalVotes := result.RiskyVotes + result.SafeVotes
+	if totalVotes == 0 {
+		return 0
+	}
+	var dissent int
+	if choice == OptionRisky {
+		dissent = result.SafeVotes
+	} else {
+		dissent = result.RiskyVotes
+	}
+	dissentRatio := float64(dissent) / float64(totalVotes)
+	return -0.15 * dissentRatio
 }
 
 // generateVote determines how a crew member votes based on their trait.

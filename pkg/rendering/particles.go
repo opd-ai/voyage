@@ -4,73 +4,11 @@ package rendering
 
 import (
 	"image/color"
-	"math"
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/opd-ai/voyage/pkg/engine"
 )
-
-// ParticleType categorizes different particle effects.
-type ParticleType int
-
-const (
-	// ParticleTypeDust represents dust clouds from movement on land.
-	ParticleTypeDust ParticleType = iota
-	// ParticleTypeThruster represents exhaust from space vessels.
-	ParticleTypeThruster
-	// ParticleTyeTireTrack represents tracks from wheeled vehicles.
-	ParticleTypeTireTrack
-	// ParticleTypeRain represents rain drops.
-	ParticleTypeRain
-	// ParticleTypeSnow represents snowflakes.
-	ParticleTypeSnow
-	// ParticleTypeSand represents sandstorm particles.
-	ParticleTypeSand
-	// ParticleTypeEmbers represents floating fire embers.
-	ParticleTypeEmbers
-	// ParticleTypeAsh represents falling ash.
-	ParticleTypeAsh
-	// ParticleTypeSparks represents combat/impact sparks.
-	ParticleTypeSparks
-	// ParticleTypeHeal represents healing glow particles.
-	ParticleTypeHeal
-	// ParticleTypeExplosion represents explosion debris.
-	ParticleTypeExplosion
-)
-
-// Particle represents a single particle in the system.
-type Particle struct {
-	X, Y     float64      // Position
-	VX, VY   float64      // Velocity
-	Life     float64      // Remaining lifetime (0-1)
-	MaxLife  float64      // Initial lifetime
-	Size     float64      // Particle size
-	Color    color.RGBA   // Particle color
-	Type     ParticleType // Type of particle
-	Rotation float64      // Rotation angle
-	RotSpeed float64      // Rotation speed
-	Alpha    float64      // Current alpha (modified by life)
-	FadeIn   bool         // Whether particle fades in at start
-}
-
-// ParticleEmitter generates particles at a location.
-type ParticleEmitter struct {
-	X, Y         float64      // Emitter position
-	Type         ParticleType // Type of particles to emit
-	Rate         float64      // Particles per second
-	Burst        int          // Particles per burst (0 for continuous)
-	SpreadAngle  float64      // Spread angle in radians
-	BaseVelocity float64      // Base particle velocity
-	VelocityVar  float64      // Velocity variation
-	BaseLife     float64      // Base particle lifetime
-	LifeVar      float64      // Lifetime variation
-	BaseSize     float64      // Base particle size
-	SizeVar      float64      // Size variation
-	Active       bool         // Whether emitter is active
-	accumulator  float64      // Time accumulator for emission
-	baseColor    color.RGBA   // Base particle color
-}
 
 // ParticleSystem manages all particles and emitters.
 type ParticleSystem struct {
@@ -80,22 +18,6 @@ type ParticleSystem struct {
 	rng          *rand.Rand
 	genrePreset  *ParticlePreset
 	maxParticles int
-}
-
-// ParticlePreset contains genre-specific particle settings.
-type ParticlePreset struct {
-	MovementTrailType ParticleType // Type for movement trails
-	DustColor         color.RGBA
-	ThrusterColor     color.RGBA
-	TireTrackColor    color.RGBA
-	RainColor         color.RGBA
-	SnowColor         color.RGBA
-	SandColor         color.RGBA
-	EmberColor        color.RGBA
-	AshColor          color.RGBA
-	SparksColor       color.RGBA
-	HealColor         color.RGBA
-	ExplosionColor    color.RGBA
 }
 
 // NewParticleSystem creates a new particle system.
@@ -257,37 +179,39 @@ func (ps *ParticleSystem) updateParticles(dt float64) {
 		if p.Life <= 0 {
 			continue
 		}
-
-		// Update position
-		p.X += p.VX * dt
-		p.Y += p.VY * dt
-
-		// Apply gravity for certain types
-		if p.Type == ParticleTypeRain || p.Type == ParticleTypeSnow || p.Type == ParticleTypeAsh {
-			p.VY += 50 * dt // Gravity
-		}
-
-		// Apply drag for dust
-		if p.Type == ParticleTypeDust || p.Type == ParticleTypeSand {
-			p.VX *= 0.98
-			p.VY *= 0.98
-		}
-
-		// Update rotation
-		p.Rotation += p.RotSpeed * dt
-
-		// Update alpha based on life
-		if p.FadeIn && p.Life > 0.8 {
-			p.Alpha = (1.0 - p.Life) / 0.2
-		} else if p.Life < 0.3 {
-			p.Alpha = p.Life / 0.3
-		} else {
-			p.Alpha = 1.0
-		}
-
+		ps.updateParticlePhysics(p, dt)
+		ps.updateParticleAlpha(p)
 		alive = append(alive, p)
 	}
 	ps.particles = alive
+}
+
+// updateParticlePhysics applies movement, gravity, and drag to a particle.
+func (ps *ParticleSystem) updateParticlePhysics(p *Particle, dt float64) {
+	p.X += p.VX * dt
+	p.Y += p.VY * dt
+
+	if p.Type == ParticleTypeRain || p.Type == ParticleTypeSnow || p.Type == ParticleTypeAsh {
+		p.VY += 50 * dt // Gravity
+	}
+
+	if p.Type == ParticleTypeDust || p.Type == ParticleTypeSand {
+		p.VX *= 0.98
+		p.VY *= 0.98
+	}
+
+	p.Rotation += p.RotSpeed * dt
+}
+
+// updateParticleAlpha updates particle transparency based on lifecycle.
+func (ps *ParticleSystem) updateParticleAlpha(p *Particle) {
+	if p.FadeIn && p.Life > 0.8 {
+		p.Alpha = (1.0 - p.Life) / 0.2
+	} else if p.Life < 0.3 {
+		p.Alpha = p.Life / 0.3
+	} else {
+		p.Alpha = 1.0
+	}
 }
 
 // getColorForType returns the preset color for a particle type.

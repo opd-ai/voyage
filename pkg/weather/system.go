@@ -137,44 +137,57 @@ func (s *System) ApplyHazardEffects(hazard TerrainHazard, res *resources.Resourc
 		HazardName: HazardName(hazard, s.genre),
 	}
 
-	// Check for injury
-	if effect.InjuryChance > 0 && s.gen.Float64() < effect.InjuryChance {
-		result.InjuryOccurred = true
-		result.InjuryDamage = effect.InjuryDamage
+	s.applyInjuryEffect(&result, effect, party)
+	s.applyWaterCost(&result, effect, res)
+	s.checkForLoot(&result, effect)
+	s.checkForDanger(&result, effect)
 
-		// Injure a random living crew member
-		living := party.Living()
-		if len(living) > 0 {
-			victim := seed.Choice(s.gen, living)
-			if victim.TakeDamage(effect.InjuryDamage) {
-				result.Deaths = append(result.Deaths, victim.Name)
-			}
-			result.InjuredCrew = victim.Name
-		}
-	}
-
-	// Apply water cost
-	if effect.WaterCostIncrease != 0 {
-		res.Add(resources.ResourceWater, -effect.WaterCostIncrease)
-		result.WaterCost = effect.WaterCostIncrease
-	}
-
-	// Check for loot
-	if effect.LootChance > 0 && s.gen.Float64() < effect.LootChance {
-		result.LootFound = true
-		result.LootAmount = s.generateLoot()
-	}
-
-	// Check for danger encounter
-	if effect.DangerChance > 0 && s.gen.Float64() < effect.DangerChance {
-		result.DangerTriggered = true
-	}
-
-	// Return fuel and movement costs for application elsewhere
 	result.FuelMultiplier = effect.FuelCostMultiplier
 	result.MovementPenalty = effect.MovementPenalty
 
 	return result
+}
+
+// applyInjuryEffect handles potential crew injuries from hazards.
+func (s *System) applyInjuryEffect(result *HazardResult, effect HazardEffect, party *crew.Party) {
+	if effect.InjuryChance <= 0 || s.gen.Float64() >= effect.InjuryChance {
+		return
+	}
+
+	result.InjuryOccurred = true
+	result.InjuryDamage = effect.InjuryDamage
+
+	living := party.Living()
+	if len(living) > 0 {
+		victim := seed.Choice(s.gen, living)
+		if victim.TakeDamage(effect.InjuryDamage) {
+			result.Deaths = append(result.Deaths, victim.Name)
+		}
+		result.InjuredCrew = victim.Name
+	}
+}
+
+// applyWaterCost applies water cost increase from hazards.
+func (s *System) applyWaterCost(result *HazardResult, effect HazardEffect, res *resources.Resources) {
+	if effect.WaterCostIncrease != 0 {
+		res.Add(resources.ResourceWater, -effect.WaterCostIncrease)
+		result.WaterCost = effect.WaterCostIncrease
+	}
+}
+
+// checkForLoot checks if the hazard yields any loot.
+func (s *System) checkForLoot(result *HazardResult, effect HazardEffect) {
+	if effect.LootChance > 0 && s.gen.Float64() < effect.LootChance {
+		result.LootFound = true
+		result.LootAmount = s.generateLoot()
+	}
+}
+
+// checkForDanger checks if the hazard triggers a danger encounter.
+func (s *System) checkForDanger(result *HazardResult, effect HazardEffect) {
+	if effect.DangerChance > 0 && s.gen.Float64() < effect.DangerChance {
+		result.DangerTriggered = true
+	}
 }
 
 // generateLoot creates random loot rewards.

@@ -194,23 +194,29 @@ func (bi *BarterInterface) executeBarter(offer *BarterOffer) {
 
 // generateCounterOffer creates a counter-offer when original is rejected.
 func (bi *BarterInterface) generateCounterOffer(original *BarterOffer, offerValue, requestValue float64) *BarterOffer {
-	// Calculate how much more value the merchant needs
-	threshold := bi.acceptanceThreshold()
-	needed := requestValue * threshold
-	deficit := needed - offerValue
-
+	deficit := bi.calculateDeficit(offerValue, requestValue)
 	if deficit <= 0 {
-		// Should have been accepted, return nil
 		return nil
 	}
 
-	// Try to find additional items from player inventory to cover deficit
+	counter := bi.copyOriginalOffer(original)
+	bi.addItemsToMeetDeficit(counter, original, &deficit)
+	return counter
+}
+
+// calculateDeficit returns how much more value the merchant needs.
+func (bi *BarterInterface) calculateDeficit(offerValue, requestValue float64) float64 {
+	threshold := bi.acceptanceThreshold()
+	needed := requestValue * threshold
+	return needed - offerValue
+}
+
+// copyOriginalOffer creates a deep copy of the original barter offer.
+func (bi *BarterInterface) copyOriginalOffer(original *BarterOffer) *BarterOffer {
 	counter := &BarterOffer{
 		OfferedItems:   make([]*BarterItem, len(original.OfferedItems)),
 		RequestedItems: make([]*BarterItem, len(original.RequestedItems)),
 	}
-
-	// Copy original offer
 	for i, item := range original.OfferedItems {
 		counter.OfferedItems[i] = &BarterItem{
 			ItemName: item.ItemName,
@@ -223,14 +229,14 @@ func (bi *BarterInterface) generateCounterOffer(original *BarterOffer, offerValu
 			Quantity: item.Quantity,
 		}
 	}
+	return counter
+}
 
-	// Find additional items to request
+// addItemsToMeetDeficit finds additional items from player inventory to cover the deficit.
+func (bi *BarterInterface) addItemsToMeetDeficit(counter, original *BarterOffer, deficit *float64) {
 	ti := bi.tradeInterface
 	for _, item := range ti.playerInventory.Items {
-		if bi.isInBarterOffer(item.Name, original.OfferedItems) {
-			continue
-		}
-		if item.Quantity <= 0 {
+		if bi.isInBarterOffer(item.Name, original.OfferedItems) || item.Quantity <= 0 {
 			continue
 		}
 
@@ -239,26 +245,27 @@ func (bi *BarterInterface) generateCounterOffer(original *BarterOffer, offerValu
 			continue
 		}
 
-		// Calculate how many needed
-		quantityNeeded := int(deficit/unitPrice) + 1
-		if quantityNeeded > item.Quantity {
-			quantityNeeded = item.Quantity
-		}
-
+		quantityNeeded := bi.calculateQuantityNeeded(*deficit, unitPrice, item.Quantity)
 		if quantityNeeded > 0 {
 			counter.OfferedItems = append(counter.OfferedItems, &BarterItem{
 				ItemName: item.Name,
 				Quantity: quantityNeeded,
 			})
-			deficit -= unitPrice * float64(quantityNeeded)
-
-			if deficit <= 0 {
+			*deficit -= unitPrice * float64(quantityNeeded)
+			if *deficit <= 0 {
 				break
 			}
 		}
 	}
+}
 
-	return counter
+// calculateQuantityNeeded determines how many items are needed to cover a deficit.
+func (bi *BarterInterface) calculateQuantityNeeded(deficit, unitPrice float64, available int) int {
+	quantityNeeded := int(deficit/unitPrice) + 1
+	if quantityNeeded > available {
+		quantityNeeded = available
+	}
+	return quantityNeeded
 }
 
 // isInBarterOffer checks if an item is already in a barter list.

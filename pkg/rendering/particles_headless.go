@@ -240,28 +240,37 @@ func (ps *ParticleSystem) updateParticles(dt float64) {
 		if p.Life <= 0 {
 			continue
 		}
-		p.X += p.VX * dt
-		p.Y += p.VY * dt
-
-		if p.Type == ParticleTypeRain || p.Type == ParticleTypeSnow || p.Type == ParticleTypeAsh {
-			p.VY += 50 * dt
-		}
-		if p.Type == ParticleTypeDust || p.Type == ParticleTypeSand {
-			p.VX *= 0.98
-			p.VY *= 0.98
-		}
-		p.Rotation += p.RotSpeed * dt
-
-		if p.FadeIn && p.Life > 0.8 {
-			p.Alpha = (1.0 - p.Life) / 0.2
-		} else if p.Life < 0.3 {
-			p.Alpha = p.Life / 0.3
-		} else {
-			p.Alpha = 1.0
-		}
+		ps.updateParticlePhysics(p, dt)
+		ps.updateParticleAlpha(p)
 		alive = append(alive, p)
 	}
 	ps.particles = alive
+}
+
+// updateParticlePhysics applies movement, gravity, and drag to a particle.
+func (ps *ParticleSystem) updateParticlePhysics(p *Particle, dt float64) {
+	p.X += p.VX * dt
+	p.Y += p.VY * dt
+
+	if p.Type == ParticleTypeRain || p.Type == ParticleTypeSnow || p.Type == ParticleTypeAsh {
+		p.VY += 50 * dt
+	}
+	if p.Type == ParticleTypeDust || p.Type == ParticleTypeSand {
+		p.VX *= 0.98
+		p.VY *= 0.98
+	}
+	p.Rotation += p.RotSpeed * dt
+}
+
+// updateParticleAlpha updates particle transparency based on lifecycle.
+func (ps *ParticleSystem) updateParticleAlpha(p *Particle) {
+	if p.FadeIn && p.Life > 0.8 {
+		p.Alpha = (1.0 - p.Life) / 0.2
+	} else if p.Life < 0.3 {
+		p.Alpha = p.Life / 0.3
+	} else {
+		p.Alpha = 1.0
+	}
 }
 
 // getColorForType returns the preset color for a particle type.
