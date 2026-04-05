@@ -16,14 +16,6 @@ type Renderer struct {
 	camera   Camera
 }
 
-// Camera represents the viewport into the game world.
-type Camera struct {
-	X, Y   float64
-	Width  int
-	Height int
-	Zoom   float64
-}
-
 // NewRenderer creates a new renderer stub for headless builds.
 func NewRenderer(width, height, tileSize int) *Renderer {
 	return &Renderer{
