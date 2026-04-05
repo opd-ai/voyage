@@ -272,7 +272,7 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] Animated overworld tiles (flowing water, wind-swept grass, flickering fires)
 - [x] Crew member portrait animation (idle breathing, hurt flinch, death fade)
 - [x] Vessel damage states (pristine → worn → damaged → critical sprites)
-- [ ] Animated landmark icons (smoking ruins, blinking outpost lights)
+- [x] Animated landmark icons (smoking ruins, blinking outpost lights)
 - [ ] Genre palette overlays via `SetGenre()`
 
 #### Music — Adaptive Multi-Layer
