@@ -228,3 +228,10 @@
 [2026-04-04 20:38:33] Clone pairs (16) exceed threshold of 10
 [2026-04-04 20:38:33]   Duplication threshold exceeded — delegating DEDUPLICATE.md...
 [2026-04-04 20:38:33] Delegating: DEDUPLICATE.md
+[2026-04-04 21:32:55] === LOOP STARTING ===
+[2026-04-04 21:32:55] Working directory: /home/user/go/src/github.com/opd-ai/voyage
+[2026-04-04 21:32:55] Prompt directory:  /home/user/go/src/github.com/opd-ai/go-stats-generator/prompts
+[2026-04-04 21:32:55] Max iterations:    10
+[2026-04-04 21:32:55] --- Initialization ---
+[2026-04-04 21:32:55] AUDIT.md not found — delegating BASE_AUDIT.md...
+[2026-04-04 21:32:55] Delegating: BASE_AUDIT.md
