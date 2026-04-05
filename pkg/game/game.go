@@ -41,6 +41,9 @@ type Game struct {
 	// Screen dimensions
 	width  int
 	height int
+
+	// Input state tracking for key release detection
+	f3WasPressed bool
 }
 
 // Config holds game configuration options.
@@ -139,9 +142,15 @@ func (g *Game) handleGameOverInput() {
 }
 
 // handleDebugToggle toggles debug mode with F3 key.
+// Uses key release detection to prevent multiple toggles per frame.
 func (g *Game) handleDebugToggle() {
 	if ebiten.IsKeyPressed(ebiten.KeyF3) {
-		g.debugMode = !g.debugMode
+		if !g.f3WasPressed {
+			g.debugMode = !g.debugMode
+		}
+		g.f3WasPressed = true
+	} else {
+		g.f3WasPressed = false
 	}
 }
 

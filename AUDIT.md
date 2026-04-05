@@ -82,7 +82,7 @@ The README claims "Early Development — Core engine complete. Full gameplay com
 
 ### HIGH
 
-- [ ] **Crew relationship network not used in gameplay** — `pkg/crew/relationship.go:45` — The `RelationshipNetwork` struct is defined with methods for bond/rivalry tracking, but no game system queries relationships to generate crew-specific events.
+- [x] **Crew relationship network not used in gameplay** — `pkg/crew/relationship.go:45` — The `RelationshipNetwork` struct is defined with methods for bond/rivalry tracking, but no game system queries relationships to generate crew-specific events.
 
   **Remediation:** In `pkg/events/generator.go`, add relationship-based event generation:
   ```go
@@ -92,7 +92,7 @@ The README claims "Early Development — Core engine complete. Full gameplay com
   ```
   **Validation:** `go test -v ./pkg/events/... -run TestRelationshipEvents`
 
-- [ ] **F3 debug toggle uses key press, not key release** — `pkg/game/game.go:143-145` — Using `IsKeyPressed` causes multiple toggles per frame. This is marked with `// BUG` comment at line 141.
+- [x] **F3 debug toggle uses key press, not key release** — `pkg/game/game.go:143-145` — Using `IsKeyPressed` causes multiple toggles per frame. This is marked with `// BUG` comment at line 141.
 
   **Remediation:** Replace `IsKeyPressed` with state tracking:
   ```go
@@ -108,7 +108,7 @@ The README claims "Early Development — Core engine complete. Full gameplay com
   ```
   **Validation:** `go build ./cmd/voyage && ./voyage` — press F3 once, debug overlay should toggle once.
 
-- [ ] **NPC alignment variance function has high complexity** — `pkg/npc/generator.go:applyAlignmentVariance` — Cyclomatic complexity 11.9, highest in codebase. Complex nested logic increases bug risk.
+- [x] **NPC alignment variance function has high complexity** — `pkg/npc/generator.go:applyAlignmentVariance` — Cyclomatic complexity 11.9, highest in codebase. Complex nested logic increases bug risk.
 
   **Remediation:** Extract alignment calculation into a lookup table:
   ```go
@@ -121,7 +121,7 @@ The README claims "Early Development — Core engine complete. Full gameplay com
 
 ### MEDIUM
 
-- [ ] **Packages with no test files** — `pkg/procgen/event/`, `pkg/world/` — Two packages have `[no test files]` per `go test ./...` output.
+- [x] **Packages with no test files** — `pkg/procgen/event/`, `pkg/world/` — Two packages have `[no test files]` per `go test ./...` output.
 
   **Remediation:** Add basic test files:
   ```go

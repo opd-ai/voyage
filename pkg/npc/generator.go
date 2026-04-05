@@ -160,30 +160,40 @@ func (g *Generator) determineAlignment(npcType NPCType) Alignment {
 }
 
 // applyAlignmentVariance applies random variance to the default alignment.
+// Uses a table-driven approach for clarity and maintainability.
 func applyAlignmentVariance(defaultAlign Alignment, roll float64) Alignment {
-	switch defaultAlign {
-	case AlignmentHostile:
-		if roll < 0.15 {
-			return AlignmentSuspicious
-		}
-	case AlignmentNeutral:
-		if roll < 0.2 {
-			return AlignmentFriendly
-		} else if roll < 0.3 {
-			return AlignmentSuspicious
-		}
-	case AlignmentFriendly:
-		if roll < 0.1 {
-			return AlignmentAllied
-		}
-	case AlignmentSuspicious:
-		if roll < 0.2 {
-			return AlignmentNeutral
-		} else if roll < 0.1 {
-			return AlignmentHostile
+	transitions := alignmentVarianceTable[defaultAlign]
+	for _, t := range transitions {
+		if roll < t.threshold {
+			return t.newAlign
 		}
 	}
 	return defaultAlign
+}
+
+// alignmentTransition defines a threshold for changing alignment.
+type alignmentTransition struct {
+	threshold float64
+	newAlign  Alignment
+}
+
+// alignmentVarianceTable maps default alignments to possible transitions.
+// Transitions are checked in order; first match wins.
+var alignmentVarianceTable = map[Alignment][]alignmentTransition{
+	AlignmentHostile: {
+		{0.15, AlignmentSuspicious},
+	},
+	AlignmentNeutral: {
+		{0.2, AlignmentFriendly},
+		{0.3, AlignmentSuspicious},
+	},
+	AlignmentFriendly: {
+		{0.1, AlignmentAllied},
+	},
+	AlignmentSuspicious: {
+		{0.1, AlignmentHostile},
+		{0.2, AlignmentNeutral},
+	},
 }
 
 func (g *Generator) generateDescription(npcType NPCType) string {
