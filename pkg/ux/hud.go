@@ -10,6 +10,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/opd-ai/voyage/pkg/crew"
 	"github.com/opd-ai/voyage/pkg/engine"
+	"github.com/opd-ai/voyage/pkg/procgen/world"
 	"github.com/opd-ai/voyage/pkg/resources"
 )
 
@@ -22,6 +23,7 @@ type HUD struct {
 	barHeight     int
 	resourcePanel *ebiten.Image
 	crewPanel     *ebiten.Image
+	minimap       *Minimap
 }
 
 // NewHUD creates a new HUD with default settings.
@@ -32,6 +34,7 @@ func NewHUD(genre engine.GenreID) *HUD {
 		panelWidth:   200,
 		panelPadding: 8,
 		barHeight:    12,
+		minimap:      NewMinimap(genre, 150, 100),
 	}
 	h.resourcePanel = ebiten.NewImage(h.panelWidth, 160)
 	h.crewPanel = ebiten.NewImage(h.panelWidth, 200)
@@ -42,6 +45,21 @@ func NewHUD(genre engine.GenreID) *HUD {
 func (h *HUD) SetGenre(genre engine.GenreID) {
 	h.genre = genre
 	h.skin = DefaultSkin(genre)
+	if h.minimap != nil {
+		h.minimap.SetGenre(genre)
+	}
+}
+
+// GetMinimap returns the HUD's minimap component.
+func (h *HUD) GetMinimap() *Minimap {
+	return h.minimap
+}
+
+// SetCrisisMode enables/disables crisis mode on the minimap.
+func (h *HUD) SetCrisisMode(enabled bool) {
+	if h.minimap != nil {
+		h.minimap.SetCrisisMode(enabled)
+	}
 }
 
 // Draw renders the HUD to the screen.
@@ -58,6 +76,14 @@ func (h *HUD) Draw(screen *ebiten.Image, res *resources.Resources, party *crew.P
 	op2 := &ebiten.DrawImageOptions{}
 	op2.GeoM.Translate(10, 180)
 	screen.DrawImage(h.crewPanel, op2)
+}
+
+// DrawWithMinimap renders the HUD including the minimap to the screen.
+func (h *HUD) DrawWithMinimap(screen *ebiten.Image, res *resources.Resources, party *crew.Party, wm *world.WorldMap, playerX, playerY int) {
+	h.Draw(screen, res, party)
+	if h.minimap != nil && wm != nil {
+		h.minimap.Draw(screen, wm, playerX, playerY)
+	}
 }
 
 // drawResourcePanel renders the resource bars.

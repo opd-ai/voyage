@@ -1,67 +1,67 @@
 # github.com/opd-ai/voyage/pkg/game
-pkg/game/session.go:403:32: undefined: engine
-pkg/game/session.go:408:35: undefined: world
-pkg/game/session.go:413:32: undefined: crew
-pkg/game/session.go:418:33: undefined: vessel
-pkg/game/session.go:423:36: undefined: resources
-pkg/game/session.go:428:37: undefined: events
-pkg/game/session.go:433:38: undefined: audio
-pkg/game/session.go:438:35: undefined: rendering
-pkg/game/session.go:453:40: undefined: world
-pkg/game/session.go:458:38: undefined: engine
-pkg/game/session.go:458:38: too many errors
+pkg/game/session.go:78:13: undefined: world
+pkg/game/session.go:415:32: undefined: engine
+pkg/game/session.go:420:35: undefined: world
+pkg/game/session.go:425:32: undefined: crew
+pkg/game/session.go:430:33: undefined: vessel
+pkg/game/session.go:435:36: undefined: resources
+pkg/game/session.go:440:37: undefined: events
+pkg/game/session.go:450:35: undefined: rendering
+pkg/game/session.go:465:40: undefined: world
+pkg/game/session.go:470:38: undefined: engine
+pkg/game/session.go:78:13: too many errors
 FAIL	github.com/opd-ai/voyage/cmd/voyage [build failed]
-ok  	github.com/opd-ai/voyage/pkg/audio	4.061s
-ok  	github.com/opd-ai/voyage/pkg/benchmark	1.044s
-ok  	github.com/opd-ai/voyage/pkg/config	1.023s
-ok  	github.com/opd-ai/voyage/pkg/council	1.020s
-ok  	github.com/opd-ai/voyage/pkg/crew	1.022s
-ok  	github.com/opd-ai/voyage/pkg/destination	1.020s
-ok  	github.com/opd-ai/voyage/pkg/encounters	1.070s
-ok  	github.com/opd-ai/voyage/pkg/engine	1.024s
-ok  	github.com/opd-ai/voyage/pkg/events	1.026s
+ok  	github.com/opd-ai/voyage/pkg/audio	10.622s
+ok  	github.com/opd-ai/voyage/pkg/benchmark	1.040s
+ok  	github.com/opd-ai/voyage/pkg/config	1.043s
+ok  	github.com/opd-ai/voyage/pkg/council	1.033s
+ok  	github.com/opd-ai/voyage/pkg/crew	1.036s
+ok  	github.com/opd-ai/voyage/pkg/destination	1.032s
+ok  	github.com/opd-ai/voyage/pkg/encounters	1.128s
+ok  	github.com/opd-ai/voyage/pkg/engine	1.028s
+ok  	github.com/opd-ai/voyage/pkg/events	1.052s
 FAIL	github.com/opd-ai/voyage/pkg/game [build failed]
-ok  	github.com/opd-ai/voyage/pkg/npc	1.020s
-ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.016s
-ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.025s
-ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.057s
+ok  	github.com/opd-ai/voyage/pkg/npc	1.032s
+ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.042s
+ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.049s
+ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.104s
 --- FAIL: TestSinApprox (0.00s)
     animation_test.go:202: sinApprox(3.140000) = 0.523849, expected ~0.000000 (±0.100000)
 --- FAIL: TestApplyOverlay (0.00s)
 panic: ui: ReadPixels cannot be called before the game starts [recovered]
 	panic: ui: ReadPixels cannot be called before the game starts
 
-goroutine 46 [running]:
+goroutine 68 [running]:
 testing.tRunner.func1.2({0xa28840, 0xb60ec0})
 	/home/user/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.linux-amd64/src/testing/testing.go:1734 +0x3eb
 testing.tRunner.func1()
 	/home/user/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.linux-amd64/src/testing/testing.go:1737 +0x696
 panic({0xa28840?, 0xb60ec0?})
 	/home/user/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.linux-amd64/src/runtime/panic.go:787 +0x132
-github.com/hajimehoshi/ebiten/v2/internal/ui.(*UserInterface).readPixels(0xc00019aa88, 0xc00055e1e0, {0xc0004c72fc, 0x4, 0x4}, {{0x0?, 0x0?}, {0xc0004c72fc?, 0x4?}})
+github.com/hajimehoshi/ebiten/v2/internal/ui.(*UserInterface).readPixels(0xc000126a88, 0xc0005a4630, {0xc0004fe49c, 0x4, 0x4}, {{0x0?, 0x0?}, {0xc0004fe49c?, 0x4?}})
 	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:133 +0x4ee
-github.com/hajimehoshi/ebiten/v2/internal/ui.(*Image).ReadPixels(0xc00053e2a0, {0xc0004c72fc, 0x4, 0x4}, {{0xc00063bbf0?, 0x420e65?}, {0xb8?, 0xaacb80?}})
+github.com/hajimehoshi/ebiten/v2/internal/ui.(*Image).ReadPixels(0xc0009964e0, {0xc0004fe49c, 0x4, 0x4}, {{0xc000143bf0?, 0x420e65?}, {0xb8?, 0xaacb80?}})
 	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/image.go:136 +0x145
-github.com/hajimehoshi/ebiten/v2.(*Image).at(0xc00021acc0, 0x0, 0x0)
+github.com/hajimehoshi/ebiten/v2.(*Image).at(0xc00016f740, 0x0, 0x0)
 	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/image.go:1281 +0x2c5
-github.com/hajimehoshi/ebiten/v2.(*Image).At(0xc00021acc0, 0x0, 0x0)
+github.com/hajimehoshi/ebiten/v2.(*Image).At(0xc00016f740, 0x0, 0x0)
 	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/image.go:1249 +0x3b
-github.com/opd-ai/voyage/pkg/rendering.(*GenreOverlay).applyGenreEffects(0xc00021acc0?, 0xc00021acc0, {0x3ff0cccccccccccd, 0x3ff0000000000000, 0x3fee666666666666, 0x3fee666666666666, 0x3ff0000000000000, 0x3f847ae147ae147b})
+github.com/opd-ai/voyage/pkg/rendering.(*GenreOverlay).applyGenreEffects(0xc00016f740?, 0xc00016f740, {0x3ff0cccccccccccd, 0x3ff0000000000000, 0x3fee666666666666, 0x3fee666666666666, 0x3ff0000000000000, 0x3f847ae147ae147b})
 	/home/user/go/src/github.com/opd-ai/voyage/pkg/rendering/genre_overlay.go:118 +0xfc
-github.com/opd-ai/voyage/pkg/rendering.(*GenreOverlay).ApplyOverlay(0xc00063be90, 0xc00021a900)
+github.com/opd-ai/voyage/pkg/rendering.(*GenreOverlay).ApplyOverlay(0xc000143e90, 0xc00016f680)
 	/home/user/go/src/github.com/opd-ai/voyage/pkg/rendering/genre_overlay.go:46 +0x385
-github.com/opd-ai/voyage/pkg/rendering.TestApplyOverlay(0xc0005828c0)
+github.com/opd-ai/voyage/pkg/rendering.TestApplyOverlay(0xc0003fb880)
 	/home/user/go/src/github.com/opd-ai/voyage/pkg/rendering/genre_overlay_test.go:44 +0xa8
-testing.tRunner(0xc0005828c0, 0xadfc60)
+testing.tRunner(0xc0003fb880, 0xadfc60)
 	/home/user/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.linux-amd64/src/testing/testing.go:1792 +0x226
 created by testing.(*T).Run in goroutine 1
 	/home/user/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.linux-amd64/src/testing/testing.go:1851 +0x8f3
-FAIL	github.com/opd-ai/voyage/pkg/rendering	0.092s
-ok  	github.com/opd-ai/voyage/pkg/resources	1.014s
-ok  	github.com/opd-ai/voyage/pkg/saveload	1.054s
-ok  	github.com/opd-ai/voyage/pkg/trading	1.031s
-ok  	github.com/opd-ai/voyage/pkg/ux	1.068s
-ok  	github.com/opd-ai/voyage/pkg/vessel	1.023s
-ok  	github.com/opd-ai/voyage/pkg/weather	1.016s
-ok  	github.com/opd-ai/voyage/pkg/world	1.016s
+FAIL	github.com/opd-ai/voyage/pkg/rendering	0.113s
+ok  	github.com/opd-ai/voyage/pkg/resources	1.020s
+ok  	github.com/opd-ai/voyage/pkg/saveload	1.064s
+ok  	github.com/opd-ai/voyage/pkg/trading	1.067s
+ok  	github.com/opd-ai/voyage/pkg/ux	1.085s
+ok  	github.com/opd-ai/voyage/pkg/vessel	1.029s
+ok  	github.com/opd-ai/voyage/pkg/weather	1.020s
+ok  	github.com/opd-ai/voyage/pkg/world	1.020s
 FAIL

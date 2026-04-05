@@ -777,3 +777,235 @@ func TestSpatialAudioStereo(t *testing.T) {
 		t.Error("output lengths should match input lengths")
 	}
 }
+
+// TestAmbientGenerator tests basic ambient generator creation and configuration.
+func TestAmbientGenerator(t *testing.T) {
+	gen := NewAmbientGenerator(12345, engine.GenreFantasy)
+
+	if gen == nil {
+		t.Fatal("NewAmbientGenerator returned nil")
+	}
+
+	// Check default values
+	if gen.Volume() != 0.3 {
+		t.Errorf("default volume = %f, want 0.3", gen.Volume())
+	}
+}
+
+// TestAmbientGeneratorGenres tests ambient generator with different genres.
+func TestAmbientGeneratorGenres(t *testing.T) {
+	genres := []struct {
+		genre        engine.GenreID
+		expectedType AmbientLoopType
+	}{
+		{engine.GenreScifi, AmbientSpaceHum},
+		{engine.GenreCyberpunk, AmbientCityNoise},
+		{engine.GenreHorror, AmbientGroaningMetal},
+	}
+
+	for _, tc := range genres {
+		gen := NewAmbientGenerator(12345, tc.genre)
+		if gen.LoopType() != tc.expectedType {
+			t.Errorf("genre %s: loop type = %s, want %s",
+				tc.genre, AmbientLoopTypeName(gen.LoopType()), AmbientLoopTypeName(tc.expectedType))
+		}
+	}
+}
+
+// TestAmbientBiome tests biome-specific ambient selection.
+func TestAmbientBiome(t *testing.T) {
+	gen := NewAmbientGenerator(12345, engine.GenreFantasy)
+
+	// Test various biome changes
+	testCases := []struct {
+		biome        world.BiomeType
+		expectedType AmbientLoopType
+	}{
+		{world.BiomeArid, AmbientWind},
+		{world.BiomeForested, AmbientCreature},
+		{world.BiomeWetland, AmbientWater},
+		{world.BiomeMountainous, AmbientWind},
+	}
+
+	for _, tc := range testCases {
+		gen.SetBiome(tc.biome)
+		if gen.Biome() != tc.biome {
+			t.Errorf("biome = %d, want %d", gen.Biome(), tc.biome)
+		}
+		if gen.LoopType() != tc.expectedType {
+			t.Errorf("biome %d: loop type = %s, want %s",
+				tc.biome, AmbientLoopTypeName(gen.LoopType()), AmbientLoopTypeName(tc.expectedType))
+		}
+	}
+}
+
+// TestAmbientGeneratorVolume tests volume control.
+func TestAmbientGeneratorVolume(t *testing.T) {
+	gen := NewAmbientGenerator(12345, engine.GenreFantasy)
+
+	gen.SetVolume(0.5)
+	if gen.Volume() != 0.5 {
+		t.Errorf("volume = %f, want 0.5", gen.Volume())
+	}
+
+	// Test clamping
+	gen.SetVolume(-0.5)
+	if gen.Volume() != 0 {
+		t.Errorf("volume = %f, want 0 (clamped)", gen.Volume())
+	}
+
+	gen.SetVolume(1.5)
+	if gen.Volume() != 1 {
+		t.Errorf("volume = %f, want 1 (clamped)", gen.Volume())
+	}
+}
+
+// TestAmbientGeneratorLoopGeneration tests loop generation for all types.
+func TestAmbientGeneratorLoopGeneration(t *testing.T) {
+	gen := NewAmbientGenerator(12345, engine.GenreFantasy)
+
+	for _, loopType := range AllAmbientLoopTypes() {
+		// Force loop type by setting appropriate genre/biome
+		setLoopType(gen, loopType)
+
+		samples := gen.GenerateLoop(2.0)
+
+		if len(samples) == 0 {
+			t.Errorf("loop type %s: should generate samples", AmbientLoopTypeName(loopType))
+			continue
+		}
+
+		// Check samples are in valid range
+		for i, s := range samples {
+			if s < -1.0 || s > 1.0 {
+				t.Errorf("loop type %s: sample %d = %f, out of range [-1, 1]", AmbientLoopTypeName(loopType), i, s)
+				break
+			}
+		}
+	}
+}
+
+// setLoopType is a helper to force a specific loop type for testing.
+func setLoopType(gen *AmbientGenerator, loopType AmbientLoopType) {
+	switch loopType {
+	case AmbientWind:
+		gen.SetGenre(engine.GenreFantasy)
+		gen.SetBiome(world.BiomeArid)
+	case AmbientSpaceHum:
+		gen.SetGenre(engine.GenreScifi)
+	case AmbientGroaningMetal:
+		gen.SetGenre(engine.GenreHorror)
+	case AmbientCityNoise:
+		gen.SetGenre(engine.GenreCyberpunk)
+	case AmbientWater:
+		gen.SetGenre(engine.GenreFantasy)
+		gen.SetBiome(world.BiomeWetland)
+	case AmbientCreature:
+		gen.SetGenre(engine.GenreFantasy)
+		gen.SetBiome(world.BiomeForested)
+	}
+}
+
+// TestAmbientGeneratorBytes tests PCM byte generation.
+func TestAmbientGeneratorBytes(t *testing.T) {
+	gen := NewAmbientGenerator(12345, engine.GenreFantasy)
+
+	bytes := gen.GenerateBytes(1.0)
+
+	if len(bytes) == 0 {
+		t.Error("should generate bytes")
+	}
+
+	// Should be even number (16-bit samples)
+	if len(bytes)%2 != 0 {
+		t.Errorf("bytes length = %d, should be even", len(bytes))
+	}
+
+	// Expected: 1 second at 44100 Hz, 2 bytes per sample
+	expectedBytes := 44100 * 2
+	if len(bytes) != expectedBytes {
+		t.Errorf("bytes = %d, want %d", len(bytes), expectedBytes)
+	}
+}
+
+// TestAmbientLoopDurationClamping tests duration bounds.
+func TestAmbientLoopDurationClamping(t *testing.T) {
+	gen := NewAmbientGenerator(12345, engine.GenreFantasy)
+
+	// Very short duration should be clamped to 1 second
+	samples := gen.GenerateLoop(0.1)
+	expectedMin := 44100 // 1 second
+	if len(samples) < expectedMin {
+		t.Errorf("samples = %d, want at least %d", len(samples), expectedMin)
+	}
+
+	// Very long duration should be clamped to 30 seconds
+	samples = gen.GenerateLoop(60)
+	expectedMax := 44100 * 30 // 30 seconds
+	if len(samples) > expectedMax {
+		t.Errorf("samples = %d, want at most %d", len(samples), expectedMax)
+	}
+}
+
+// TestAmbientLoopTypeName tests name retrieval for all types.
+func TestAmbientLoopTypeName(t *testing.T) {
+	testCases := []struct {
+		loopType AmbientLoopType
+		name     string
+	}{
+		{AmbientWind, "Wind"},
+		{AmbientSpaceHum, "Space Hum"},
+		{AmbientGroaningMetal, "Groaning Metal"},
+		{AmbientCityNoise, "City Noise"},
+		{AmbientWater, "Water"},
+		{AmbientCreature, "Creature"},
+		{AmbientLoopType(99), "Unknown"},
+	}
+
+	for _, tc := range testCases {
+		name := AmbientLoopTypeName(tc.loopType)
+		if name != tc.name {
+			t.Errorf("AmbientLoopTypeName(%d) = %s, want %s", tc.loopType, name, tc.name)
+		}
+	}
+}
+
+// TestAmbientGenreChange tests genre switching updates loop type.
+func TestAmbientGenreChange(t *testing.T) {
+	gen := NewAmbientGenerator(12345, engine.GenreFantasy)
+
+	gen.SetGenre(engine.GenreScifi)
+	if gen.LoopType() != AmbientSpaceHum {
+		t.Errorf("after genre change: loop type = %s, want Space Hum", AmbientLoopTypeName(gen.LoopType()))
+	}
+
+	gen.SetGenre(engine.GenreCyberpunk)
+	if gen.LoopType() != AmbientCityNoise {
+		t.Errorf("after genre change: loop type = %s, want City Noise", AmbientLoopTypeName(gen.LoopType()))
+	}
+}
+
+// TestAllAmbientLoopTypes tests the all types helper function.
+func TestAllAmbientLoopTypes(t *testing.T) {
+	types := AllAmbientLoopTypes()
+
+	if len(types) != 6 {
+		t.Errorf("AllAmbientLoopTypes() = %d types, want 6", len(types))
+	}
+
+	// Verify all types are present
+	expected := []AmbientLoopType{
+		AmbientWind,
+		AmbientSpaceHum,
+		AmbientGroaningMetal,
+		AmbientCityNoise,
+		AmbientWater,
+		AmbientCreature,
+	}
+
+	for i, lt := range expected {
+		if types[i] != lt {
+			t.Errorf("types[%d] = %v, want %v", i, types[i], lt)
+		}
+	}
+}

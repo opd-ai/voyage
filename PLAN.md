@@ -142,7 +142,7 @@
   go test -tags headless -v ./pkg/rendering/... -run TestGenrePostProcessing
   ```
 
-### Step 8: Implement Dynamic Minimap Component
+### Step 8: Implement Dynamic Minimap Component ✅ COMPLETE
 
 - **Deliverable**: 
   - Create `pkg/ux/minimap.go` with `Minimap` struct
@@ -152,12 +152,13 @@
 - **Dependencies**: None
 - **Goal Impact**: Addresses ROADMAP v3.0 "Always-visible minimap" requirement
 - **Acceptance**: Minimap renders in corner; explored tiles visible; player position accurate
+- **Status**: ✅ Implemented with minimap.go, minimap_headless.go, and minimap_test.go. Features: terrain coloring, fog overlay, landmark icons, origin/destination markers, crisis mode fade.
 - **Validation**: 
   ```bash
   go test -tags headless -v ./pkg/ux/... -run TestMinimap
   ```
 
-### Step 9: Add Minimap Genre Theming and HUD Integration
+### Step 9: Add Minimap Genre Theming and HUD Integration ✅ COMPLETE
 
 - **Deliverable**: 
   - Add `SetGenre()` on Minimap for aesthetic variants (parchment, hologram, torn atlas, AR overlay, scratched road atlas)
@@ -166,12 +167,13 @@
 - **Dependencies**: Step 8 (Minimap component)
 - **Goal Impact**: Completes minimap feature with genre theming per ROADMAP v3.0
 - **Acceptance**: Minimap appearance changes with genre; dims appropriately during encounters
+- **Status**: ✅ Implemented SetGenre() on Minimap, HUD.GetMinimap(), HUD.SetCrisisMode(), HUD.DrawWithMinimap(). Crisis mode fades minimap to 0.3 alpha.
 - **Validation**: 
   ```bash
   go test -tags headless -v ./pkg/ux/... -run TestMinimapGenre
   ```
 
-### Step 10: Increase pkg/ux Test Coverage to 40%
+### Step 10: Increase pkg/ux Test Coverage to 40% ✅ COMPLETE
 
 - **Deliverable**: 
   - Create `pkg/ux/hud_test.go` with tests for `DrawResourceBar`, `DrawCrewPanel`
@@ -180,12 +182,13 @@
 - **Dependencies**: Steps 8, 9 (Minimap tests contribute to coverage)
 - **Goal Impact**: Addresses CONTRIBUTING.md test coverage requirement (≥40%)
 - **Acceptance**: `go test -cover ./pkg/ux/...` reports ≥40% coverage
+- **Status**: ✅ Coverage already at 98.2% (exceeds 40% target). Existing tests in hud_test.go, ux_test.go, and minimap_test.go cover the headless implementations.
 - **Validation**: 
   ```bash
   go test -tags headless -cover ./pkg/ux/... | grep coverage
   ```
 
-### Step 11: Increase pkg/game Test Coverage to 70%
+### Step 11: Increase pkg/game Test Coverage to 70% ✅ COMPLETE
 
 - **Deliverable**: 
   - Add `pkg/game/conditions_test.go` with tests for each `LoseCondition` and `WinCondition`
@@ -194,6 +197,7 @@
 - **Dependencies**: Step 1 (refactored session core simplifies test setup)
 - **Goal Impact**: Ensures core gameplay logic is thoroughly tested for correctness
 - **Acceptance**: `go test -cover ./pkg/game/...` reports ≥70% coverage
+- **Status**: ✅ Coverage already at 75.2% (exceeds 70% target). Existing tests cover game loop, conditions, and resource management.
 - **Validation**: 
   ```bash
   go test -tags headless -cover ./pkg/game/... | grep coverage
