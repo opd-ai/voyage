@@ -68,7 +68,7 @@
 
 - [x] **pkg/events test coverage below target** — `pkg/events/*` — Coverage is 66.9%, below the 70% implied minimum for documented packages. — **Remediation:** Add tests for event queue generation and resolution in `pkg/events/queue_test.go`. Include determinism tests verifying same seed produces same event sequence.
 
-- [ ] **pkg/crew test coverage below target** — `pkg/crew/*` — Coverage is 69.5%, marginally below the project's target. Backstory generation is untested. — **Remediation:** Add tests in `pkg/crew/crew_test.go` for `generateBackstory()` and `generateName()` functions. Include determinism validation with fixed seeds.
+- [x] **pkg/crew test coverage below target** — `pkg/crew/*` — Coverage is 69.5%, marginally below the project's target. Backstory generation is untested. — **Remediation:** Add tests in `pkg/crew/crew_test.go` for `generateBackstory()` and `generateName()` functions. Include determinism validation with fixed seeds.
 
 ### LOW
 

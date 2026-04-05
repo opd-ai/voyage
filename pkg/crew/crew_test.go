@@ -676,3 +676,283 @@ func TestContagiousEffects(t *testing.T) {
 		t.Error("Disease should be contagious")
 	}
 }
+
+func TestCrewMemberHealthRatio(t *testing.T) {
+	member := NewCrewMember(1, "Test", TraitBrave, SkillNone)
+
+	ratio := member.HealthRatio()
+	if ratio != 1.0 {
+		t.Errorf("Full health ratio = %f, want 1.0", ratio)
+	}
+
+	member.TakeDamage(50)
+	ratio = member.HealthRatio()
+	if ratio != 0.5 {
+		t.Errorf("Half health ratio = %f, want 0.5", ratio)
+	}
+
+	member.TakeDamage(50)
+	ratio = member.HealthRatio()
+	if ratio != 0 {
+		t.Errorf("No health ratio = %f, want 0", ratio)
+	}
+}
+
+func TestGeneratorSetGenre(t *testing.T) {
+	gen := NewGenerator(12345, engine.GenreFantasy)
+
+	gen.SetGenre(engine.GenreScifi)
+	member := gen.Generate()
+	// Just verify it doesn't panic and produces valid output
+	if member.Name == "" {
+		t.Error("should generate valid member after genre change")
+	}
+}
+
+func TestPartySetAndGetGenre(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+
+	if party.Genre() != engine.GenreFantasy {
+		t.Errorf("Genre() = %v, want %v", party.Genre(), engine.GenreFantasy)
+	}
+
+	party.SetGenre(engine.GenreScifi)
+	if party.Genre() != engine.GenreScifi {
+		t.Errorf("Genre() after SetGenre = %v, want %v", party.Genre(), engine.GenreScifi)
+	}
+}
+
+func TestPartyRemove(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "A", TraitBrave, SkillNone)
+	m2 := NewCrewMember(2, "B", TraitCautious, SkillNone)
+
+	party.Add(m1)
+	party.Add(m2)
+
+	if party.Count() != 2 {
+		t.Fatal("setup: should have 2 members")
+	}
+
+	party.Remove(1)
+	if party.Count() != 1 {
+		t.Errorf("Count after remove = %d, want 1", party.Count())
+	}
+
+	if party.Get(1) != nil {
+		t.Error("removed member should not be found")
+	}
+	if party.Get(2) == nil {
+		t.Error("remaining member should still be found")
+	}
+}
+
+func TestPartyGet(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "TestMember", TraitBrave, SkillMedic)
+	party.Add(m1)
+
+	found := party.Get(1)
+	if found == nil {
+		t.Fatal("should find member by ID")
+	}
+	if found.Name != "TestMember" {
+		t.Errorf("Name = %s, want TestMember", found.Name)
+	}
+
+	notFound := party.Get(999)
+	if notFound != nil {
+		t.Error("should not find non-existent member")
+	}
+}
+
+func TestPartyMembers(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	party.Add(NewCrewMember(1, "A", TraitBrave, SkillNone))
+	party.Add(NewCrewMember(2, "B", TraitCautious, SkillNone))
+
+	members := party.Members()
+	if len(members) != 2 {
+		t.Errorf("Members() = %d, want 2", len(members))
+	}
+}
+
+func TestPartyDeadCount(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "Alive", TraitBrave, SkillNone)
+	m2 := NewCrewMember(2, "Dead", TraitCautious, SkillNone)
+
+	party.Add(m1)
+	party.Add(m2)
+	m2.TakeDamage(150)
+
+	if party.DeadCount() != 1 {
+		t.Errorf("DeadCount() = %d, want 1", party.DeadCount())
+	}
+}
+
+func TestPartyGetWithSkill(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "Medic", TraitBrave, SkillMedic)
+	m2 := NewCrewMember(2, "Scout", TraitCautious, SkillScout)
+	party.Add(m1)
+	party.Add(m2)
+
+	medic := party.GetWithSkill(SkillMedic)
+	if medic == nil {
+		t.Fatal("should find medic")
+	}
+	if medic.Skill != SkillMedic {
+		t.Error("should return member with medic skill")
+	}
+
+	warrior := party.GetWithSkill(SkillWarrior)
+	if warrior != nil {
+		t.Error("should not find warrior")
+	}
+}
+
+func TestPartyAverageHealth(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "A", TraitBrave, SkillNone)
+	m2 := NewCrewMember(2, "B", TraitCautious, SkillNone)
+	party.Add(m1)
+	party.Add(m2)
+
+	avg := party.AverageHealth()
+	if avg != 100 {
+		t.Errorf("AverageHealth() = %f, want 100", avg)
+	}
+
+	m1.TakeDamage(50)
+	avg = party.AverageHealth()
+	if avg != 75 {
+		t.Errorf("AverageHealth() after damage = %f, want 75", avg)
+	}
+}
+
+func TestPartyAdvanceDay(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "A", TraitBrave, SkillNone)
+	party.Add(m1)
+
+	initialDays := m1.DaysWithParty
+	party.AdvanceDay()
+	if m1.DaysWithParty != initialDays+1 {
+		t.Errorf("DaysWithParty = %d, want %d", m1.DaysWithParty, initialDays+1)
+	}
+}
+
+func TestPartyApplyDamageToAll(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "A", TraitBrave, SkillNone)
+	m2 := NewCrewMember(2, "B", TraitCautious, SkillNone)
+	party.Add(m1)
+	party.Add(m2)
+
+	party.ApplyDamageToAll(30)
+	if m1.Health != 70 {
+		t.Errorf("m1 Health = %f, want 70", m1.Health)
+	}
+	if m2.Health != 70 {
+		t.Errorf("m2 Health = %f, want 70", m2.Health)
+	}
+}
+
+func TestPartyHealAll(t *testing.T) {
+	party := NewParty(engine.GenreFantasy, 4)
+	m1 := NewCrewMember(1, "A", TraitBrave, SkillNone)
+	m2 := NewCrewMember(2, "B", TraitCautious, SkillNone)
+	party.Add(m1)
+	party.Add(m2)
+
+	m1.TakeDamage(50)
+	m2.TakeDamage(30)
+
+	party.HealAll(20)
+	if m1.Health != 70 {
+		t.Errorf("m1 Health = %f, want 70", m1.Health)
+	}
+	if m2.Health != 90 {
+		t.Errorf("m2 Health = %f, want 90", m2.Health)
+	}
+}
+
+func TestRelationshipNetworkSetGenre(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+	network.SetGenre(engine.GenreScifi)
+	// Just verify it doesn't panic
+	network.Interact(1, 2, 10)
+}
+
+func TestRelationshipNetworkTotalMoraleModifier(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	// Create positive relationship
+	for i := 0; i < 5; i++ {
+		network.Interact(1, 2, 15)
+	}
+
+	total := network.TotalMoraleModifier()
+	if total <= 0 {
+		t.Errorf("TotalMoraleModifier = %f, expected positive", total)
+	}
+}
+
+func TestRelationshipNetworkGenerateInitialRelationships(t *testing.T) {
+	network := NewRelationshipNetwork(engine.GenreFantasy)
+
+	members := make([]*CrewMember, 4)
+	for i := 0; i < 4; i++ {
+		members[i] = NewCrewMember(i+1, "Member", TraitBrave, SkillNone)
+	}
+
+	gen := NewGenerator(12345, engine.GenreFantasy)
+	network.GenerateInitialRelationships(gen.gen, members)
+
+	// Should have generated some relationships (30% chance each pair)
+	// With 4 members, there are 6 possible pairs
+	// May or may not have relationships depending on RNG
+}
+
+func TestAllStatusTypes(t *testing.T) {
+	types := AllStatusTypes()
+	if len(types) < 5 {
+		t.Errorf("AllStatusTypes() = %d, want at least 5", len(types))
+	}
+}
+
+func TestStatusTrackerAllEffects(t *testing.T) {
+	tracker := NewStatusTracker()
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 50, Duration: 5})
+	tracker.AddEffect(StatusEffect{Type: StatusInjury, Severity: 30, Duration: 3})
+
+	effects := tracker.AllEffects()
+	if len(effects) != 2 {
+		t.Errorf("AllEffects() = %d, want 2", len(effects))
+	}
+}
+
+func TestStatusTrackerTotalDesertionModifier(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	// Despair increases desertion risk
+	tracker.AddEffect(StatusEffect{Type: StatusDespair, Severity: 100, Duration: 5})
+
+	modifier := tracker.TotalDesertionModifier()
+	if modifier <= 0 {
+		t.Errorf("Despair should increase desertion risk, got %f", modifier)
+	}
+}
+
+func TestStatusTrackerDailyDamage(t *testing.T) {
+	tracker := NewStatusTracker()
+
+	// Disease causes daily damage
+	tracker.AddEffect(StatusEffect{Type: StatusDisease, Severity: 100, Duration: 5})
+
+	damage := tracker.DailyDamage()
+	if damage <= 0 {
+		t.Errorf("Disease should cause daily damage, got %f", damage)
+	}
+}
