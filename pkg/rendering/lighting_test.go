@@ -236,7 +236,7 @@ func TestLerpFloat(t *testing.T) {
 	}
 }
 
-func TestClampFloat(t *testing.T) {
+func TestClampFloatLighting(t *testing.T) {
 	tests := []struct {
 		v, min, max, want float64
 	}{
@@ -248,9 +248,9 @@ func TestClampFloat(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := clampFloat(tc.v, tc.min, tc.max)
+		got := clampFloatLighting(tc.v, tc.min, tc.max)
 		if got != tc.want {
-			t.Errorf("clampFloat(%f, %f, %f) = %f, want %f",
+			t.Errorf("clampFloatLighting(%f, %f, %f) = %f, want %f",
 				tc.v, tc.min, tc.max, got, tc.want)
 		}
 	}

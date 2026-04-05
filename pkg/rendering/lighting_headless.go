@@ -370,3 +370,14 @@ func lerpColor(from, to color.RGBA, t float64) color.RGBA {
 func lerpFloat(from, to, t float64) float64 {
 	return from + t*(to-from)
 }
+
+// clampFloat restricts a value to a range.
+func clampFloat(v, min, max float64) float64 {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}

@@ -5,6 +5,8 @@ package rendering
 import (
 	"image/color"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestNewVesselSpriteGenerator(t *testing.T) {
