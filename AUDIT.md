@@ -58,7 +58,7 @@ The README claims "Early Development — Core engine complete. Full gameplay com
 
 ### CRITICAL
 
-- [ ] **Game loop not integrated** — `cmd/voyage/main.go:80-91` — The main entry point contains a TODO comment listing 8 uninitialized systems and never calls `ebiten.RunGame()`. The `demo()` function only spawns one entity and prints RNG values. This means the game cannot actually be played despite all subsystems being implemented.
+- [x] **Game loop not integrated** — `cmd/voyage/main.go:80-91` — The main entry point contains a TODO comment listing 8 uninitialized systems and never calls `ebiten.RunGame()`. The `demo()` function only spawns one entity and prints RNG values. This means the game cannot actually be played despite all subsystems being implemented.
   
   **Remediation:** Complete the `main()` function to initialize all game systems and call `g.Run()`:
   ```go

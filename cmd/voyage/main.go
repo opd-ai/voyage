@@ -22,7 +22,7 @@ import (
 
 	"github.com/opd-ai/voyage/pkg/config"
 	"github.com/opd-ai/voyage/pkg/engine"
-	"github.com/opd-ai/voyage/pkg/procgen/seed"
+	"github.com/opd-ai/voyage/pkg/game"
 )
 
 var (
@@ -67,56 +67,28 @@ func main() {
 	fmt.Printf("Voyage starting with seed: %d, genre: %s, difficulty: %s\n",
 		masterSeed, genre, config.DifficultyName(difficulty))
 
-	// Initialize world
-	registry := engine.NewComponentRegistry()
-	world := engine.NewWorld(registry)
-	world.SetGenre(genre)
-
-	// Create subsystem generators
-	_ = seed.NewGenerator(masterSeed, "world")
-	_ = seed.NewGenerator(masterSeed, "events")
-	_ = seed.NewGenerator(masterSeed, "crew")
-
-	// TODO: Initialize game systems
-	// - World map generation
-	// - Rendering system
-	// - Resource management
-	// - Crew system
-	// - Vessel system
-	// - Event system
-	// - Audio synthesis
-	// - UI/HUD
-
-	fmt.Println("Voyage v1.0 - Core engine initialized")
-	fmt.Println("Note: This is a foundation build. Full gameplay coming soon.")
-	fmt.Printf("World has %d entities\n", world.EntityCount())
-
-	// Placeholder: In full implementation, this would start the Ebitengine game loop
-	fmt.Println("\nPress Ctrl+C to exit")
-
-	// For now, just run a simple demonstration
-	demo(world, masterSeed)
-}
-
-// demo demonstrates the basic ECS functionality
-func demo(world *engine.World, masterSeed int64) {
-	fmt.Println("\n=== ECS Demo ===")
-
-	// Create some entities
-	player := world.SpawnImmediate()
-	player.AddTag("player")
-	fmt.Printf("Created player entity with ID: %d\n", player.ID())
-
-	// Demonstrate deterministic generation
-	g := seed.NewGenerator(masterSeed, "demo")
-	fmt.Printf("\nFirst 5 random values from seed %d:\n", masterSeed)
-	for i := 0; i < 5; i++ {
-		fmt.Printf("  %d: %d\n", i+1, g.Intn(100))
+	// Create session configuration
+	cfg := game.SessionConfig{
+		Width:      800,
+		Height:     600,
+		TileSize:   16,
+		Seed:       masterSeed,
+		Genre:      genre,
+		Difficulty: difficulty,
+		MapWidth:   50,
+		MapHeight:  50,
+		CrewSize:   4,
 	}
 
-	// Show genre
-	fmt.Printf("\nCurrent genre: %s\n", world.Genre())
-	fmt.Printf("All genres: %v\n", engine.AllGenres())
+	// Create and run game session
+	session := game.NewGameSession(cfg)
 
-	fmt.Println("\n=== Demo Complete ===")
+	fmt.Printf("World map generated: %dx%d\n", cfg.MapWidth, cfg.MapHeight)
+	fmt.Printf("Crew size: %d\n", session.Party().Count())
+	fmt.Printf("Vessel: %s\n", session.Vessel().Name())
+	fmt.Println("All systems initialized. Starting game...")
+
+	if err := session.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
