@@ -258,7 +258,7 @@ func (ag *AmbientGenerator) generateGroaningMetal(result []float64) {
 		creakMod := 0.3 + 0.7*((creak+1)/2)
 
 		// Filter
-		filterPos += (noise*0.2+groan*creakMod - filterPos) * 0.05
+		filterPos += (noise*0.2 + groan*creakMod - filterPos) * 0.05
 		result[i] = filterPos
 	}
 }
@@ -299,8 +299,6 @@ func (ag *AmbientGenerator) generateWater(result []float64) {
 	bubblePhase := 0.0
 
 	for i := range result {
-		t := float64(i) / ag.sampleRate
-
 		// Base water flow (filtered noise)
 		noise := ag.gen.Float64()*2 - 1
 		filterPos += (noise*0.3 - filterPos) * 0.08
@@ -343,8 +341,6 @@ func (ag *AmbientGenerator) generateCreature(result []float64) {
 	filterPos := 0.0
 
 	for i := range result {
-		t := float64(i) / ag.sampleRate
-
 		// Soft background noise (wind in leaves)
 		noise := ag.gen.Float64()*2 - 1
 		filterPos += (noise*0.1 - filterPos) * 0.01
