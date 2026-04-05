@@ -423,6 +423,90 @@ func (ls *LightingSystem) GetLightColorAt(x, y float64) color.RGBA {
 	return ambient
 }
 
+// VisibilityRange represents the visible range at a position.
+type VisibilityRange struct {
+	BaseRange       float64 // Visibility range without lights (affected by darkness)
+	EffectiveRange  float64 // Actual visibility range including light sources
+	DarknessPenalty float64 // Penalty factor (0.0-1.0, where 1.0 = no penalty)
+	LightBonus      float64 // Bonus from nearby light sources
+}
+
+// BaseVisibilityRange is the maximum visibility in full daylight.
+const BaseVisibilityRange = 10.0
+
+// MinVisibilityRange is the minimum visibility in total darkness without lights.
+const MinVisibilityRange = 2.0
+
+// GetVisibilityAt calculates the visibility range at a given position.
+// Returns a VisibilityRange struct with details about visibility conditions.
+func (ls *LightingSystem) GetVisibilityAt(x, y float64) VisibilityRange {
+	// Calculate darkness penalty based on ambient level
+	ambient := ls.AmbientLevel()
+	darknessPenalty := ambient
+
+	// Calculate light bonus from nearby point lights
+	lightBonus := 0.0
+	for _, light := range ls.pointLights {
+		contribution := ls.calculateLightContribution(light, x, y)
+		if contribution > 0 {
+			// Light sources extend visibility
+			lightBonus += contribution * light.Radius * 0.5
+		}
+	}
+
+	// Base range is affected by darkness
+	baseRange := MinVisibilityRange + (BaseVisibilityRange-MinVisibilityRange)*darknessPenalty
+
+	// Effective range includes light bonus (capped at double base range)
+	effectiveRange := clampFloat(baseRange+lightBonus, MinVisibilityRange, BaseVisibilityRange*2)
+
+	return VisibilityRange{
+		BaseRange:       baseRange,
+		EffectiveRange:  effectiveRange,
+		DarknessPenalty: darknessPenalty,
+		LightBonus:      lightBonus,
+	}
+}
+
+// IsVisibleAt checks if a target position is visible from an observer position.
+func (ls *LightingSystem) IsVisibleAt(observerX, observerY, targetX, targetY float64) bool {
+	visibility := ls.GetVisibilityAt(observerX, observerY)
+	dx := targetX - observerX
+	dy := targetY - observerY
+	distance := math.Sqrt(dx*dx + dy*dy)
+	return distance <= visibility.EffectiveRange
+}
+
+// GetVisibilityPenaltyDescription returns a human-readable description of visibility.
+func (ls *LightingSystem) GetVisibilityPenaltyDescription(x, y float64) string {
+	visibility := ls.GetVisibilityAt(x, y)
+	if visibility.DarknessPenalty >= 0.9 {
+		return "Clear visibility"
+	} else if visibility.DarknessPenalty >= 0.6 {
+		return "Reduced visibility (dusk/dawn)"
+	} else if visibility.DarknessPenalty >= 0.3 {
+		return "Poor visibility (darkness)"
+	}
+	if visibility.LightBonus > 0.5 {
+		return "Light source nearby"
+	}
+	return "Very poor visibility (pitch dark)"
+}
+
+// HasAdequateLighting checks if a position has enough light for normal activities.
+// Returns true if ambient light or nearby light sources provide sufficient illumination.
+func (ls *LightingSystem) HasAdequateLighting(x, y float64) bool {
+	intensity := ls.GetLightIntensityAt(x, y)
+	return intensity >= 0.4 // Threshold for "adequate" lighting
+}
+
+// NeedsLightSource returns true if the current location would benefit from a torch/lantern.
+func (ls *LightingSystem) NeedsLightSource(x, y float64) bool {
+	visibility := ls.GetVisibilityAt(x, y)
+	// Need light if visibility is significantly reduced and no light sources nearby
+	return visibility.DarknessPenalty < 0.5 && visibility.LightBonus < 1.0
+}
+
 // CreatePointLightOverlay creates an overlay image showing point lights.
 func (ls *LightingSystem) CreatePointLightOverlay(width, height int, worldToScreenX, worldToScreenY func(float64) float64) *ebiten.Image {
 	overlay := ebiten.NewImage(width, height)

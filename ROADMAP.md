@@ -258,15 +258,15 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 
 #### Dynamic Lighting
 - [x] Day/night cycle lighting on overworld (dawn→day→dusk→night transitions)
-- [ ] Point lights at towns, campfires, vessel lanterns
-- [ ] Darkness penalty at night (reduced visibility unless torches/power used)
-- [ ] Genre presets via `SetGenre()` (warm campfire glow for `fantasy`, blue-white hull lights for `scifi`, emergency red for `horror`, neon spillover for `cyberpunk`, dim salvage lanterns for `postapoc`)
+- [x] Point lights at towns, campfires, vessel lanterns
+- [x] Darkness penalty at night (reduced visibility unless torches/power used)
+- [x] Genre presets via `SetGenre()` (warm campfire glow for `fantasy`, blue-white hull lights for `scifi`, emergency red for `horror`, neon spillover for `cyberpunk`, dim salvage lanterns for `postapoc`)
 
 #### Particle Effects
-- [ ] Movement trail (dust clouds, thruster exhaust, tire tracks)
-- [ ] Weather particles (rain, snow, sand, embers, ash)
-- [ ] Event flash effects (combat sparks, healing glow, disaster explosion)
-- [ ] Genre-specific particle themes via `SetGenre()`
+- [x] Movement trail (dust clouds, thruster exhaust, tire tracks)
+- [x] Weather particles (rain, snow, sand, embers, ash)
+- [x] Event flash effects (combat sparks, healing glow, disaster explosion)
+- [x] Genre-specific particle themes via `SetGenre()`
 
 #### Enhanced Sprite Generation
 - [ ] Animated overworld tiles (flowing water, wind-swept grass, flickering fires)
