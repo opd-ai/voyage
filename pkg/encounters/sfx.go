@@ -102,6 +102,10 @@ func (g *SFXGenerator) generateEncounterStart() []float64 {
 	// Three-tone alert rising
 	freqs := []float64{preset.BaseFreq, preset.BaseFreq * 1.25, preset.BaseFreq * 1.5}
 	noteLen := samples / 3
+	// Guard against zero noteLen (H-014)
+	if noteLen == 0 {
+		noteLen = 1
+	}
 
 	for i := 0; i < samples; i++ {
 		noteIdx := i / noteLen
@@ -184,6 +188,10 @@ func (g *SFXGenerator) generateVictory() []float64 {
 	// Triumphant arpeggio
 	notes := []float64{preset.SuccessFreq, preset.SuccessFreq * 1.25, preset.SuccessFreq * 1.5, preset.SuccessFreq * 2}
 	noteLen := samples / 4
+	// Guard against zero noteLen (H-014)
+	if noteLen == 0 {
+		noteLen = 1
+	}
 
 	for i := 0; i < samples; i++ {
 		noteIdx := i / noteLen

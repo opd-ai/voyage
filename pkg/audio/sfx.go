@@ -196,6 +196,10 @@ func (g *SFXGenerator) generateSuccess() []float64 {
 	// Rising arpeggio
 	notes := []float64{1.0, 1.25, 1.5, 2.0}
 	noteLength := samples / len(notes)
+	// Guard against zero noteLength (H-013)
+	if noteLength == 0 {
+		noteLength = 1
+	}
 
 	for i := 0; i < samples; i++ {
 		noteIndex := i / noteLength

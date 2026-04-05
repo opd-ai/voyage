@@ -44,6 +44,9 @@ type Game struct {
 
 	// Input state tracking for key release detection
 	f3WasPressed bool
+
+	// Cached overlay image to avoid per-frame allocations (C-004)
+	pauseOverlay *ebiten.Image
 }
 
 // Config holds game configuration options.
@@ -247,9 +250,12 @@ func (g *Game) drawGame(screen *ebiten.Image) {
 
 // drawPauseOverlay renders the pause screen overlay.
 func (g *Game) drawPauseOverlay(screen *ebiten.Image) {
-	overlay := ebiten.NewImage(g.width, g.height)
-	overlay.Fill(color.RGBA{0, 0, 0, 128})
-	screen.DrawImage(overlay, nil)
+	// Use cached overlay to avoid per-frame allocations (C-004)
+	if g.pauseOverlay == nil {
+		g.pauseOverlay = ebiten.NewImage(g.width, g.height)
+		g.pauseOverlay.Fill(color.RGBA{0, 0, 0, 128})
+	}
+	screen.DrawImage(g.pauseOverlay, nil)
 
 	ebitenutil.DebugPrintAt(screen, "PAUSED\n\nPress ESC to resume", g.width/3, g.height/2)
 }

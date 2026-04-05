@@ -19,6 +19,8 @@ type EventOverlay struct {
 	overlayHeight  int
 	selectedChoice int
 	visible        bool
+	// Cached overlay image to avoid per-frame allocations (H-004)
+	overlayImage *ebiten.Image
 }
 
 // NewEventOverlay creates a new event overlay.
@@ -37,6 +39,8 @@ func NewEventOverlay(genre engine.GenreID, width, height int) *EventOverlay {
 func (eo *EventOverlay) SetGenre(genre engine.GenreID) {
 	eo.genre = genre
 	eo.skin = DefaultSkin(genre)
+	// Clear cached image when skin changes (H-004)
+	eo.overlayImage = nil
 }
 
 // Show makes the overlay visible.
@@ -83,6 +87,7 @@ func (eo *EventOverlay) SelectedChoice() int {
 }
 
 // Draw renders the event overlay to the screen.
+// Uses cached overlay image to avoid per-frame allocations (H-004).
 func (eo *EventOverlay) Draw(screen *ebiten.Image, event *events.Event, screenWidth, screenHeight int) {
 	if !eo.visible || event == nil {
 		return
@@ -92,8 +97,11 @@ func (eo *EventOverlay) Draw(screen *ebiten.Image, event *events.Event, screenWi
 	overlayX := (screenWidth - eo.overlayWidth) / 2
 	overlayY := (screenHeight - eo.overlayHeight) / 2
 
-	// Create overlay image
-	overlay := ebiten.NewImage(eo.overlayWidth, eo.overlayHeight)
+	// Create or reuse cached overlay image (H-004)
+	if eo.overlayImage == nil {
+		eo.overlayImage = ebiten.NewImage(eo.overlayWidth, eo.overlayHeight)
+	}
+	overlay := eo.overlayImage
 	overlay.Fill(eo.skin.PanelBackground)
 	eo.drawBorder(overlay)
 

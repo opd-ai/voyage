@@ -112,6 +112,35 @@ type StatsState struct {
 // CurrentVersion is the save file format version.
 const CurrentVersion = 1
 
+// MigrationFunc is a function that migrates save data from one version to the next.
+type MigrationFunc func(sd *SaveData) error
+
+// migrations maps version numbers to their migration functions.
+// Each migration upgrades from version N to version N+1.
+var migrations = map[int]MigrationFunc{
+	// Example: migration from v1 to v2 would be added here
+	// 1: migrateV1toV2,
+}
+
+// Migrate applies all necessary migrations to bring save data to the current version.
+// Returns an error if any migration fails.
+func (sd *SaveData) Migrate() error {
+	for sd.Version < CurrentVersion {
+		migrateFn, ok := migrations[sd.Version]
+		if !ok {
+			// No migration defined for this version, just bump the version
+			// This handles minor versions where no data changes are needed
+			sd.Version++
+			continue
+		}
+		if err := migrateFn(sd); err != nil {
+			return err
+		}
+		sd.Version++
+	}
+	return nil
+}
+
 // NewSaveData creates a new SaveData with default metadata.
 func NewSaveData(slot int, seed int64, genre engine.GenreID) *SaveData {
 	return &SaveData{
@@ -133,10 +162,17 @@ func (sd *SaveData) Marshal() ([]byte, error) {
 }
 
 // Unmarshal deserializes JSON data into SaveData.
+// Automatically applies migrations if the save version is older than current (C-006).
 func Unmarshal(data []byte) (*SaveData, error) {
 	sd := &SaveData{}
 	if err := json.Unmarshal(data, sd); err != nil {
 		return nil, err
+	}
+	// Apply migrations for older save versions (C-006)
+	if sd.Version > 0 && sd.Version < CurrentVersion {
+		if err := sd.Migrate(); err != nil {
+			return nil, err
+		}
 	}
 	return sd, nil
 }

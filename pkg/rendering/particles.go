@@ -14,11 +14,12 @@ import (
 // ParticleSystem manages all particles and emitters.
 type ParticleSystem struct {
 	engine.BaseSystem
-	particles    []*Particle
-	emitters     []*ParticleEmitter
-	rng          *rand.Rand
-	genrePreset  *ParticlePreset
-	maxParticles int
+	particles      []*Particle
+	emitters       []*ParticleEmitter
+	rng            *rand.Rand
+	genrePreset    *ParticlePreset
+	maxParticles   int
+	particleSprite *ebiten.Image // Cached particle base sprite (H-005)
 }
 
 // NewParticleSystem creates a new particle system.
@@ -336,29 +337,44 @@ func (ps *ParticleSystem) EmitBurst(x, y float64, pType ParticleType, count int)
 }
 
 // Draw renders all particles to the screen.
+// Uses cached particle sprite and DrawImage for efficient batching (H-005).
 func (ps *ParticleSystem) Draw(screen *ebiten.Image) {
 	for _, p := range ps.particles {
 		ps.drawParticle(screen, p)
 	}
 }
 
-// drawParticle renders a single particle.
+// drawParticle renders a single particle using cached sprite (H-005).
 func (ps *ParticleSystem) drawParticle(screen *ebiten.Image, p *Particle) {
-	// Create a small image for the particle
 	size := int(p.Size)
 	if size < 1 {
 		size = 1
 	}
 
-	col := p.Color
-	col.A = uint8(float64(col.A) * p.Alpha)
-
-	// Simple filled rectangle for particles
-	for dy := 0; dy < size; dy++ {
-		for dx := 0; dx < size; dx++ {
-			screen.Set(int(p.X)+dx, int(p.Y)+dy, col)
-		}
+	// Create or reuse cached particle sprite (H-005)
+	if ps.particleSprite == nil {
+		// Create a small white square sprite that we'll colorize with DrawImageOptions
+		ps.particleSprite = ebiten.NewImage(1, 1)
+		ps.particleSprite.Fill(color.White)
 	}
+
+	// Prepare draw options with scale, position, and color
+	op := &ebiten.DrawImageOptions{}
+	// Scale the 1x1 sprite to particle size
+	op.GeoM.Scale(float64(size), float64(size))
+	op.GeoM.Translate(p.X, p.Y)
+
+	// Apply particle color using color scale
+	col := p.Color
+	alpha := float64(col.A) / 255.0 * p.Alpha
+	op.ColorScale.Scale(
+		float64(col.R)/255.0,
+		float64(col.G)/255.0,
+		float64(col.B)/255.0,
+		alpha,
+	)
+
+	screen.DrawImage(ps.particleSprite, op)
 }
 
 // Particles returns all current particles (for testing/debugging).

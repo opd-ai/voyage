@@ -18,6 +18,10 @@ type WorldMapView struct {
 	viewHeight int
 	cameraX    int
 	cameraY    int
+	// Cached images to avoid per-frame allocations (H-001, H-002)
+	fogOverlay        *ebiten.Image
+	destinationMarker *ebiten.Image
+	vesselMarker      *ebiten.Image
 }
 
 // NewWorldMapView creates a new world map view.
@@ -37,6 +41,10 @@ func NewWorldMapView(genre engine.GenreID, tileSize, viewWidth, viewHeight int) 
 func (wmv *WorldMapView) SetGenre(genre engine.GenreID) {
 	wmv.genre = genre
 	wmv.skin = DefaultSkin(genre)
+	// Clear cached images when skin changes (H-001, H-002)
+	wmv.fogOverlay = nil
+	wmv.destinationMarker = nil
+	wmv.vesselMarker = nil
 }
 
 // CenterOn centers the camera on the given tile coordinates.
@@ -116,65 +124,74 @@ func (wmv *WorldMapView) drawVesselAtPosition(screen *ebiten.Image, vesselX, ves
 }
 
 // drawFogOverlay draws a semi-transparent fog over unexplored tiles.
+// Uses cached fog image to avoid per-frame allocations (H-001).
 func (wmv *WorldMapView) drawFogOverlay(screen *ebiten.Image, x, y int) {
-	fog := ebiten.NewImage(wmv.tileSize, wmv.tileSize)
-	fog.Fill(wmv.skin.PanelBackground)
+	if wmv.fogOverlay == nil {
+		wmv.fogOverlay = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
+		wmv.fogOverlay.Fill(wmv.skin.PanelBackground)
+	}
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ColorScale.ScaleAlpha(0.7)
-	screen.DrawImage(fog, op)
+	screen.DrawImage(wmv.fogOverlay, op)
 }
 
 // drawDestinationMarker draws a marker for the destination tile.
+// Uses cached marker image to avoid per-frame allocations (H-002).
 func (wmv *WorldMapView) drawDestinationMarker(screen *ebiten.Image, x, y int) {
-	marker := ebiten.NewImage(wmv.tileSize, wmv.tileSize)
+	if wmv.destinationMarker == nil {
+		wmv.destinationMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
 
-	// Draw a star-like pattern
-	c := wmv.skin.HighlightColor
-	half := wmv.tileSize / 2
-	for i := 0; i < wmv.tileSize; i++ {
-		marker.Set(half, i, c)
-		marker.Set(i, half, c)
-	}
-	// Diagonals
-	for i := 0; i < wmv.tileSize; i++ {
-		marker.Set(i, i, c)
-		if wmv.tileSize-1-i >= 0 {
-			marker.Set(i, wmv.tileSize-1-i, c)
+		// Draw a star-like pattern
+		c := wmv.skin.HighlightColor
+		half := wmv.tileSize / 2
+		for i := 0; i < wmv.tileSize; i++ {
+			wmv.destinationMarker.Set(half, i, c)
+			wmv.destinationMarker.Set(i, half, c)
+		}
+		// Diagonals
+		for i := 0; i < wmv.tileSize; i++ {
+			wmv.destinationMarker.Set(i, i, c)
+			if wmv.tileSize-1-i >= 0 {
+				wmv.destinationMarker.Set(i, wmv.tileSize-1-i, c)
+			}
 		}
 	}
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
-	screen.DrawImage(marker, op)
+	screen.DrawImage(wmv.destinationMarker, op)
 }
 
 // drawVesselMarker draws the vessel's position marker.
+// Uses cached marker image to avoid per-frame allocations (H-002).
 func (wmv *WorldMapView) drawVesselMarker(screen *ebiten.Image, x, y int) {
 	// Only draw if on screen
 	if x < 0 || y < 0 || x >= wmv.viewWidth || y >= wmv.viewHeight {
 		return
 	}
 
-	marker := ebiten.NewImage(wmv.tileSize, wmv.tileSize)
+	if wmv.vesselMarker == nil {
+		wmv.vesselMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
 
-	// Draw a simple arrow or dot for the vessel
-	c := wmv.skin.TextPrimary
-	half := wmv.tileSize / 2
-	quarter := wmv.tileSize / 4
+		// Draw a simple arrow or dot for the vessel
+		c := wmv.skin.TextPrimary
+		half := wmv.tileSize / 2
+		quarter := wmv.tileSize / 4
 
-	// Draw a filled triangle pointing right
-	for dy := -quarter; dy <= quarter; dy++ {
-		width := quarter - abs(dy)
-		for dx := 0; dx <= width; dx++ {
-			marker.Set(half-quarter+dx, half+dy, c)
+		// Draw a filled triangle pointing right
+		for dy := -quarter; dy <= quarter; dy++ {
+			width := quarter - abs(dy)
+			for dx := 0; dx <= width; dx++ {
+				wmv.vesselMarker.Set(half-quarter+dx, half+dy, c)
+			}
 		}
 	}
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
-	screen.DrawImage(marker, op)
+	screen.DrawImage(wmv.vesselMarker, op)
 }
 
 // abs returns the absolute value of an integer.

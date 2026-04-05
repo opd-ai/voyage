@@ -7,6 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/opd-ai/voyage/pkg/audio"
 	"github.com/opd-ai/voyage/pkg/crew"
 	"github.com/opd-ai/voyage/pkg/engine"
@@ -64,18 +65,21 @@ func (s *GameSession) handleMenuInput() {
 
 // handlePlayingInput handles input during gameplay.
 func (s *GameSession) handlePlayingInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+	// Use IsKeyJustPressed for ESC to prevent rapid toggling (M-001)
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		s.state = StatePaused
 		return
 	}
 
-	// Handle movement
+	// Per-frame action budget: only one action per Update() call (C-003)
+	// Handle movement first
 	moved := s.handleMovement()
 	if moved {
 		s.advanceTurn()
+		return // Prevent event handling in the same frame
 	}
 
-	// Handle event choices (1-4 keys)
+	// Handle event choices (1-4 keys) only if no movement occurred
 	s.handleEventChoices()
 }
 
@@ -108,6 +112,7 @@ func (s *GameSession) getMovementInput() (world.Point, bool) {
 }
 
 // handleEventChoices processes number key input for event choice selection.
+// Uses IsKeyJustPressed to prevent duplicate resource consumption (C-002).
 func (s *GameSession) handleEventChoices() {
 	if !s.eventQueue.HasPending() {
 		return
@@ -122,7 +127,8 @@ func (s *GameSession) handleEventChoices() {
 	choiceKeys := []ebiten.Key{ebiten.Key1, ebiten.Key2, ebiten.Key3, ebiten.Key4}
 
 	for i, key := range choiceKeys {
-		if ebiten.IsKeyPressed(key) && i < len(currentEvent.Choices) {
+		// Use IsKeyJustPressed to fire only once per keypress (C-002)
+		if inpututil.IsKeyJustPressed(key) && i < len(currentEvent.Choices) {
 			s.resolveEvent(currentEvent.ID, i)
 			break
 		}
@@ -163,7 +169,8 @@ func (s *GameSession) advanceTurn() {
 
 // handlePausedInput handles input in paused state.
 func (s *GameSession) handlePausedInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+	// Use IsKeyJustPressed for ESC to prevent rapid toggling (M-001)
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		s.state = StatePlaying
 	}
 }

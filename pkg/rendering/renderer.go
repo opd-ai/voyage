@@ -3,6 +3,8 @@
 package rendering
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/opd-ai/voyage/pkg/engine"
 )
@@ -10,11 +12,18 @@ import (
 // Renderer handles all Ebitengine rendering for the game.
 type Renderer struct {
 	engine.BaseSystem
-	width    int
-	height   int
-	palette  *Palette
-	tileSize int
-	camera   Camera
+	width     int
+	height    int
+	palette   *Palette
+	tileSize  int
+	camera    Camera
+	tileCache map[tileCacheKey]*ebiten.Image
+}
+
+// tileCacheKey uniquely identifies a cached tile by type and color.
+type tileCacheKey struct {
+	tileType int
+	color    color.RGBA
 }
 
 // NewRenderer creates a new renderer with the given dimensions.
@@ -32,6 +41,7 @@ func NewRenderer(width, height, tileSize int) *Renderer {
 			Height: height,
 			Zoom:   1.0,
 		},
+		tileCache: make(map[tileCacheKey]*ebiten.Image),
 	}
 }
 
@@ -59,6 +69,8 @@ func (r *Renderer) Camera() *Camera {
 func (r *Renderer) SetGenre(genreID engine.GenreID) {
 	r.BaseSystem.SetGenre(genreID)
 	r.palette = DefaultPalette(genreID)
+	// Clear tile cache when palette changes
+	r.tileCache = make(map[tileCacheKey]*ebiten.Image)
 }
 
 // Palette returns the current color palette.
@@ -79,13 +91,36 @@ func (r *Renderer) Draw(screen *ebiten.Image) {
 
 // DrawTile draws a single tile at the given screen position.
 func (r *Renderer) DrawTile(screen *ebiten.Image, x, y, tileType int) {
-	img := ebiten.NewImage(r.tileSize, r.tileSize)
 	fillColor := r.palette.GetTileColor(tileType)
-	img.Fill(fillColor)
+	img := r.getTileCached(tileType, fillColor)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x*r.tileSize), float64(y*r.tileSize))
 	screen.DrawImage(img, op)
+}
+
+// getTileCached returns a cached tile image, creating it if necessary.
+func (r *Renderer) getTileCached(tileType int, c color.Color) *ebiten.Image {
+	rgba := colorToRGBA(c)
+	key := tileCacheKey{tileType: tileType, color: rgba}
+	if img, ok := r.tileCache[key]; ok {
+		return img
+	}
+	img := ebiten.NewImage(r.tileSize, r.tileSize)
+	img.Fill(c)
+	r.tileCache[key] = img
+	return img
+}
+
+// colorToRGBA converts a color.Color to color.RGBA for use as a cache key.
+func colorToRGBA(c color.Color) color.RGBA {
+	r, g, b, a := c.RGBA()
+	return color.RGBA{
+		R: uint8(r >> 8),
+		G: uint8(g >> 8),
+		B: uint8(b >> 8),
+		A: uint8(a >> 8),
+	}
 }
 
 // WorldToScreen converts world coordinates to screen coordinates.

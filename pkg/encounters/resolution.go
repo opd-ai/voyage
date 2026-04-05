@@ -105,6 +105,10 @@ func (r *Resolver) ResolveComplete(enc *Encounter, party *crew.Party) *Encounter
 }
 
 func (r *Resolver) determineOutcome(enc *Encounter) EncounterOutcome {
+	// Guard against zero MaxPhases (H-015)
+	if enc.MaxPhases == 0 {
+		return OutcomeRetreat
+	}
 	progressRatio := enc.TotalProgress / float64(enc.MaxPhases)
 	damageRatio := enc.TotalDamage / 100.0
 

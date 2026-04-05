@@ -104,3 +104,14 @@ func (e *Entity) HasTag(tag string) bool {
 	_, ok := e.tags[tag]
 	return ok
 }
+
+// Clear removes all components and tags from the entity.
+// Used before pooling to prevent state corruption from recycled entities (C-005).
+func (e *Entity) Clear() {
+	for id := range e.components {
+		delete(e.components, id)
+	}
+	for tag := range e.tags {
+		delete(e.tags, tag)
+	}
+}

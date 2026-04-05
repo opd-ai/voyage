@@ -153,6 +153,18 @@ func (m *MusicGenerator) CrossfadeTo(targetState MusicState, durationMs int) []f
 	m.state = currentState
 	m.bpm = currentBPM
 
+	// Guard against empty sample slices (H-016)
+	if len(fromSamples) == 0 || len(toSamples) == 0 {
+		// If either source is empty, return the non-empty one or silence
+		if len(toSamples) > 0 {
+			return toSamples
+		}
+		if len(fromSamples) > 0 {
+			return fromSamples
+		}
+		return make([]float64, totalSamples)
+	}
+
 	// Perform linear crossfade
 	result := make([]float64, totalSamples)
 	for i := 0; i < totalSamples; i++ {

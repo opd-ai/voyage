@@ -101,9 +101,11 @@ func (w *World) Despawn(id EntityID) {
 }
 
 // DespawnImmediate removes an entity from the world immediately.
+// Clears all components and tags before pooling to prevent state corruption (C-005).
 func (w *World) DespawnImmediate(id EntityID) {
 	if e, ok := w.entities[id]; ok {
 		e.active = false
+		e.Clear() // Clear components and tags before pooling (C-005)
 		delete(w.entities, id)
 		w.entityPool = append(w.entityPool, e)
 	}
