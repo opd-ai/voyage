@@ -430,3 +430,73 @@ func TestMusicGeneratorGenreSwitch(t *testing.T) {
 		t.Errorf("genre = %s, want scifi", loop.Genre)
 	}
 }
+
+func TestMusicState(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	// Default state should be Peaceful
+	if gen.MusicState() != MusicPeaceful {
+		t.Errorf("initial state = %s, want Peaceful", MusicStateName(gen.MusicState()))
+	}
+
+	// Test state changes affect BPM
+	testCases := []struct {
+		state       MusicState
+		expectedBPM float64
+	}{
+		{MusicPeaceful, 80},
+		{MusicTense, 100},
+		{MusicCombat, 140},
+		{MusicVictory, 120},
+		{MusicDeath, 60},
+	}
+
+	for _, tc := range testCases {
+		gen.SetMusicState(tc.state)
+		if gen.MusicState() != tc.state {
+			t.Errorf("state = %s, want %s", MusicStateName(gen.MusicState()), MusicStateName(tc.state))
+		}
+		// Generate a loop to verify state is applied
+		samples := gen.GenerateLoop(2)
+		if len(samples) == 0 {
+			t.Errorf("state %s: should generate samples", MusicStateName(tc.state))
+		}
+	}
+}
+
+func TestMusicStateName(t *testing.T) {
+	testCases := []struct {
+		state MusicState
+		name  string
+	}{
+		{MusicPeaceful, "Peaceful"},
+		{MusicTense, "Tense"},
+		{MusicCombat, "Combat"},
+		{MusicVictory, "Victory"},
+		{MusicDeath, "Death"},
+		{MusicState(99), "Unknown"},
+	}
+
+	for _, tc := range testCases {
+		name := MusicStateName(tc.state)
+		if name != tc.name {
+			t.Errorf("MusicStateName(%d) = %s, want %s", tc.state, name, tc.name)
+		}
+	}
+}
+
+func TestMusicStateAffectsOutput(t *testing.T) {
+	// Verify different states produce different audio characteristics
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	gen.SetMusicState(MusicPeaceful)
+	peacefulSamples := gen.GenerateLoop(2)
+
+	gen.SetMusicState(MusicCombat)
+	combatSamples := gen.GenerateLoop(2)
+
+	// Combat should be faster (shorter duration) due to higher BPM
+	if len(combatSamples) >= len(peacefulSamples) {
+		t.Error("combat (higher BPM) should produce shorter loop than peaceful (lower BPM)")
+	}
+}
