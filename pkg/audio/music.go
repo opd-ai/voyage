@@ -117,6 +117,77 @@ func (m *MusicGenerator) MusicState() MusicState {
 	return m.state
 }
 
+// CrossfadeTo generates a crossfade transition from the current state to the target state.
+// Returns audio samples that transition smoothly over the specified duration in milliseconds.
+func (m *MusicGenerator) CrossfadeTo(targetState MusicState, durationMs int) []float64 {
+	if durationMs < 100 {
+		durationMs = 100
+	}
+	if durationMs > 5000 {
+		durationMs = 5000
+	}
+
+	// Calculate sample counts
+	durationSec := float64(durationMs) / 1000.0
+	totalSamples := int(m.sampleRate * durationSec)
+
+	// Generate audio for current state
+	currentState := m.state
+	currentBPM := m.bpm
+	barsNeeded := int(durationSec*currentBPM/60.0/4.0) + 1
+	if barsNeeded < 1 {
+		barsNeeded = 1
+	}
+	fromSamples := m.GenerateLoop(barsNeeded)
+
+	// Generate audio for target state
+	m.SetMusicState(targetState)
+	targetBPM := m.bpm
+	barsNeeded = int(durationSec*targetBPM/60.0/4.0) + 1
+	if barsNeeded < 1 {
+		barsNeeded = 1
+	}
+	toSamples := m.GenerateLoop(barsNeeded)
+
+	// Restore current state (transition hasn't completed until played)
+	m.state = currentState
+	m.bpm = currentBPM
+
+	// Perform linear crossfade
+	result := make([]float64, totalSamples)
+	for i := 0; i < totalSamples; i++ {
+		t := float64(i) / float64(totalSamples-1)
+		// Use equal-power crossfade for smooth transition
+		fadeOut := 1.0 - t
+		fadeIn := t
+
+		fromIdx := i % len(fromSamples)
+		toIdx := i % len(toSamples)
+
+		result[i] = fromSamples[fromIdx]*fadeOut + toSamples[toIdx]*fadeIn
+	}
+
+	// After crossfade generation, update to target state
+	m.SetMusicState(targetState)
+
+	return result
+}
+
+// CrossfadeToBytes generates a crossfade transition and returns 16-bit PCM bytes.
+func (m *MusicGenerator) CrossfadeToBytes(targetState MusicState, durationMs int) []byte {
+	samples := m.CrossfadeTo(targetState, durationMs)
+	bytes := make([]byte, len(samples)*2)
+
+	for i, sample := range samples {
+		sample = clampSample(sample)
+		val := int16(sample * 32767)
+		bytes[i*2] = byte(val)
+		bytes[i*2+1] = byte(val >> 8)
+	}
+
+	return bytes
+}
+
 // SetBPM changes the tempo.
 func (m *MusicGenerator) SetBPM(bpm float64) {
 	if bpm < 40 {

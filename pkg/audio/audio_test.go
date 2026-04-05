@@ -500,3 +500,100 @@ func TestMusicStateAffectsOutput(t *testing.T) {
 		t.Error("combat (higher BPM) should produce shorter loop than peaceful (lower BPM)")
 	}
 }
+
+func TestCrossfade(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+	gen.SetMusicState(MusicPeaceful)
+
+	// Generate crossfade from Peaceful to Combat
+	samples := gen.CrossfadeTo(MusicCombat, 1000)
+
+	if len(samples) == 0 {
+		t.Fatal("crossfade should generate samples")
+	}
+
+	// Verify samples are in valid range
+	for i, s := range samples {
+		if s < -1.0 || s > 1.0 {
+			t.Errorf("sample %d = %f, out of range [-1, 1]", i, s)
+			break
+		}
+	}
+
+	// State should now be Combat
+	if gen.MusicState() != MusicCombat {
+		t.Errorf("state after crossfade = %s, want Combat", MusicStateName(gen.MusicState()))
+	}
+
+	// Expected samples for 1 second at 44100 Hz
+	expectedSamples := int(44100 * 1.0)
+	if len(samples) != expectedSamples {
+		t.Errorf("samples = %d, want %d", len(samples), expectedSamples)
+	}
+}
+
+func TestCrossfadeDurationClamping(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	// Very short duration should be clamped to 100ms
+	samples := gen.CrossfadeTo(MusicTense, 10)
+	expectedMin := int(44100 * 0.1) // 100ms
+	if len(samples) < expectedMin {
+		t.Errorf("samples = %d, want at least %d", len(samples), expectedMin)
+	}
+
+	// Very long duration should be clamped to 5000ms
+	gen.SetMusicState(MusicPeaceful)
+	samples = gen.CrossfadeTo(MusicTense, 10000)
+	expectedMax := int(44100 * 5.0)     // 5000ms
+	if len(samples) > expectedMax+100 { // Allow small tolerance
+		t.Errorf("samples = %d, want at most %d", len(samples), expectedMax)
+	}
+}
+
+func TestCrossfadeToBytes(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+
+	bytes := gen.CrossfadeToBytes(MusicVictory, 500)
+
+	if len(bytes) == 0 {
+		t.Error("should generate bytes")
+	}
+
+	// Should be even number (16-bit samples)
+	if len(bytes)%2 != 0 {
+		t.Errorf("bytes length = %d, should be even", len(bytes))
+	}
+
+	// Each sample is 2 bytes, so bytes should be 2x samples
+	expectedBytes := int(44100*0.5) * 2
+	if len(bytes) != expectedBytes {
+		t.Errorf("bytes = %d, want %d", len(bytes), expectedBytes)
+	}
+}
+
+func TestCrossfadeAllStates(t *testing.T) {
+	gen := NewMusicGenerator(12345, engine.GenreFantasy)
+	states := []MusicState{MusicPeaceful, MusicTense, MusicCombat, MusicVictory, MusicDeath}
+
+	for i, from := range states {
+		for j, to := range states {
+			if i == j {
+				continue
+			}
+			gen.SetMusicState(from)
+			samples := gen.CrossfadeTo(to, 200)
+
+			if len(samples) == 0 {
+				t.Errorf("crossfade %s→%s: should generate samples",
+					MusicStateName(from), MusicStateName(to))
+			}
+
+			if gen.MusicState() != to {
+				t.Errorf("crossfade %s→%s: final state = %s, want %s",
+					MusicStateName(from), MusicStateName(to),
+					MusicStateName(gen.MusicState()), MusicStateName(to))
+			}
+		}
+	}
+}
