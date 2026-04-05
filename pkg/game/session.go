@@ -7,6 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/opd-ai/voyage/pkg/audio"
 )
 
 // NewGameSession creates a new game session with all subsystems initialized.
