@@ -60,21 +60,29 @@ func (ap *AnimatedPortrait) Update(dt float64) {
 	if frameCount <= 1 {
 		return
 	}
+	ap.advanceFrame(dt, frameCount)
+}
 
+// advanceFrame increments the frame counter based on elapsed time.
+func (ap *AnimatedPortrait) advanceFrame(dt float64, frameCount int) {
 	ap.elapsed += dt
-	if ap.elapsed >= ap.FrameTime {
-		ap.elapsed -= ap.FrameTime
-		ap.currentFrame++
+	if ap.elapsed < ap.FrameTime {
+		return
+	}
+	ap.elapsed -= ap.FrameTime
+	ap.currentFrame++
+	ap.wrapFrame(frameCount)
+}
 
-		if ap.state == PortraitDeath {
-			if ap.currentFrame >= frameCount {
-				ap.currentFrame = frameCount - 1
-			}
-		} else {
-			if ap.currentFrame >= frameCount {
-				ap.currentFrame = 0
-			}
-		}
+// wrapFrame handles frame wrapping based on animation state.
+func (ap *AnimatedPortrait) wrapFrame(frameCount int) {
+	if ap.currentFrame < frameCount {
+		return
+	}
+	if ap.state == PortraitDeath {
+		ap.currentFrame = frameCount - 1
+	} else {
+		ap.currentFrame = 0
 	}
 }
 

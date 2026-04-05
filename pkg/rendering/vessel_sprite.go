@@ -197,7 +197,15 @@ func (vsg *VesselSpriteGenerator) generateDamagedSprite(pristine *ebiten.Image, 
 	img := ebiten.NewImage(size, size)
 	img.DrawImage(pristine, nil)
 
-	// Add damage marks and dents
+	vsg.applyDamageMarks(img, pristine, hullColor)
+	vsg.addMultipleBreaches(img, pristine, 2+vsg.gen.Intn(3), 1, 2)
+
+	return img
+}
+
+// applyDamageMarks adds scorch marks and char damage to the vessel sprite.
+func (vsg *VesselSpriteGenerator) applyDamageMarks(img, pristine *ebiten.Image, hullColor color.Color) {
+	size := vsg.spriteSize
 	damageColor := vsg.darkenColor(hullColor, 0.6)
 	charColor := color.RGBA{30, 30, 30, 255}
 	damageCount := size / 2
@@ -206,26 +214,18 @@ func (vsg *VesselSpriteGenerator) generateDamagedSprite(pristine *ebiten.Image, 
 		x := vsg.gen.Intn(size)
 		y := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, x, y) {
-			// Some pixels are darkened, some are charred
-			if vsg.gen.Chance(0.3) {
-				img.Set(x, y, charColor)
-			} else {
-				img.Set(x, y, damageColor)
-			}
+			c := vsg.chooseDamageColor(damageColor, charColor, 0.3)
+			img.Set(x, y, c)
 		}
 	}
+}
 
-	// Add breach holes (small transparent areas)
-	breachCount := 2 + vsg.gen.Intn(3)
-	for i := 0; i < breachCount; i++ {
-		bx := vsg.gen.Intn(size)
-		by := vsg.gen.Intn(size)
-		if vsg.isOnSprite(pristine, bx, by) {
-			vsg.drawBreach(img, bx, by, 1+vsg.gen.Intn(2))
-		}
+// chooseDamageColor randomly selects between char and damage colors.
+func (vsg *VesselSpriteGenerator) chooseDamageColor(damageColor, charColor color.Color, charChance float64) color.Color {
+	if vsg.gen.Chance(charChance) {
+		return charColor
 	}
-
-	return img
+	return damageColor
 }
 
 // generateCriticalSprite creates a heavily damaged version of the vessel.

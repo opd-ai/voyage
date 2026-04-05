@@ -6,13 +6,20 @@ import (
 	"path/filepath"
 )
 
-// ConfigPath returns the path for configuration files.
+// ConfigPath returns the platform-appropriate path for configuration files.
+// Returns ~/.config/voyage on Linux, ~/Library/Application Support/voyage on macOS,
+// and %APPDATA%/voyage on Windows.
 func ConfigPath() string {
-	homeDir, err := os.UserHomeDir()
+	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return ".voyage"
+		// Fall back to home directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return ".voyage"
+		}
+		return filepath.Join(homeDir, ".voyage")
 	}
-	return filepath.Join(homeDir, ".voyage")
+	return filepath.Join(configDir, "voyage")
 }
 
 // ConfigFilePath returns the full path to the config file.

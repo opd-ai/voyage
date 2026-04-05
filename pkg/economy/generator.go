@@ -258,30 +258,47 @@ func (g *Generator) generateTradeGoods() []*TradeGood {
 	return goods
 }
 
-// GenerateSpeculationOpportunity finds the best buy/sell pair in the economy
+// speculationResult holds the best speculation opportunity found.
+type speculationResult struct {
+	buyMarket  string
+	sellMarket string
+	goodID     string
+	profit     int
+}
+
+// GenerateSpeculationOpportunity finds the best buy/sell pair in the economy.
 func (g *Generator) GenerateSpeculationOpportunity(manager *EconomyManager) (buyMarket, sellMarket, goodID string, profit int) {
-	bestProfit := 0
-	bestBuy := ""
-	bestSell := ""
-	bestGood := ""
+	result := g.findBestSpeculation(manager)
+	return result.buyMarket, result.sellMarket, result.goodID, result.profit
+}
 
+// findBestSpeculation iterates all market pairs to find the most profitable trade.
+func (g *Generator) findBestSpeculation(manager *EconomyManager) speculationResult {
+	var best speculationResult
 	for buyID, buyM := range manager.Markets {
-		for sellID := range manager.Markets {
-			if buyID == sellID {
-				continue
-			}
+		g.evaluateMarketPair(manager, buyID, buyM, &best)
+	}
+	return best
+}
 
-			for gID := range buyM.Goods {
-				p, ok := manager.CalculateSpeculation(buyID, sellID, gID, 10)
-				if ok && p > bestProfit {
-					bestProfit = p
-					bestBuy = buyID
-					bestSell = sellID
-					bestGood = gID
-				}
-			}
+// evaluateMarketPair checks all goods for profitable speculation from buyM to other markets.
+func (g *Generator) evaluateMarketPair(manager *EconomyManager, buyID string, buyM *Market, best *speculationResult) {
+	for sellID := range manager.Markets {
+		if buyID == sellID {
+			continue
+		}
+		g.evaluateGoodsProfit(manager, buyID, sellID, buyM.Goods, best)
+	}
+}
+
+// evaluateGoodsProfit checks each good for profit potential and updates best if better.
+func (g *Generator) evaluateGoodsProfit(manager *EconomyManager, buyID, sellID string, goods map[string]*TradeGood, best *speculationResult) {
+	for gID := range goods {
+		if p, ok := manager.CalculateSpeculation(buyID, sellID, gID, 10); ok && p > best.profit {
+			best.profit = p
+			best.buyMarket = buyID
+			best.sellMarket = sellID
+			best.goodID = gID
 		}
 	}
-
-	return bestBuy, bestSell, bestGood, bestProfit
 }

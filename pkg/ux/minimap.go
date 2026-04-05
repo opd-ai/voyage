@@ -94,29 +94,38 @@ func (m *Minimap) drawBorder() {
 
 // drawTiles renders explored and unexplored tiles.
 func (m *Minimap) drawTiles(wm *world.WorldMap) {
-	scaleX := float64(m.width-2) / float64(wm.Width)
-	scaleY := float64(m.height-2) / float64(wm.Height)
-	scale := scaleX
-	if scaleY < scale {
-		scale = scaleY
-	}
-
+	scale := m.calculateScale(wm)
 	for y := 0; y < wm.Height; y++ {
 		for x := 0; x < wm.Width; x++ {
-			tile := wm.GetTile(x, y)
-			if tile == nil {
-				continue
-			}
-
-			px := 1 + int(float64(x)*scale)
-			py := 1 + int(float64(y)*scale)
-
-			if tile.Explored {
-				m.drawExploredTile(px, py, tile)
-			} else {
-				m.drawFog(px, py)
-			}
+			m.drawTileAt(wm, x, y, scale)
 		}
+	}
+}
+
+// calculateScale computes the scale factor for mapping world to minimap.
+func (m *Minimap) calculateScale(wm *world.WorldMap) float64 {
+	scaleX := float64(m.width-2) / float64(wm.Width)
+	scaleY := float64(m.height-2) / float64(wm.Height)
+	if scaleY < scaleX {
+		return scaleY
+	}
+	return scaleX
+}
+
+// drawTileAt draws a single tile at the given world coordinates.
+func (m *Minimap) drawTileAt(wm *world.WorldMap, x, y int, scale float64) {
+	tile := wm.GetTile(x, y)
+	if tile == nil {
+		return
+	}
+
+	px := 1 + int(float64(x)*scale)
+	py := 1 + int(float64(y)*scale)
+
+	if tile.Explored {
+		m.drawExploredTile(px, py, tile)
+	} else {
+		m.drawFog(px, py)
 	}
 }
 
@@ -142,13 +151,7 @@ func (m *Minimap) drawFog(px, py int) {
 
 // drawLandmarks draws icons for notable locations.
 func (m *Minimap) drawLandmarks(wm *world.WorldMap) {
-	scaleX := float64(m.width-2) / float64(wm.Width)
-	scaleY := float64(m.height-2) / float64(wm.Height)
-	scale := scaleX
-	if scaleY < scale {
-		scale = scaleY
-	}
-
+	scale := m.calculateScale(wm)
 	for y := 0; y < wm.Height; y++ {
 		for x := 0; x < wm.Width; x++ {
 			tile := wm.GetTile(x, y)
@@ -177,18 +180,16 @@ func (m *Minimap) drawLandmarkIcon(px, py int, lt world.LandmarkType) {
 
 // drawPlayer draws the player position indicator.
 func (m *Minimap) drawPlayer(wm *world.WorldMap, playerX, playerY int) {
-	scaleX := float64(m.width-2) / float64(wm.Width)
-	scaleY := float64(m.height-2) / float64(wm.Height)
-	scale := scaleX
-	if scaleY < scale {
-		scale = scaleY
-	}
-
+	scale := m.calculateScale(wm)
 	px := 1 + int(float64(playerX)*scale) + m.tileSize/2
 	py := 1 + int(float64(playerY)*scale) + m.tileSize/2
 
 	c := m.skin.HighlightColor
-	// Draw player as a small filled square
+	m.drawFilledSquare(px, py, c)
+}
+
+// drawFilledSquare draws a small filled square marker.
+func (m *Minimap) drawFilledSquare(px, py int, c color.Color) {
 	for dx := -1; dx <= 1; dx++ {
 		for dy := -1; dy <= 1; dy++ {
 			if px+dx > 0 && px+dx < m.width-1 && py+dy > 0 && py+dy < m.height-1 {
@@ -200,12 +201,7 @@ func (m *Minimap) drawPlayer(wm *world.WorldMap, playerX, playerY int) {
 
 // drawOriginAndDestination draws special markers for start and end points.
 func (m *Minimap) drawOriginAndDestination(wm *world.WorldMap) {
-	scaleX := float64(m.width-2) / float64(wm.Width)
-	scaleY := float64(m.height-2) / float64(wm.Height)
-	scale := scaleX
-	if scaleY < scale {
-		scale = scaleY
-	}
+	scale := m.calculateScale(wm)
 
 	// Draw origin marker
 	ox := 1 + int(float64(wm.Origin.X)*scale) + m.tileSize/2

@@ -1,42 +1,47 @@
 ?   	github.com/opd-ai/voyage/cmd/voyage	[no test files]
-ok  	github.com/opd-ai/voyage/pkg/achievements	1.036s
-ok  	github.com/opd-ai/voyage/pkg/audio	10.788s
-ok  	github.com/opd-ai/voyage/pkg/benchmark	1.044s
-ok  	github.com/opd-ai/voyage/pkg/companions	1.050s
-ok  	github.com/opd-ai/voyage/pkg/config	1.038s
-ok  	github.com/opd-ai/voyage/pkg/council	1.032s
-ok  	github.com/opd-ai/voyage/pkg/crew	1.030s
-ok  	github.com/opd-ai/voyage/pkg/destination	1.035s
-ok  	github.com/opd-ai/voyage/pkg/economy	1.031s
-ok  	github.com/opd-ai/voyage/pkg/encounters	1.108s
-ok  	github.com/opd-ai/voyage/pkg/engine	1.024s
-ok  	github.com/opd-ai/voyage/pkg/events	1.039s
-ok  	github.com/opd-ai/voyage/pkg/factions	1.022s
+ok  	github.com/opd-ai/voyage/pkg/achievements	1.028s
+ok  	github.com/opd-ai/voyage/pkg/audio	10.119s
+ok  	github.com/opd-ai/voyage/pkg/benchmark	1.035s
+ok  	github.com/opd-ai/voyage/pkg/companions	1.039s
+ok  	github.com/opd-ai/voyage/pkg/config	1.022s
+ok  	github.com/opd-ai/voyage/pkg/convoy	1.164s
+ok  	github.com/opd-ai/voyage/pkg/council	1.021s
+ok  	github.com/opd-ai/voyage/pkg/crew	1.028s
+ok  	github.com/opd-ai/voyage/pkg/destination	1.023s
+ok  	github.com/opd-ai/voyage/pkg/economy	1.028s
+ok  	github.com/opd-ai/voyage/pkg/encounters	1.079s
+ok  	github.com/opd-ai/voyage/pkg/engine	1.019s
+ok  	github.com/opd-ai/voyage/pkg/events	1.031s
+ok  	github.com/opd-ai/voyage/pkg/factions	1.030s
 glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
 panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
 
 goroutine 1 [running]:
 github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
 	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
-FAIL	github.com/opd-ai/voyage/pkg/game	0.048s
-ok  	github.com/opd-ai/voyage/pkg/journey	1.027s
-ok  	github.com/opd-ai/voyage/pkg/lore	1.024s
-ok  	github.com/opd-ai/voyage/pkg/metaprog	1.018s
-ok  	github.com/opd-ai/voyage/pkg/narrative	1.044s
-ok  	github.com/opd-ai/voyage/pkg/npc	1.040s
-ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.028s
-ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.046s
-ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.100s
-ok  	github.com/opd-ai/voyage/pkg/quests	1.036s
+FAIL	github.com/opd-ai/voyage/pkg/game	0.055s
+?   	github.com/opd-ai/voyage/pkg/input	[no test files]
+ok  	github.com/opd-ai/voyage/pkg/journey	1.021s
+ok  	github.com/opd-ai/voyage/pkg/leaderboard	1.143s
+ok  	github.com/opd-ai/voyage/pkg/lore	1.037s
+ok  	github.com/opd-ai/voyage/pkg/metaprog	1.031s
+ok  	github.com/opd-ai/voyage/pkg/modding	1.042s
+ok  	github.com/opd-ai/voyage/pkg/narrative	1.028s
+ok  	github.com/opd-ai/voyage/pkg/npc	1.023s
+ok  	github.com/opd-ai/voyage/pkg/procgen	1.080s
+ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.022s
+ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.034s
+ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.084s
+ok  	github.com/opd-ai/voyage/pkg/quests	1.028s
 glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
 panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
 
 goroutine 1 [running]:
 github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
 	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
-FAIL	github.com/opd-ai/voyage/pkg/rendering	0.052s
-ok  	github.com/opd-ai/voyage/pkg/resources	1.018s
-ok  	github.com/opd-ai/voyage/pkg/saveload	1.060s
+FAIL	github.com/opd-ai/voyage/pkg/rendering	0.054s
+ok  	github.com/opd-ai/voyage/pkg/resources	1.019s
+ok  	github.com/opd-ai/voyage/pkg/saveload	1.085s
 ok  	github.com/opd-ai/voyage/pkg/trading	1.034s
 glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
 panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
@@ -44,8 +49,8 @@ panic: glfw: The GLFW library is not initialized: the GLFW library is not initia
 goroutine 1 [running]:
 github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
 	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
-FAIL	github.com/opd-ai/voyage/pkg/ux	0.048s
-ok  	github.com/opd-ai/voyage/pkg/vessel	1.027s
-ok  	github.com/opd-ai/voyage/pkg/weather	1.020s
-ok  	github.com/opd-ai/voyage/pkg/world	1.017s
+FAIL	github.com/opd-ai/voyage/pkg/ux	0.053s
+ok  	github.com/opd-ai/voyage/pkg/vessel	1.030s
+ok  	github.com/opd-ai/voyage/pkg/weather	1.022s
+ok  	github.com/opd-ai/voyage/pkg/world	1.016s
 FAIL

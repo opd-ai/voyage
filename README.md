@@ -18,7 +18,7 @@ Voyage is a rogue-like travel simulator where every map, event, crew, vessel, au
 
 ## Status
 
-🚧 **Early Development** — Core engine complete. Full gameplay coming soon.
+✅ **Feature Complete (v5.0)** — All five versions implemented with full gameplay loop.
 
 ### Implemented
 - ✅ Go module and project structure
@@ -28,15 +28,22 @@ Voyage is a rogue-like travel simulator where every map, event, crew, vessel, au
 - ✅ Procedural world map generation
 - ✅ Resource management system (six-axis model)
 - ✅ Crew/party system with procedural generation
-- ✅ Vessel/transport system
+- ✅ Vessel/transport system with upgrades
 - ✅ Procedural event system with grammar templates
-- ✅ Audio synthesis (waveforms, ADSR, SFX)
+- ✅ Audio synthesis (waveforms, ADSR, SFX, adaptive music)
 - ✅ UI/HUD/Menus with genre theming
 - ✅ Win/lose conditions
 - ✅ Save/load system with multiple slots
 - ✅ Configuration and input rebinding
 - ✅ CI/CD pipeline
 - ✅ Validation scripts
+- ✅ All 5 genres fully integrated
+- ✅ Faction system with reputation
+- ✅ Quest/objective system
+- ✅ Meta-progression between runs
+- ✅ Leaderboards and async convoy mode
+- ✅ WebAssembly and mobile builds
+- ✅ Modding system
 
 ## Prerequisites
 

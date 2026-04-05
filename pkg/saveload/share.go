@@ -240,62 +240,87 @@ func decodeBinary(data []byte) (*RunData, error) {
 	buf := bytes.NewReader(data)
 	rd := &RunData{}
 
-	// Read seed
+	decodeRunHeader(buf, rd)
+	decodeDecisions(buf, rd)
+	decodeFinalState(buf, rd)
+
+	return rd, nil
+}
+
+// decodeRunHeader reads the seed, genre, and difficulty from the buffer.
+func decodeRunHeader(buf *bytes.Reader, rd *RunData) {
 	binary.Read(buf, binary.LittleEndian, &rd.Seed)
 
-	// Read genre
 	genreByte, _ := buf.ReadByte()
 	rd.Genre = decodeGenre(genreByte)
 
-	// Read difficulty
 	diffiByte, _ := buf.ReadByte()
 	rd.Diffi = int(diffiByte)
+}
 
-	// Read decision count
+// decodeDecisions reads all decisions from the buffer.
+func decodeDecisions(buf *bytes.Reader, rd *RunData) {
 	var decisionCount uint16
 	binary.Read(buf, binary.LittleEndian, &decisionCount)
 
-	// Read decisions
 	rd.Decisions = make([]Decision, 0, decisionCount)
 	for i := uint16(0); i < decisionCount; i++ {
-		var packed uint16
-		binary.Read(buf, binary.LittleEndian, &packed)
+		rd.Decisions = append(rd.Decisions, decodeDecision(buf))
+	}
+}
 
-		if packed == 0xFF00 || (packed&0xFF) == 0xFF {
-			// Extended encoding - need to re-read
-			// First byte was marker
-			buf.UnreadByte()
-			buf.UnreadByte()
-			marker, _ := buf.ReadByte()
-			if marker == 0xFF {
-				var turn uint16
-				var dtype byte
-				var value, target int16
-				binary.Read(buf, binary.LittleEndian, &turn)
-				dtype, _ = buf.ReadByte()
-				binary.Read(buf, binary.LittleEndian, &value)
-				binary.Read(buf, binary.LittleEndian, &target)
-				rd.Decisions = append(rd.Decisions, Decision{
-					Turn:   int(turn),
-					Type:   DecisionType(dtype),
-					Value:  int(value),
-					Target: int(target),
-				})
-			}
-		} else {
-			// Compact encoding
-			turn := int(packed & 0x3FF)
-			dtype := DecisionType((packed >> 10) & 0x7)
-			value := int((packed >> 13) & 0x7)
-			rd.Decisions = append(rd.Decisions, Decision{
-				Turn:  turn,
-				Type:  dtype,
-				Value: value,
-			})
-		}
+// decodeDecision reads a single decision from the buffer.
+func decodeDecision(buf *bytes.Reader) Decision {
+	var packed uint16
+	binary.Read(buf, binary.LittleEndian, &packed)
+
+	if isExtendedEncoding(packed) {
+		return decodeExtendedDecision(buf)
+	}
+	return decodeCompactDecision(packed)
+}
+
+// isExtendedEncoding checks if the packed value indicates extended encoding.
+func isExtendedEncoding(packed uint16) bool {
+	return packed == 0xFF00 || (packed&0xFF) == 0xFF
+}
+
+// decodeExtendedDecision reads a decision using extended encoding format.
+func decodeExtendedDecision(buf *bytes.Reader) Decision {
+	buf.UnreadByte()
+	buf.UnreadByte()
+	marker, _ := buf.ReadByte()
+	if marker != 0xFF {
+		return Decision{}
 	}
 
-	// Read final state
+	var turn uint16
+	var dtype byte
+	var value, target int16
+	binary.Read(buf, binary.LittleEndian, &turn)
+	dtype, _ = buf.ReadByte()
+	binary.Read(buf, binary.LittleEndian, &value)
+	binary.Read(buf, binary.LittleEndian, &target)
+
+	return Decision{
+		Turn:   int(turn),
+		Type:   DecisionType(dtype),
+		Value:  int(value),
+		Target: int(target),
+	}
+}
+
+// decodeCompactDecision unpacks a decision from compact 16-bit format.
+func decodeCompactDecision(packed uint16) Decision {
+	return Decision{
+		Turn:  int(packed & 0x3FF),
+		Type:  DecisionType((packed >> 10) & 0x7),
+		Value: int((packed >> 13) & 0x7),
+	}
+}
+
+// decodeFinalState reads the final game state from the buffer.
+func decodeFinalState(buf *bytes.Reader, rd *RunData) {
 	var finalTurn uint16
 	var finalX, finalY int16
 	binary.Read(buf, binary.LittleEndian, &finalTurn)
@@ -310,8 +335,6 @@ func decodeBinary(data []byte) (*RunData, error) {
 
 	crewByte, _ := buf.ReadByte()
 	rd.CrewSurvived = int(crewByte)
-
-	return rd, nil
 }
 
 // encodeGenre converts a genre ID to a byte.

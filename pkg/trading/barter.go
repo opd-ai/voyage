@@ -69,68 +69,69 @@ func (bi *BarterInterface) EvaluateOffer(offer *BarterOffer) (offerValue, reques
 
 // Barter attempts to execute a goods-for-goods trade.
 func (bi *BarterInterface) Barter(offer *BarterOffer) BarterResult {
-	ti := bi.tradeInterface
-
-	if ti.playerInventory == nil {
-		return BarterResult{
-			Success: false,
-			Message: bi.getMessage("no_inventory"),
-		}
+	if err := bi.validateBarterOffer(offer); err != nil {
+		return BarterResult{Success: false, Message: err.Error()}
 	}
 
-	if len(offer.OfferedItems) == 0 {
-		return BarterResult{
-			Success: false,
-			Message: bi.getMessage("empty_offer"),
-		}
-	}
-
-	if len(offer.RequestedItems) == 0 {
-		return BarterResult{
-			Success: false,
-			Message: bi.getMessage("empty_request"),
-		}
-	}
-
-	// Evaluate the offer
 	offerValue, requestValue, valid := bi.EvaluateOffer(offer)
 	if !valid {
-		return BarterResult{
-			Success: false,
-			Message: bi.getMessage("invalid_items"),
-		}
+		return BarterResult{Success: false, Message: bi.getMessage("invalid_items")}
 	}
 
-	// Calculate acceptance threshold based on reputation
-	// Higher reputation = more favorable trades
-	threshold := bi.acceptanceThreshold()
+	return bi.processBarterOffer(offer, offerValue, requestValue)
+}
 
+// validateBarterOffer checks if the barter offer is valid.
+func (bi *BarterInterface) validateBarterOffer(offer *BarterOffer) error {
+	if bi.tradeInterface.playerInventory == nil {
+		return barterValidationError(bi.getMessage("no_inventory"))
+	}
+	if len(offer.OfferedItems) == 0 {
+		return barterValidationError(bi.getMessage("empty_offer"))
+	}
+	if len(offer.RequestedItems) == 0 {
+		return barterValidationError(bi.getMessage("empty_request"))
+	}
+	return nil
+}
+
+// barterValidationError is a simple error type for barter validation.
+type barterValidationError string
+
+func (e barterValidationError) Error() string { return string(e) }
+
+// processBarterOffer processes a validated barter offer.
+func (bi *BarterInterface) processBarterOffer(offer *BarterOffer, offerValue, requestValue float64) BarterResult {
 	result := BarterResult{
 		Success:      true,
 		OfferValue:   offerValue,
 		RequestValue: requestValue,
 	}
 
-	// Check if offer is acceptable
+	threshold := bi.acceptanceThreshold()
 	if offerValue >= requestValue*threshold {
-		// Accept the trade
-		result.Accepted = true
-		bi.executeBarter(offer)
-		result.Message = bi.getMessage("accepted")
-
-		// Reputation boost for successful barter
-		ti.post.UpdateReputation(0.02)
+		bi.acceptBarter(&result, offer)
 	} else {
-		// Reject but offer counter
-		result.Accepted = false
-		result.CounterOffer = bi.generateCounterOffer(offer, offerValue, requestValue)
-		result.Message = bi.getMessage("rejected")
-
-		// Small reputation hit for bad offer
-		ti.post.UpdateReputation(-0.005)
+		bi.rejectBarter(&result, offer, offerValue, requestValue)
 	}
 
 	return result
+}
+
+// acceptBarter handles an accepted barter offer.
+func (bi *BarterInterface) acceptBarter(result *BarterResult, offer *BarterOffer) {
+	result.Accepted = true
+	bi.executeBarter(offer)
+	result.Message = bi.getMessage("accepted")
+	bi.tradeInterface.post.UpdateReputation(0.02)
+}
+
+// rejectBarter handles a rejected barter offer with counter-offer.
+func (bi *BarterInterface) rejectBarter(result *BarterResult, offer *BarterOffer, offerValue, requestValue float64) {
+	result.Accepted = false
+	result.CounterOffer = bi.generateCounterOffer(offer, offerValue, requestValue)
+	result.Message = bi.getMessage("rejected")
+	bi.tradeInterface.post.UpdateReputation(-0.005)
 }
 
 // acceptanceThreshold returns the value ratio needed for acceptance.
@@ -236,26 +237,36 @@ func (bi *BarterInterface) copyOriginalOffer(original *BarterOffer) *BarterOffer
 func (bi *BarterInterface) addItemsToMeetDeficit(counter, original *BarterOffer, deficit *float64) {
 	ti := bi.tradeInterface
 	for _, item := range ti.playerInventory.Items {
-		if bi.isInBarterOffer(item.Name, original.OfferedItems) || item.Quantity <= 0 {
+		if *deficit <= 0 {
+			break
+		}
+		if bi.shouldSkipItem(item, original.OfferedItems) {
 			continue
 		}
+		bi.addItemToCounter(counter, item, deficit)
+	}
+}
 
-		unitPrice := ti.post.AdjustedPrice(item.BasePrice, true)
-		if unitPrice <= 0 {
-			continue
-		}
+// shouldSkipItem returns true if the item should be skipped during counter-offer generation.
+func (bi *BarterInterface) shouldSkipItem(item *Item, offeredItems []*BarterItem) bool {
+	return bi.isInBarterOffer(item.Name, offeredItems) || item.Quantity <= 0
+}
 
-		quantityNeeded := bi.calculateQuantityNeeded(*deficit, unitPrice, item.Quantity)
-		if quantityNeeded > 0 {
-			counter.OfferedItems = append(counter.OfferedItems, &BarterItem{
-				ItemName: item.Name,
-				Quantity: quantityNeeded,
-			})
-			*deficit -= unitPrice * float64(quantityNeeded)
-			if *deficit <= 0 {
-				break
-			}
-		}
+// addItemToCounter adds an item to the counter-offer if it has positive value.
+func (bi *BarterInterface) addItemToCounter(counter *BarterOffer, item *Item, deficit *float64) {
+	ti := bi.tradeInterface
+	unitPrice := ti.post.AdjustedPrice(item.BasePrice, true)
+	if unitPrice <= 0 {
+		return
+	}
+
+	quantityNeeded := bi.calculateQuantityNeeded(*deficit, unitPrice, item.Quantity)
+	if quantityNeeded > 0 {
+		counter.OfferedItems = append(counter.OfferedItems, &BarterItem{
+			ItemName: item.Name,
+			Quantity: quantityNeeded,
+		})
+		*deficit -= unitPrice * float64(quantityNeeded)
 	}
 }
 

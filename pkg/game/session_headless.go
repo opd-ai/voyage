@@ -118,6 +118,16 @@ func (s *GameSession) PlayerPosition() world.Point {
 	return s.playerPos
 }
 
+// SetState sets the game state.
+func (s *GameSession) SetState(state GameState) {
+	s.state = state
+}
+
+// setPlayerPosition sets the player's position for testing purposes.
+func (s *GameSession) setPlayerPosition(pos world.Point) {
+	s.playerPos = pos
+}
+
 // SetGenre changes the genre for all subsystems.
 func (s *GameSession) SetGenre(genre engine.GenreID) {
 	s.propagateGenre(genre)

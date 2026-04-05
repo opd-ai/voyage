@@ -63,21 +63,29 @@ func (ap *AnimatedPortrait) Update(dt float64) {
 	if len(frames) <= 1 {
 		return
 	}
+	ap.advanceFrame(dt, len(frames))
+}
 
+// advanceFrame increments the frame counter based on elapsed time.
+func (ap *AnimatedPortrait) advanceFrame(dt float64, frameCount int) {
 	ap.elapsed += dt
-	if ap.elapsed >= ap.FrameTime {
-		ap.elapsed -= ap.FrameTime
-		ap.currentFrame++
+	if ap.elapsed < ap.FrameTime {
+		return
+	}
+	ap.elapsed -= ap.FrameTime
+	ap.currentFrame++
+	ap.wrapFrame(frameCount)
+}
 
-		if ap.state == PortraitDeath {
-			if ap.currentFrame >= len(frames) {
-				ap.currentFrame = len(frames) - 1
-			}
-		} else {
-			if ap.currentFrame >= len(frames) {
-				ap.currentFrame = 0
-			}
-		}
+// wrapFrame handles frame wrapping based on animation state.
+func (ap *AnimatedPortrait) wrapFrame(frameCount int) {
+	if ap.currentFrame < frameCount {
+		return
+	}
+	if ap.state == PortraitDeath {
+		ap.currentFrame = frameCount - 1
+	} else {
+		ap.currentFrame = 0
 	}
 }
 
@@ -247,28 +255,41 @@ func (pg *PortraitGenerator) applyBreathingEffect(img *ebiten.Image, offset int)
 	size := pg.portraitSize
 	bodyStart := size * 5 / 6
 
-	// Shift body portion down slightly
-	if offset > 0 && bodyStart+offset < size {
-		tempImg := ebiten.NewImage(size, size-bodyStart)
-		for y := bodyStart; y < size-offset; y++ {
-			for x := 0; x < size; x++ {
-				c := img.At(x, y)
-				tempImg.Set(x, y-bodyStart, c)
-			}
-		}
-
-		// Clear original body area
-		for y := bodyStart; y < size; y++ {
-			for x := 0; x < size; x++ {
-				img.Set(x, y, color.Transparent)
-			}
-		}
-
-		// Draw shifted body
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(0, float64(bodyStart+offset))
-		img.DrawImage(tempImg, op)
+	if offset <= 0 || bodyStart+offset >= size {
+		return
 	}
+
+	tempImg := pg.copyBodyRegion(img, size, bodyStart, offset)
+	pg.clearBodyRegion(img, size, bodyStart)
+	pg.drawShiftedBody(img, tempImg, bodyStart, offset)
+}
+
+// copyBodyRegion copies the body portion of the image to a temporary buffer.
+func (pg *PortraitGenerator) copyBodyRegion(img *ebiten.Image, size, bodyStart, offset int) *ebiten.Image {
+	tempImg := ebiten.NewImage(size, size-bodyStart)
+	for y := bodyStart; y < size-offset; y++ {
+		for x := 0; x < size; x++ {
+			c := img.At(x, y)
+			tempImg.Set(x, y-bodyStart, c)
+		}
+	}
+	return tempImg
+}
+
+// clearBodyRegion clears the body area to transparent.
+func (pg *PortraitGenerator) clearBodyRegion(img *ebiten.Image, size, bodyStart int) {
+	for y := bodyStart; y < size; y++ {
+		for x := 0; x < size; x++ {
+			img.Set(x, y, color.Transparent)
+		}
+	}
+}
+
+// drawShiftedBody draws the body with the breathing offset applied.
+func (pg *PortraitGenerator) drawShiftedBody(img, tempImg *ebiten.Image, bodyStart, offset int) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0, float64(bodyStart+offset))
+	img.DrawImage(tempImg, op)
 }
 
 // generateHurtAnimation creates hurt flinch animation frames.

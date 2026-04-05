@@ -10,7 +10,7 @@
 
 ## Genre Support
 
-Every system must implement the `GenreSwitcher` interface to switch thematic presentation at runtime. **This interface is not yet implemented** — creating it is the first task in v1.0 ECS Framework.
+Every system must implement the `GenreSwitcher` interface to switch thematic presentation at runtime.
 
 ```go
 type GenreID string
@@ -443,10 +443,10 @@ pkg/audit/           — Feature audit tooling
 
 All content generators must satisfy:
 
-1. **Determinism**: Given the same seed and genre, every run produces an identical world. Verified by determinism test suite (to be implemented in v1.0).
-2. **No Bundled Assets**: Zero embedded images, audio files, or pre-authored text. Confirmed by `scripts/validate-no-assets.sh` (to be implemented in v1.0).
+1. **Determinism**: Given the same seed and genre, every run produces an identical world. Verified by `pkg/procgen/determinism_test.go`.
+2. **No Bundled Assets**: Zero embedded images, audio files, or pre-authored text. Confirmed by `scripts/validate-no-assets.sh`.
 3. **Single Binary**: `go build ./cmd/voyage` produces one self-contained executable.
-4. **GenreSwitcher Compliance**: Every ECS System implements `SetGenre(genreID GenreID)`. Verified by interface conformance tests (to be implemented in v1.0).
+4. **GenreSwitcher Compliance**: Every ECS System implements `SetGenre(genreID GenreID)`. Verified by interface conformance tests.
 5. **Seed Isolation**: Each subsystem derives its own `math/rand` source from the master seed via `HashSeed`. Cross-subsystem seeding is prohibited.
 
 ---
@@ -455,12 +455,12 @@ All content generators must satisfy:
 
 | Milestone | Target | Measurement |
 |-----------|--------|-------------|
-| No bundled assets | 0 `.png`/`.mp3`/`.ogg`/hardcoded text | `scripts/validate-no-assets.sh` *(to be implemented)* |
-| Deterministic runs | Same seed produces identical world | Determinism test suite *(to be implemented in v1.0)* |
+| No bundled assets | 0 `.png`/`.mp3`/`.ogg`/hardcoded text | `scripts/validate-no-assets.sh` |
+| Deterministic runs | Same seed produces identical world | `pkg/procgen/determinism_test.go` |
 | Single binary | `go build ./cmd/voyage` succeeds | CI build job |
 | All 5 genres playable | Each genre passes smoke-test | `go test ./pkg/procgen/genre/...` |
-| GenreSwitcher compliance | All Systems implement interface | Interface conformance test *(to be implemented in v1.0)* |
+| GenreSwitcher compliance | All Systems implement interface | Interface conformance tests |
 | Test coverage | ≥40% per package | `go test -cover ./pkg/...` |
 | `go vet` clean | 0 errors | `go vet ./...` |
-| 60 FPS on target hardware | Benchmark ≥60 FPS | `pkg/benchmark/fps/` *(to be implemented)* |
-| `<500MB` client memory | Benchmark <500 MB heap | `pkg/benchmark/memory/` *(to be implemented)* |
+| 60 FPS on target hardware | Benchmark ≥60 FPS | `pkg/benchmark/benchmark_test.go` |
+| `<500MB` client memory | Benchmark <500 MB heap | `pkg/benchmark/benchmark_test.go` |

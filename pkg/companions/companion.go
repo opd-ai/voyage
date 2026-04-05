@@ -326,27 +326,24 @@ func (e *CompanionEvent) SetGenre(g engine.GenreID) {
 	e.Genre = g
 }
 
-// CanTrigger checks if the event can fire for the given companion
+// CanTrigger checks if the event can fire for the given companion.
 func (e *CompanionEvent) CanTrigger(c *Companion) bool {
-	if e.Triggered {
-		return false
-	}
-	if c.ID != e.CompanionID {
-		return false
-	}
-	if !c.HasTrait(e.RequiredTrait) {
-		return false
-	}
-	if c.Morale < e.MinMorale || c.Morale > e.MaxMorale {
-		return false
-	}
-	if c.Loyalty < e.MinLoyalty {
-		return false
-	}
-	if c.RelationshipWithPlayer < e.MinRelationship {
-		return false
-	}
-	return true
+	return !e.Triggered &&
+		e.matchesCompanion(c) &&
+		e.meetsThresholds(c)
+}
+
+// matchesCompanion checks basic companion identity and trait requirements.
+func (e *CompanionEvent) matchesCompanion(c *Companion) bool {
+	return c.ID == e.CompanionID && c.HasTrait(e.RequiredTrait)
+}
+
+// meetsThresholds checks if companion stats meet event thresholds.
+func (e *CompanionEvent) meetsThresholds(c *Companion) bool {
+	return c.Morale >= e.MinMorale &&
+		c.Morale <= e.MaxMorale &&
+		c.Loyalty >= e.MinLoyalty &&
+		c.RelationshipWithPlayer >= e.MinRelationship
 }
 
 // Trigger marks the event as triggered and applies effects

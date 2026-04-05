@@ -213,8 +213,15 @@ func (c *Convoy) GetWinner() (*Player, *RunData) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	// Find the player with highest score who achieved victory
-	var winner *Player
+	winningRun := c.findHighestScoringVictory()
+	if winningRun == nil {
+		return nil, nil
+	}
+	return c.findPlayerByID(winningRun.PlayerID), winningRun
+}
+
+// findHighestScoringVictory returns the victorious run with the highest score.
+func (c *Convoy) findHighestScoringVictory() *RunData {
 	var winningRun *RunData
 	var highestScore int
 
@@ -224,17 +231,7 @@ func (c *Convoy) GetWinner() (*Player, *RunData) {
 			winningRun = run
 		}
 	}
-
-	if winningRun != nil {
-		for _, p := range c.Players {
-			if p.ID == winningRun.PlayerID {
-				winner = p
-				break
-			}
-		}
-	}
-
-	return winner, winningRun
+	return winningRun
 }
 
 // GetFastest returns the player who finished fastest (fewest days).
@@ -242,7 +239,15 @@ func (c *Convoy) GetFastest() (*Player, *RunData) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	var fastest *Player
+	fastestRun := c.findFastestVictory()
+	if fastestRun == nil {
+		return nil, nil
+	}
+	return c.findPlayerByID(fastestRun.PlayerID), fastestRun
+}
+
+// findFastestVictory returns the victorious run with the fewest days traveled.
+func (c *Convoy) findFastestVictory() *RunData {
 	var fastestRun *RunData
 	fewestDays := int(^uint(0) >> 1)
 
@@ -252,17 +257,7 @@ func (c *Convoy) GetFastest() (*Player, *RunData) {
 			fastestRun = run
 		}
 	}
-
-	if fastestRun != nil {
-		for _, p := range c.Players {
-			if p.ID == fastestRun.PlayerID {
-				fastest = p
-				break
-			}
-		}
-	}
-
-	return fastest, fastestRun
+	return fastestRun
 }
 
 // GetFirstToFinish returns the player who finished their run first.

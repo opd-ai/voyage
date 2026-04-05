@@ -40,27 +40,53 @@ func (pp *PostProcessor) Apply(img *image.RGBA, seed int64) *image.RGBA {
 	if img == nil {
 		return nil
 	}
+	return pp.applyEffectsInOrder(img, seed)
+}
 
+// applyEffectsInOrder applies each enabled effect in sequence.
+func (pp *PostProcessor) applyEffectsInOrder(img *image.RGBA, seed int64) *image.RGBA {
 	result := img
-
-	// Apply effects in order
-	if pp.config.VignetteOn {
-		result = pp.ApplyVignette(result, pp.config.VignetteInt)
-	}
-	if pp.config.ScanlinesOn {
-		result = pp.ApplyScanlines(result, pp.config.ScanlinesDen, 0.15)
-	}
-	if pp.config.FilmGrainOn {
-		result = pp.ApplyFilmGrain(result, seed, pp.config.FilmGrainInt)
-	}
-	if pp.config.ChromaticOn {
-		result = pp.ApplyChromaticAberration(result, pp.config.ChromaticOff)
-	}
-	if pp.config.SepiaOn {
-		result = pp.ApplySepia(result, pp.config.SepiaInt)
-	}
-
+	result = pp.maybeApplyVignette(result)
+	result = pp.maybeApplyScanlines(result)
+	result = pp.maybeApplyFilmGrain(result, seed)
+	result = pp.maybeApplyChromatic(result)
+	result = pp.maybeApplySepia(result)
 	return result
+}
+
+func (pp *PostProcessor) maybeApplyVignette(img *image.RGBA) *image.RGBA {
+	if pp.config.VignetteOn {
+		return pp.ApplyVignette(img, pp.config.VignetteInt)
+	}
+	return img
+}
+
+func (pp *PostProcessor) maybeApplyScanlines(img *image.RGBA) *image.RGBA {
+	if pp.config.ScanlinesOn {
+		return pp.ApplyScanlines(img, pp.config.ScanlinesDen, 0.15)
+	}
+	return img
+}
+
+func (pp *PostProcessor) maybeApplyFilmGrain(img *image.RGBA, seed int64) *image.RGBA {
+	if pp.config.FilmGrainOn {
+		return pp.ApplyFilmGrain(img, seed, pp.config.FilmGrainInt)
+	}
+	return img
+}
+
+func (pp *PostProcessor) maybeApplyChromatic(img *image.RGBA) *image.RGBA {
+	if pp.config.ChromaticOn {
+		return pp.ApplyChromaticAberration(img, pp.config.ChromaticOff)
+	}
+	return img
+}
+
+func (pp *PostProcessor) maybeApplySepia(img *image.RGBA) *image.RGBA {
+	if pp.config.SepiaOn {
+		return pp.ApplySepia(img, pp.config.SepiaInt)
+	}
+	return img
 }
 
 // ApplyVignette darkens the edges of an image to focus attention on center.
@@ -73,26 +99,40 @@ func (pp *PostProcessor) ApplyVignette(img *image.RGBA, intensity float64) *imag
 	w, h := bounds.Dx(), bounds.Dy()
 	result := image.NewRGBA(bounds)
 
-	// Apply vignette by darkening pixels based on distance from center
+	vc := newVignetteCalcHeadless(w, h, intensity)
+	vc.applyToImage(result, img)
+	return result
+}
+
+// vignetteCalcHeadless handles vignette darkening calculations for headless mode.
+type vignetteCalcHeadless struct {
+	centerX, centerY float64
+	maxDistSq        float64
+	intensity        float64
+	w, h             int
+}
+
+func newVignetteCalcHeadless(w, h int, intensity float64) *vignetteCalcHeadless {
 	centerX := float64(w) / 2
 	centerY := float64(h) / 2
 	maxDist := centerX
 	if centerY > maxDist {
 		maxDist = centerY
 	}
+	return &vignetteCalcHeadless{
+		centerX:   centerX,
+		centerY:   centerY,
+		maxDistSq: maxDist * maxDist,
+		intensity: intensity,
+		w:         w,
+		h:         h,
+	}
+}
 
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			dx := float64(x) - centerX
-			dy := float64(y) - centerY
-			dist := (dx*dx + dy*dy) / (maxDist * maxDist)
-
-			// Calculate darkening factor
-			factor := 1.0 - (dist * intensity)
-			if factor < 0 {
-				factor = 0
-			}
-
+func (vc *vignetteCalcHeadless) applyToImage(result, img *image.RGBA) {
+	for y := 0; y < vc.h; y++ {
+		for x := 0; x < vc.w; x++ {
+			factor := vc.darkeningFactor(x, y)
 			c := img.RGBAAt(x, y)
 			result.SetRGBA(x, y, color.RGBA{
 				R: uint8(float64(c.R) * factor),
@@ -102,8 +142,17 @@ func (pp *PostProcessor) ApplyVignette(img *image.RGBA, intensity float64) *imag
 			})
 		}
 	}
+}
 
-	return result
+func (vc *vignetteCalcHeadless) darkeningFactor(x, y int) float64 {
+	dx := float64(x) - vc.centerX
+	dy := float64(y) - vc.centerY
+	dist := (dx*dx + dy*dy) / vc.maxDistSq
+	factor := 1.0 - (dist * vc.intensity)
+	if factor < 0 {
+		return 0
+	}
+	return factor
 }
 
 // ApplyScanlines adds horizontal scanline effect for retro/sci-fi feel.
@@ -194,37 +243,37 @@ func (pp *PostProcessor) ApplyChromaticAberration(img *image.RGBA, offset float6
 	bounds := img.Bounds()
 	w, h := bounds.Dx(), bounds.Dy()
 	result := image.NewRGBA(bounds)
-
 	off := int(offset)
+
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			// Red channel shifted left
-			rX := x - off
-			if rX < 0 {
-				rX = 0
-			}
-			cR := img.RGBAAt(rX, y)
-
-			// Green channel stays centered
-			cG := img.RGBAAt(x, y)
-
-			// Blue channel shifted right
-			bX := x + off
-			if bX >= w {
-				bX = w - 1
-			}
-			cB := img.RGBAAt(bX, y)
-
-			result.SetRGBA(x, y, color.RGBA{
-				R: cR.R,
-				G: cG.G,
-				B: cB.B,
-				A: cG.A,
-			})
+			result.SetRGBA(x, y, chromaticPixelHeadless(img, x, y, w, off))
 		}
 	}
-
 	return result
+}
+
+// chromaticPixelHeadless computes the chromatic-shifted color at a pixel position.
+func chromaticPixelHeadless(img *image.RGBA, x, y, w, off int) color.RGBA {
+	rX := clampIntHeadless(x-off, 0, w-1)
+	bX := clampIntHeadless(x+off, 0, w-1)
+
+	cR := img.RGBAAt(rX, y)
+	cG := img.RGBAAt(x, y)
+	cB := img.RGBAAt(bX, y)
+
+	return color.RGBA{R: cR.R, G: cG.G, B: cB.B, A: cG.A}
+}
+
+// clampIntHeadless clamps v to the range [min, max].
+func clampIntHeadless(v, min, max int) int {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }
 
 // ApplySepia applies a warm sepia tone for vintage/dusty look.

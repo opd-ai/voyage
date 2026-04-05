@@ -302,32 +302,45 @@ func (lig *LandmarkIconGenerator) drawBlinkingLights(img *ebiten.Image, position
 
 // drawLight draws a small glowing light.
 func (lig *LandmarkIconGenerator) drawLight(img *ebiten.Image, x, y int, c color.Color) {
-	size := lig.iconSize
+	lig.drawCoreLightPixel(img, x, y, c)
+	lig.drawLightGlow(img, x, y, c)
+}
 
-	// Core pixel
-	if x >= 0 && x < size && y >= 0 && y < size {
+// drawCoreLightPixel draws the center pixel of a light source.
+func (lig *LandmarkIconGenerator) drawCoreLightPixel(img *ebiten.Image, x, y int, c color.Color) {
+	if x >= 0 && x < lig.iconSize && y >= 0 && y < lig.iconSize {
 		img.Set(x, y, c)
 	}
+}
 
-	// Glow (dimmer neighbors)
-	r, g, b, a := c.RGBA()
-	dimColor := color.RGBA{
-		R: uint8((r >> 8) / 2),
-		G: uint8((g >> 8) / 2),
-		B: uint8((b >> 8) / 2),
-		A: uint8(a >> 8),
-	}
-
+// drawLightGlow draws dimmed glow pixels around a light source.
+func (lig *LandmarkIconGenerator) drawLightGlow(img *ebiten.Image, x, y int, c color.Color) {
+	dimColor := lig.dimColor(c)
 	for dy := -1; dy <= 1; dy++ {
 		for dx := -1; dx <= 1; dx++ {
 			if dx == 0 && dy == 0 {
 				continue
 			}
-			px, py := x+dx, y+dy
-			if px >= 0 && px < size && py >= 0 && py < size {
-				img.Set(px, py, dimColor)
-			}
+			lig.drawPixelIfInBounds(img, x+dx, y+dy, dimColor)
 		}
+	}
+}
+
+// dimColor returns a half-brightness version of the given color.
+func (lig *LandmarkIconGenerator) dimColor(c color.Color) color.RGBA {
+	r, g, b, a := c.RGBA()
+	return color.RGBA{
+		R: uint8((r >> 8) / 2),
+		G: uint8((g >> 8) / 2),
+		B: uint8((b >> 8) / 2),
+		A: uint8(a >> 8),
+	}
+}
+
+// drawPixelIfInBounds draws a pixel only if coordinates are within bounds.
+func (lig *LandmarkIconGenerator) drawPixelIfInBounds(img *ebiten.Image, x, y int, c color.Color) {
+	if x >= 0 && x < lig.iconSize && y >= 0 && y < lig.iconSize {
+		img.Set(x, y, c)
 	}
 }
 

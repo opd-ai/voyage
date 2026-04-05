@@ -155,44 +155,63 @@ func (l *WASMLoader) LoadFromBytes(wasmBytes []byte, caps Capability) (*WASMMod,
 	defer l.mu.Unlock()
 
 	ctx := context.Background()
-
-	// Create a new runtime with memory limits
-	runtimeConfig := wazero.NewRuntimeConfig().
-		WithMemoryLimitPages(l.config.MaxMemoryPages)
-
-	runtime := wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
-
-	// Instantiate WASI for basic I/O
-	if _, err := wasi_snapshot_preview1.Instantiate(ctx, runtime); err != nil {
-		runtime.Close(ctx)
-		return nil, fmt.Errorf("%w: %v", ErrWASMInstantiate, err)
+	runtime, hd, err := l.initializeRuntime(ctx, caps)
+	if err != nil {
+		return nil, err
 	}
 
-	// Create host data for this mod
-	hd := &hostData{
+	module, err := l.compileAndInstantiate(ctx, runtime, wasmBytes)
+	if err != nil {
+		runtime.Close(ctx)
+		return nil, err
+	}
+
+	mod := l.createWASMMod(runtime, module, hd, caps)
+	if err := l.finalizeMod(ctx, runtime, mod); err != nil {
+		return nil, err
+	}
+
+	return mod, nil
+}
+
+// initializeRuntime creates the WASM runtime with host functions.
+func (l *WASMLoader) initializeRuntime(ctx context.Context, caps Capability) (wazero.Runtime, *hostData, error) {
+	runtimeConfig := wazero.NewRuntimeConfig().
+		WithMemoryLimitPages(l.config.MaxMemoryPages)
+	runtime := wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
+
+	if _, err := wasi_snapshot_preview1.Instantiate(ctx, runtime); err != nil {
+		runtime.Close(ctx)
+		return nil, nil, fmt.Errorf("%w: %v", ErrWASMInstantiate, err)
+	}
+
+	hd := newHostData()
+	if _, err := l.registerHostFunctions(ctx, runtime, caps, hd); err != nil {
+		runtime.Close(ctx)
+		return nil, nil, err
+	}
+
+	return runtime, hd, nil
+}
+
+// newHostData creates initialized host data for a mod.
+func newHostData() *hostData {
+	return &hostData{
 		events:       make([]EventDef, 0),
 		genres:       make([]GenreDef, 0),
 		resources:    make(map[string]float64),
 		outputBuffer: make([]byte, 0, 4096),
 		inputBuffer:  make([]byte, 0, 4096),
 	}
+}
 
-	// Register host functions with capability checks
-	hostModule, err := l.registerHostFunctions(ctx, runtime, caps, hd)
-	if err != nil {
-		runtime.Close(ctx)
-		return nil, err
-	}
-	_ = hostModule // Keep reference for GC
-
-	// Compile the WASM module
+// compileAndInstantiate compiles WASM bytes and creates a module instance.
+func (l *WASMLoader) compileAndInstantiate(ctx context.Context, runtime wazero.Runtime, wasmBytes []byte) (api.Module, error) {
 	compiled, err := runtime.CompileModule(ctx, wasmBytes)
 	if err != nil {
-		runtime.Close(ctx)
 		return nil, fmt.Errorf("%w: %v", ErrWASMCompileFailed, err)
 	}
 
-	// Instantiate the module
 	modConfig := wazero.NewModuleConfig().
 		WithStdout(io.Discard).
 		WithStderr(io.Discard).
@@ -200,12 +219,15 @@ func (l *WASMLoader) LoadFromBytes(wasmBytes []byte, caps Capability) (*WASMMod,
 
 	module, err := runtime.InstantiateModule(ctx, compiled, modConfig)
 	if err != nil {
-		runtime.Close(ctx)
 		return nil, fmt.Errorf("%w: %v", ErrWASMInstantiate, err)
 	}
 
-	// Get mod metadata by calling exported functions
-	mod := &WASMMod{
+	return module, nil
+}
+
+// createWASMMod constructs a WASMMod from initialized components.
+func (l *WASMLoader) createWASMMod(runtime wazero.Runtime, module api.Module, hd *hostData, caps Capability) *WASMMod {
+	return &WASMMod{
 		runtime:      runtime,
 		module:       module,
 		config:       l.config,
@@ -214,23 +236,23 @@ func (l *WASMLoader) LoadFromBytes(wasmBytes []byte, caps Capability) (*WASMMod,
 		Enabled:      true,
 		hostData:     hd,
 	}
+}
 
-	// Try to get mod info from exports
+// finalizeMod loads metadata and registers the mod.
+func (l *WASMLoader) finalizeMod(ctx context.Context, runtime wazero.Runtime, mod *WASMMod) error {
 	if err := mod.loadMetadata(ctx); err != nil {
 		runtime.Close(ctx)
-		return nil, err
+		return err
 	}
 
-	// Check for duplicate
 	if _, exists := l.mods[mod.ID]; exists {
 		runtime.Close(ctx)
-		return nil, ErrModAlreadyLoaded
+		return ErrModAlreadyLoaded
 	}
 
 	l.mods[mod.ID] = mod
 	l.modOrder = append(l.modOrder, mod.ID)
-
-	return mod, nil
+	return nil
 }
 
 // registerHostFunctions adds capability-guarded host functions.

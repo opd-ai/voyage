@@ -334,29 +334,39 @@ var factionDescriptions = map[engine.GenreID]map[Ideology][]string{
 // assignTerritory assigns territory blocks to a faction.
 func (g *Generator) assignTerritory(f *Faction, mapWidth, mapHeight int, manager *FactionManager) {
 	numBlocks := 1 + g.gen.Intn(3) // 1-3 territory blocks
-
 	for i := 0; i < numBlocks; i++ {
-		// Try to find a non-overlapping position
-		for attempts := 0; attempts < 10; attempts++ {
-			x := g.gen.Range(mapWidth/6, mapWidth*5/6)
-			y := g.gen.Range(mapHeight/6, mapHeight*5/6)
-			radius := g.gen.Range(2, 5)
+		g.tryAddTerritoryBlock(f, mapWidth, mapHeight, manager)
+	}
+}
 
-			// Check for overlap with existing territories
-			overlaps := false
-			for _, other := range manager.AllFactions() {
-				if other.ControlsPosition(x, y) {
-					overlaps = true
-					break
-				}
-			}
-
-			if !overlaps {
-				f.AddTerritory(x, y, radius)
-				break
-			}
+// tryAddTerritoryBlock attempts to place a non-overlapping territory block.
+func (g *Generator) tryAddTerritoryBlock(f *Faction, mapWidth, mapHeight int, manager *FactionManager) {
+	const maxAttempts = 10
+	for attempts := 0; attempts < maxAttempts; attempts++ {
+		x, y, radius := g.generateTerritoryCandidate(mapWidth, mapHeight)
+		if !g.territoryOverlaps(x, y, manager) {
+			f.AddTerritory(x, y, radius)
+			return
 		}
 	}
+}
+
+// generateTerritoryCandidate generates random territory position and radius.
+func (g *Generator) generateTerritoryCandidate(mapWidth, mapHeight int) (x, y, radius int) {
+	x = g.gen.Range(mapWidth/6, mapWidth*5/6)
+	y = g.gen.Range(mapHeight/6, mapHeight*5/6)
+	radius = g.gen.Range(2, 5)
+	return x, y, radius
+}
+
+// territoryOverlaps checks if a position overlaps with existing faction territories.
+func (g *Generator) territoryOverlaps(x, y int, manager *FactionManager) bool {
+	for _, other := range manager.AllFactions() {
+		if other.ControlsPosition(x, y) {
+			return true
+		}
+	}
+	return false
 }
 
 // generateRelationships creates the faction relationship matrix.
