@@ -128,35 +128,35 @@ func (lig *LandmarkIconGenerator) generateRuinsPattern(size int) [][]bool {
 		pattern[i] = make([]bool, size)
 	}
 
-	// Create broken building shapes
 	centerX := size / 2
 	groundY := size * 3 / 4
 
-	// Left wall
+	// Left wall with decay
 	wallHeight := size/3 + lig.gen.Intn(size/6)
-	for y := groundY - wallHeight; y < groundY; y++ {
-		for x := centerX - size/4; x < centerX-size/8; x++ {
-			if x >= 0 && x < size && y >= 0 && y < size {
-				if lig.gen.Chance(0.85) { // Some holes
-					pattern[y][x] = true
-				}
-			}
-		}
-	}
+	lig.fillWallSection(pattern, centerX-size/4, centerX-size/8, groundY-wallHeight, groundY, 0.85)
 
-	// Right partial wall
+	// Right partial wall with more decay
 	rightHeight := size/4 + lig.gen.Intn(size/8)
-	for y := groundY - rightHeight; y < groundY; y++ {
-		for x := centerX + size/8; x < centerX+size/4; x++ {
-			if x >= 0 && x < size && y >= 0 && y < size {
-				if lig.gen.Chance(0.75) {
-					pattern[y][x] = true
-				}
-			}
-		}
-	}
+	lig.fillWallSection(pattern, centerX+size/8, centerX+size/4, groundY-rightHeight, groundY, 0.75)
 
 	return pattern
+}
+
+// fillWallSection fills a rectangular wall section with optional holes.
+func (lig *LandmarkIconGenerator) fillWallSection(pattern [][]bool, x1, x2, y1, y2 int, fillChance float64) {
+	size := len(pattern)
+	for y := y1; y < y2; y++ {
+		for x := x1; x < x2; x++ {
+			if lig.isInBounds(x, y, size) && lig.gen.Chance(fillChance) {
+				pattern[y][x] = true
+			}
+		}
+	}
+}
+
+// isInBounds checks if coordinates are within bounds.
+func (lig *LandmarkIconGenerator) isInBounds(x, y, size int) bool {
+	return x >= 0 && x < size && y >= 0 && y < size
 }
 
 // drawRuinsBase draws the ruins structure.

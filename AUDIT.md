@@ -60,7 +60,7 @@
 
 ### MEDIUM
 
-- [ ] **High cyclomatic complexity in generateRuinsPattern** — `pkg/rendering/landmark_icon.go:214-248` — Complexity score 15.0 exceeds threshold of 10. Function has multiple nested conditionals for pattern generation. — **Remediation:** Extract terrain-specific pattern logic into helper functions `generateRuinsGrid()`, `generateRuinsDecay()`, `generateRuinsDebris()`. Target complexity ≤8 per function. Validate with `go-stats-generator analyze . --format json | jq '.functions[] | select(.name=="generateRuinsPattern") | .complexity.cyclomatic'`.
+- [x] **High cyclomatic complexity in generateRuinsPattern** — `pkg/rendering/landmark_icon.go:214-248` — Complexity score 15.0 exceeds threshold of 10. Function has multiple nested conditionals for pattern generation. — **Remediation:** Extract terrain-specific pattern logic into helper functions `generateRuinsGrid()`, `generateRuinsDecay()`, `generateRuinsDebris()`. Target complexity ≤8 per function. Validate with `go-stats-generator analyze . --format json | jq '.functions[] | select(.name=="generateRuinsPattern") | .complexity.cyclomatic'`.
 
 - [ ] **High cyclomatic complexity in GenerateCrewRelationshipEvent** — `pkg/events/relationships.go` — Complexity score 14.0 with 56 lines. Event generation has many conditional branches. — **Remediation:** Use a strategy pattern with relationship type handlers instead of switch cascades. Create `RelationshipEventGenerator` interface with implementations per relationship type. Target complexity ≤10.
 

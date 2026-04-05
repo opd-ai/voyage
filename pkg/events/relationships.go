@@ -35,54 +35,85 @@ func GenerateCrewRelationshipEvent(gen *seed.Generator, network *crew.Relationsh
 		return nil
 	}
 
-	// Find relationships with significant strength
+	rel := findSignificantRelationship(gen, network)
+	if rel == nil {
+		return nil
+	}
+
+	memberA, memberB := getAliveMembers(party, rel)
+	if memberA == nil || memberB == nil {
+		return nil
+	}
+
+	tmpl := selectRelationshipTemplate(gen, genre, rel.Type)
+	if tmpl == nil {
+		return nil
+	}
+
+	return buildRelationshipEvent(tmpl, memberA.Name, memberB.Name, rel.Strength, genre)
+}
+
+// findSignificantRelationship selects a relationship strong enough to trigger an event.
+func findSignificantRelationship(gen *seed.Generator, network *crew.RelationshipNetwork) *crew.Relationship {
 	relationships := network.AllRelationships()
 	if len(relationships) == 0 {
 		return nil
 	}
 
-	// Only trigger events for significant relationships
-	var strongRelationships []*crew.Relationship
-	for _, rel := range relationships {
-		if rel.Strength > 50 || rel.Strength < -30 {
-			strongRelationships = append(strongRelationships, rel)
-		}
-	}
-
+	strongRelationships := filterStrongRelationships(relationships)
 	if len(strongRelationships) == 0 {
 		return nil
 	}
 
-	// Pick a random strong relationship
-	rel := seed.Choice(gen, strongRelationships)
+	return seed.Choice(gen, strongRelationships)
+}
 
-	// Get the crew members involved
+// filterStrongRelationships returns relationships with significant positive or negative strength.
+func filterStrongRelationships(relationships []*crew.Relationship) []*crew.Relationship {
+	var result []*crew.Relationship
+	for _, rel := range relationships {
+		if rel.Strength > 50 || rel.Strength < -30 {
+			result = append(result, rel)
+		}
+	}
+	return result
+}
+
+// getAliveMembers retrieves the alive crew members involved in a relationship.
+func getAliveMembers(party *crew.Party, rel *crew.Relationship) (*crew.CrewMember, *crew.CrewMember) {
 	memberA := party.Get(rel.MemberA)
 	memberB := party.Get(rel.MemberB)
-	if memberA == nil || memberB == nil || !memberA.IsAlive || !memberB.IsAlive {
+	if memberA == nil || memberB == nil {
+		return nil, nil
+	}
+	if !memberA.IsAlive || !memberB.IsAlive {
+		return nil, nil
+	}
+	return memberA, memberB
+}
+
+// selectRelationshipTemplate chooses an appropriate template for the genre and relation type.
+func selectRelationshipTemplate(gen *seed.Generator, genre engine.GenreID, relType crew.RelationType) *RelationshipEventTemplate {
+	templates := relationshipTemplates[genre][relType]
+	if len(templates) == 0 {
+		templates = relationshipTemplates[engine.GenreFantasy][relType]
+	}
+	if len(templates) == 0 {
 		return nil
 	}
-
-	// Select template based on relationship type
-	templates := relationshipTemplates[genre][rel.Type]
-	if len(templates) == 0 {
-		templates = relationshipTemplates[engine.GenreFantasy][rel.Type]
-	}
-	if len(templates) == 0 {
-		return nil
-	}
-
 	tmpl := seed.Choice(gen, templates)
+	return &tmpl
+}
 
-	// Create event with personalized description
+// buildRelationshipEvent constructs the final event from a template.
+func buildRelationshipEvent(tmpl *RelationshipEventTemplate, nameA, nameB string, strength float64, genre engine.GenreID) *Event {
 	event := NewEvent(0, CategoryCrew, tmpl.Title, tmpl.Description, genre)
-	event.Title = formatRelationshipText(event.Title, memberA.Name, memberB.Name)
-	event.Description = formatRelationshipText(event.Description, memberA.Name, memberB.Name)
+	event.Title = formatRelationshipText(event.Title, nameA, nameB)
+	event.Description = formatRelationshipText(event.Description, nameA, nameB)
 
 	for _, c := range tmpl.Choices {
 		outcome := c.Outcome
-		// Modify outcome based on relationship strength
-		outcome.MoraleDelta *= (1 + rel.Strength/200) // Stronger relationships = bigger impact
+		outcome.MoraleDelta *= (1 + strength/200)
 		event.AddChoice(c.Text, outcome)
 	}
 
