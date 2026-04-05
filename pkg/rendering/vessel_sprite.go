@@ -173,8 +173,8 @@ func (vsg *VesselSpriteGenerator) generateWornSprite(pristine *ebiten.Image, hul
 	scuffCount := size / 4
 
 	for i := 0; i < scuffCount; i++ {
-		x := vsg.gen.IntN(size)
-		y := vsg.gen.IntN(size)
+		x := vsg.gen.Intn(size)
+		y := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, x, y) {
 			img.Set(x, y, wornColor)
 		}
@@ -195,8 +195,8 @@ func (vsg *VesselSpriteGenerator) generateDamagedSprite(pristine *ebiten.Image, 
 	damageCount := size / 2
 
 	for i := 0; i < damageCount; i++ {
-		x := vsg.gen.IntN(size)
-		y := vsg.gen.IntN(size)
+		x := vsg.gen.Intn(size)
+		y := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, x, y) {
 			// Some pixels are darkened, some are charred
 			if vsg.gen.Chance(0.3) {
@@ -208,12 +208,12 @@ func (vsg *VesselSpriteGenerator) generateDamagedSprite(pristine *ebiten.Image, 
 	}
 
 	// Add breach holes (small transparent areas)
-	breachCount := 2 + vsg.gen.IntN(3)
+	breachCount := 2 + vsg.gen.Intn(3)
 	for i := 0; i < breachCount; i++ {
-		bx := vsg.gen.IntN(size)
-		by := vsg.gen.IntN(size)
+		bx := vsg.gen.Intn(size)
+		by := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, bx, by) {
-			vsg.drawBreach(img, bx, by, 1+vsg.gen.IntN(2))
+			vsg.drawBreach(img, bx, by, 1+vsg.gen.Intn(2))
 		}
 	}
 
@@ -233,8 +233,8 @@ func (vsg *VesselSpriteGenerator) generateCriticalSprite(pristine *ebiten.Image,
 	damageCount := size
 
 	for i := 0; i < damageCount; i++ {
-		x := vsg.gen.IntN(size)
-		y := vsg.gen.IntN(size)
+		x := vsg.gen.Intn(size)
+		y := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, x, y) {
 			roll := vsg.gen.Float64()
 			if roll < 0.2 {
@@ -248,12 +248,12 @@ func (vsg *VesselSpriteGenerator) generateCriticalSprite(pristine *ebiten.Image,
 	}
 
 	// Multiple breach holes
-	breachCount := 4 + vsg.gen.IntN(4)
+	breachCount := 4 + vsg.gen.Intn(4)
 	for i := 0; i < breachCount; i++ {
-		bx := vsg.gen.IntN(size)
-		by := vsg.gen.IntN(size)
+		bx := vsg.gen.Intn(size)
+		by := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, bx, by) {
-			vsg.drawBreach(img, bx, by, 2+vsg.gen.IntN(3))
+			vsg.drawBreach(img, bx, by, 2+vsg.gen.Intn(3))
 		}
 	}
 

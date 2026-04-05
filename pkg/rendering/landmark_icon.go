@@ -133,7 +133,7 @@ func (lig *LandmarkIconGenerator) generateRuinsPattern(size int) [][]bool {
 	groundY := size * 3 / 4
 
 	// Left wall
-	wallHeight := size/3 + lig.gen.IntN(size/6)
+	wallHeight := size/3 + lig.gen.Intn(size/6)
 	for y := groundY - wallHeight; y < groundY; y++ {
 		for x := centerX - size/4; x < centerX-size/8; x++ {
 			if x >= 0 && x < size && y >= 0 && y < size {
@@ -145,7 +145,7 @@ func (lig *LandmarkIconGenerator) generateRuinsPattern(size int) [][]bool {
 	}
 
 	// Right partial wall
-	rightHeight := size/4 + lig.gen.IntN(size/8)
+	rightHeight := size/4 + lig.gen.Intn(size/8)
 	for y := groundY - rightHeight; y < groundY; y++ {
 		for x := centerX + size/8; x < centerX+size/4; x++ {
 			if x >= 0 && x < size && y >= 0 && y < size {
@@ -336,10 +336,10 @@ func (lig *LandmarkIconGenerator) generateWindowPositions(size int) [][2]int {
 	positions := make([][2]int, 0, 6)
 
 	// Generate 4-6 window positions
-	windowCount := 4 + lig.gen.IntN(3)
+	windowCount := 4 + lig.gen.Intn(3)
 	for i := 0; i < windowCount; i++ {
-		x := size/4 + lig.gen.IntN(size/2)
-		y := size/3 + lig.gen.IntN(size/3)
+		x := size/4 + lig.gen.Intn(size/2)
+		y := size/3 + lig.gen.Intn(size/3)
 		positions = append(positions, [2]int{x, y})
 	}
 
@@ -357,7 +357,7 @@ func (lig *LandmarkIconGenerator) drawTownBase(img *ebiten.Image, c color.Color)
 
 	for b := 0; b < buildingCount; b++ {
 		startX := b*size/buildingCount + size/12
-		height := size/3 + lig.gen.IntN(size/6)
+		height := size/3 + lig.gen.Intn(size/6)
 
 		for y := groundY - height; y < groundY; y++ {
 			for x := startX; x < startX+buildingWidth && x < size; x++ {

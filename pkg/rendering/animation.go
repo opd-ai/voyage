@@ -160,9 +160,9 @@ func (atg *AnimatedTileGenerator) generateGrassPattern(size int) []grassBlade {
 	blades := make([]grassBlade, bladeCount)
 	for i := range blades {
 		blades[i] = grassBlade{
-			x:      atg.gen.IntN(size),
-			y:      atg.gen.IntN(size),
-			height: 2 + atg.gen.IntN(4),
+			x:      atg.gen.Intn(size),
+			y:      atg.gen.Intn(size),
+			height: 2 + atg.gen.Intn(4),
 		}
 	}
 	return blades

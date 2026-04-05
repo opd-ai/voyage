@@ -73,8 +73,8 @@ const BaseVisibilityRange = 10.0
 // MinVisibilityRange is the minimum visibility in total darkness without lights.
 const MinVisibilityRange = 2.0
 
-// clampFloat restricts a value to a range.
-func clampFloat(v, min, max float64) float64 {
+// clampFloatLighting restricts a value to a range.
+func clampFloatLighting(v, min, max float64) float64 {
 	if v < min {
 		return min
 	}
@@ -129,9 +129,9 @@ func CalculateLightColorAt(pointLights []*PointLight, ambient color.RGBA, ambien
 
 	if totalWeight > 0 {
 		return color.RGBA{
-			R: uint8(clampFloat(totalR/totalWeight, 0, 255)),
-			G: uint8(clampFloat(totalG/totalWeight, 0, 255)),
-			B: uint8(clampFloat(totalB/totalWeight, 0, 255)),
+			R: uint8(clampFloatLighting(totalR/totalWeight, 0, 255)),
+			G: uint8(clampFloatLighting(totalG/totalWeight, 0, 255)),
+			B: uint8(clampFloatLighting(totalB/totalWeight, 0, 255)),
 			A: 255,
 		}
 	}
@@ -152,7 +152,7 @@ func CalculateVisibilityAt(pointLights []*PointLight, ambientLevel, flickerPhase
 	}
 
 	baseRange := MinVisibilityRange + (BaseVisibilityRange-MinVisibilityRange)*darknessPenalty
-	effectiveRange := clampFloat(baseRange+lightBonus, MinVisibilityRange, BaseVisibilityRange*2)
+	effectiveRange := clampFloatLighting(baseRange+lightBonus, MinVisibilityRange, BaseVisibilityRange*2)
 
 	return VisibilityRange{
 		BaseRange:       baseRange,
@@ -166,9 +166,9 @@ func CalculateVisibilityAt(pointLights []*PointLight, ambientLevel, flickerPhase
 func ApplyLightingToColor(c color.Color, tint color.RGBA, ambient float64) color.RGBA {
 	r, g, b, a := c.RGBA()
 
-	outR := uint8(clampFloat(float64(r>>8)*ambient*float64(tint.R)/255.0, 0, 255))
-	outG := uint8(clampFloat(float64(g>>8)*ambient*float64(tint.G)/255.0, 0, 255))
-	outB := uint8(clampFloat(float64(b>>8)*ambient*float64(tint.B)/255.0, 0, 255))
+	outR := uint8(clampFloatLighting(float64(r>>8)*ambient*float64(tint.R)/255.0, 0, 255))
+	outG := uint8(clampFloatLighting(float64(g>>8)*ambient*float64(tint.G)/255.0, 0, 255))
+	outB := uint8(clampFloatLighting(float64(b>>8)*ambient*float64(tint.B)/255.0, 0, 255))
 	outA := uint8(a >> 8)
 
 	return color.RGBA{outR, outG, outB, outA}

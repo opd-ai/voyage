@@ -38,7 +38,7 @@ func (go_ *GenreOverlay) ApplyOverlay(img *ebiten.Image) *ebiten.Image {
 	overlay := go_.getOverlayParams()
 
 	// Apply color tinting based on genre
-	op.ColorScale.Scale(overlay.tintR, overlay.tintG, overlay.tintB, 1.0)
+	op.ColorScale.Scale(float32(overlay.tintR), float32(overlay.tintG), float32(overlay.tintB), 1.0)
 
 	result.DrawImage(img, op)
 

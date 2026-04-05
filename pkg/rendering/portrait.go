@@ -277,9 +277,9 @@ func (pg *PortraitGenerator) generateHurtAnimation(base *ebiten.Image) []*ebiten
 		tintIntensity := []float64{0.0, 0.3, 0.2, 0.0}
 		if tintIntensity[f] > 0 {
 			op.ColorScale.Scale(
-				1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.R)/255,
-				1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.G)/255,
-				1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.B)/255,
+				float32(1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.R)/255),
+				float32(1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.G)/255),
+				float32(1.0-tintIntensity[f]+tintIntensity[f]*float64(hurtTint.B)/255),
 				1.0,
 			)
 		}
@@ -309,7 +309,7 @@ func (pg *PortraitGenerator) generateDeathAnimation(base *ebiten.Image) []*ebite
 		grayScale := 1.0 - fadeProgress*0.7
 		alphaScale := 1.0 - fadeProgress*0.8
 
-		op.ColorScale.Scale(grayScale, grayScale, grayScale, alphaScale)
+		op.ColorScale.Scale(float32(grayScale), float32(grayScale), float32(grayScale), float32(alphaScale))
 
 		frame.DrawImage(base, op)
 		frames[f] = frame
