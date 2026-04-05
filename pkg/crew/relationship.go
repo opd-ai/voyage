@@ -1,6 +1,8 @@
 package crew
 
 import (
+	"fmt"
+
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 )
@@ -61,11 +63,12 @@ func (rn *RelationshipNetwork) SetGenre(genre engine.GenreID) {
 }
 
 // pairKey returns a consistent key for a pair of member IDs.
+// Uses string formatting to handle large IDs safely (H-011).
 func pairKey(a, b int) string {
 	if a > b {
 		a, b = b, a
 	}
-	return string(rune(a)) + "-" + string(rune(b))
+	return fmt.Sprintf("%d-%d", a, b)
 }
 
 // GetRelationship returns the relationship between two members.

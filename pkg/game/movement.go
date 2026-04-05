@@ -70,7 +70,8 @@ func (mm *MovementManager) Move(terrain world.TerrainInfo, v *vessel.Vessel, res
 
 // ApplyTerrainConsumption applies terrain-specific resource consumption.
 // Call this after movement to apply additional consumption effects.
-func (mm *MovementManager) ApplyTerrainConsumption(terrain world.TerrainInfo, res *resources.Resources, crewCount int) {
+// Returns true if all resources were successfully consumed (M-003).
+func (mm *MovementManager) ApplyTerrainConsumption(terrain world.TerrainInfo, res *resources.Resources, crewCount int) bool {
 	// Base daily consumption per crew
 	baseFood := 2.0
 	baseWater := 2.0
@@ -79,8 +80,10 @@ func (mm *MovementManager) ApplyTerrainConsumption(terrain world.TerrainInfo, re
 	foodCost := baseFood * terrain.FoodModifier * float64(crewCount)
 	waterCost := baseWater * terrain.WaterModifier * float64(crewCount)
 
-	res.Consume(resources.ResourceFood, foodCost)
-	res.Consume(resources.ResourceWater, waterCost)
+	// Check and consume resources, tracking success (M-003)
+	foodOk := res.Consume(resources.ResourceFood, foodCost)
+	waterOk := res.Consume(resources.ResourceWater, waterCost)
+	return foodOk && waterOk
 }
 
 // GetTerrainMovementDescription returns a description of terrain movement.

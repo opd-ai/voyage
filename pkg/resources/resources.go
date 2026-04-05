@@ -1,6 +1,10 @@
 package resources
 
-import "github.com/opd-ai/voyage/pkg/engine"
+import (
+	"fmt"
+
+	"github.com/opd-ai/voyage/pkg/engine"
+)
 
 // ResourceType identifies a resource category.
 type ResourceType int
@@ -29,6 +33,26 @@ func AllResourceTypes() []ResourceType {
 		ResourceMedicine,
 		ResourceMorale,
 		ResourceCurrency,
+	}
+}
+
+// String returns a string representation of the resource type.
+func (rt ResourceType) String() string {
+	switch rt {
+	case ResourceFood:
+		return "Food"
+	case ResourceWater:
+		return "Water"
+	case ResourceFuel:
+		return "Fuel"
+	case ResourceMedicine:
+		return "Medicine"
+	case ResourceMorale:
+		return "Morale"
+	case ResourceCurrency:
+		return "Currency"
+	default:
+		return fmt.Sprintf("Resource(%d)", int(rt))
 	}
 }
 
@@ -157,12 +181,18 @@ func (r *Resources) SetMax(rt ResourceType, max float64) {
 }
 
 // GetResourceName returns the genre-specific name for a resource type.
+// Returns a fallback name if the resource type is not found (M-010).
 func GetResourceName(rt ResourceType, genre engine.GenreID) string {
 	names, ok := resourceNames[genre]
 	if !ok {
 		names = resourceNames[engine.GenreFantasy]
 	}
-	return names[rt]
+	name, ok := names[rt]
+	if !ok {
+		// Fallback to string representation of resource type (M-010)
+		return rt.String()
+	}
+	return name
 }
 
 var resourceNames = map[engine.GenreID]map[ResourceType]string{

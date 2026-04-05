@@ -1,6 +1,8 @@
 package vessel
 
 import (
+	"math"
+
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 )
@@ -155,12 +157,11 @@ func (g *HullSkinGenerator) clampHues(params *HullSkinParams) {
 }
 
 // wrapHue wraps a hue value to the 0-360 range.
+// Uses modulo arithmetic to avoid infinite loops with extreme values (M-011).
 func wrapHue(h float64) float64 {
-	for h < 0 {
+	h = math.Mod(h, 360)
+	if h < 0 {
 		h += 360
-	}
-	for h >= 360 {
-		h -= 360
 	}
 	return h
 }

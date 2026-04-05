@@ -157,6 +157,10 @@ func (ps *ParticleSystem) emitParticle(emitter *ParticleEmitter) {
 func (ps *ParticleSystem) updateParticles(dt float64) {
 	alive := ps.particles[:0]
 	for _, p := range ps.particles {
+		// Guard against zero or negative MaxLife (M-012)
+		if p.MaxLife <= 0 {
+			continue
+		}
 		p.Life -= dt / p.MaxLife
 		if p.Life <= 0 {
 			continue

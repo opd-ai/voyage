@@ -50,8 +50,9 @@ func (es *EndStats) SetDefeat(lc LoseCondition) {
 }
 
 // CalculateScore computes a final score based on performance.
+// Uses int64 for intermediate calculations to prevent overflow (M-016).
 func (es *EndStats) CalculateScore() int {
-	score := 0
+	var score int64 = 0
 
 	// Base score for surviving
 	if es.IsVictory {
@@ -61,31 +62,40 @@ func (es *EndStats) CalculateScore() int {
 	// Bonus for crew survival
 	if es.CrewStarted > 0 {
 		survivalRate := float64(es.CrewSurvived) / float64(es.CrewStarted)
-		score += int(survivalRate * 500)
+		score += int64(survivalRate * 500)
 	}
 
 	// Points for distance traveled
-	score += es.DistanceTraveled * 5
+	score += int64(es.DistanceTraveled) * 5
 
 	// Points for exploration
-	score += es.TilesExplored * 2
+	score += int64(es.TilesExplored) * 2
 
 	// Points for events resolved
-	score += es.EventsResolved * 10
+	score += int64(es.EventsResolved) * 10
 
 	// Efficiency bonus for quick completion
 	if es.DaysTraveled > 0 && es.DaysTraveled < 100 {
-		efficiencyBonus := (100 - es.DaysTraveled) * 5
+		efficiencyBonus := int64(100-es.DaysTraveled) * 5
 		score += efficiencyBonus
 	}
 
 	// Economic score
 	netCurrency := es.CurrencyEarned - es.CurrencySpent
 	if netCurrency > 0 {
-		score += int(netCurrency / 10)
+		score += int64(netCurrency) / 10
 	}
 
-	return score
+	// Cap at maximum int value to prevent overflow (M-016)
+	const maxScore = int64(1<<31 - 1)
+	if score > maxScore {
+		score = maxScore
+	}
+	if score < 0 {
+		score = 0
+	}
+
+	return int(score)
 }
 
 // GetSurvivalRate returns the crew survival rate as a percentage.

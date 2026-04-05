@@ -187,11 +187,14 @@ func (st *StatusTracker) HasEffect(t StatusType) bool {
 	return false
 }
 
-// GetEffect returns the effect if present, nil otherwise.
+// GetEffect returns a copy of the effect if present, nil otherwise.
+// Returns a copy rather than a pointer to avoid slice reallocation issues (M-009).
 func (st *StatusTracker) GetEffect(t StatusType) *StatusEffect {
 	for i := range st.effects {
 		if st.effects[i].Type == t {
-			return &st.effects[i]
+			// Return a copy to avoid pointer invalidation (M-009)
+			eff := st.effects[i]
+			return &eff
 		}
 	}
 	return nil

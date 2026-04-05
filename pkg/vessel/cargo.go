@@ -179,11 +179,12 @@ func (h *CargoHold) Items() []*Cargo {
 }
 
 // CanAdd checks if cargo can be added without exceeding limits.
+// Uses int64 for intermediate calculations to prevent overflow (H-012).
 func (h *CargoHold) CanAdd(weight, volume, quantity int) bool {
-	totalWeight := weight * quantity
-	totalVolume := volume * quantity
-	return h.usedWeight+totalWeight <= h.weightLimit &&
-		h.usedVolume+totalVolume <= h.volumeLimit
+	totalWeight := int64(weight) * int64(quantity)
+	totalVolume := int64(volume) * int64(quantity)
+	return int64(h.usedWeight)+totalWeight <= int64(h.weightLimit) &&
+		int64(h.usedVolume)+totalVolume <= int64(h.volumeLimit)
 }
 
 // Add adds cargo to the hold. Returns true if successful.
@@ -192,13 +193,14 @@ func (h *CargoHold) Add(name string, weight, quantity int, cat CargoCategory) bo
 }
 
 // AddWithVolume adds cargo with explicit volume to the hold.
+// Uses int64 for intermediate calculations to prevent overflow (H-012).
 func (h *CargoHold) AddWithVolume(name string, weight, volume, quantity int, cat CargoCategory) bool {
-	totalWeight := weight * quantity
-	totalVolume := volume * quantity
-	if h.usedWeight+totalWeight > h.weightLimit {
+	totalWeight := int64(weight) * int64(quantity)
+	totalVolume := int64(volume) * int64(quantity)
+	if int64(h.usedWeight)+totalWeight > int64(h.weightLimit) {
 		return false
 	}
-	if h.usedVolume+totalVolume > h.volumeLimit {
+	if int64(h.usedVolume)+totalVolume > int64(h.volumeLimit) {
 		return false
 	}
 
@@ -206,8 +208,8 @@ func (h *CargoHold) AddWithVolume(name string, weight, volume, quantity int, cat
 	for _, item := range h.items {
 		if item.Name == name && item.Category == cat {
 			item.Quantity += quantity
-			h.usedWeight += totalWeight
-			h.usedVolume += totalVolume
+			h.usedWeight += int(totalWeight)
+			h.usedVolume += int(totalVolume)
 			return true
 		}
 	}
@@ -222,8 +224,8 @@ func (h *CargoHold) AddWithVolume(name string, weight, volume, quantity int, cat
 		Category: cat,
 	})
 	h.nextID++
-	h.usedWeight += totalWeight
-	h.usedVolume += totalVolume
+	h.usedWeight += int(totalWeight)
+	h.usedVolume += int(totalVolume)
 	return true
 }
 

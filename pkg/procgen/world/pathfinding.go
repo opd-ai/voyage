@@ -116,9 +116,12 @@ func heuristic(a, b Point) int {
 }
 
 // reconstructPath builds the path from start to end.
+// Includes a maximum iteration guard to prevent infinite loops (M-013).
 func reconstructPath(cameFrom map[Point]Point, current Point) []Point {
 	path := []Point{current}
-	for {
+	// Safety guard: max iterations = map size (M-013)
+	maxIter := len(cameFrom) + 1
+	for i := 0; i < maxIter; i++ {
 		prev, exists := cameFrom[current]
 		if !exists {
 			break

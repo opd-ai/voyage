@@ -136,11 +136,20 @@ func (bi *BarterInterface) rejectBarter(result *BarterResult, offer *BarterOffer
 
 // acceptanceThreshold returns the value ratio needed for acceptance.
 // Lower values = merchant accepts worse deals (better for player).
+// Result is clamped to a reasonable range to prevent exploits (M-015).
 func (bi *BarterInterface) acceptanceThreshold() float64 {
 	rep := bi.tradeInterface.post.Reputation
 	// Reputation 0 = 1.1 threshold (merchant wants 10% more value)
 	// Reputation 1 = 0.85 threshold (merchant accepts 15% less value)
-	return 1.1 - (rep * 0.25)
+	threshold := 1.1 - (rep * 0.25)
+	// Clamp to prevent extreme values (M-015)
+	if threshold < 0.5 {
+		threshold = 0.5
+	}
+	if threshold > 2.0 {
+		threshold = 2.0
+	}
+	return threshold
 }
 
 // executeBarter performs the actual item exchange.

@@ -47,17 +47,19 @@ type ForageResult struct {
 
 // ForageManager handles gathering resources at wilderness and ruin tiles.
 type ForageManager struct {
-	gen          *seed.Generator
-	genre        engine.GenreID
-	foragedTiles map[string]int // Map of "x,y" -> times foraged
+	gen           *seed.Generator
+	genre         engine.GenreID
+	foragedTiles  map[string]int // Map of "x,y" -> times foraged
+	forageHistory map[string]int // Map of "x,y" -> turn when last foraged (M-002)
 }
 
 // NewForageManager creates a new forage manager.
 func NewForageManager(masterSeed int64, genre engine.GenreID) *ForageManager {
 	return &ForageManager{
-		gen:          seed.NewGenerator(masterSeed, "forage"),
-		genre:        genre,
-		foragedTiles: make(map[string]int),
+		gen:           seed.NewGenerator(masterSeed, "forage"),
+		genre:         genre,
+		foragedTiles:  make(map[string]int),
+		forageHistory: make(map[string]int),
 	}
 }
 
@@ -126,8 +128,9 @@ func (fm *ForageManager) Forage(tile *world.Tile, turn int) *ForageResult {
 	timesForaged := fm.foragedTiles[posKey]
 	yieldMod := fm.calculateYieldModifier(timesForaged)
 
-	// Update forage count
+	// Update forage count and history (M-002)
 	fm.foragedTiles[posKey]++
+	fm.forageHistory[posKey] = turn
 
 	// Determine outcome based on terrain and RNG
 	outcome := fm.rollOutcome(localGen, tile)
@@ -256,47 +259,72 @@ func (fm *ForageManager) GetForageCount(x, y int) int {
 
 // ResetTile resets the forage count for a tile (e.g., after time passes).
 func (fm *ForageManager) ResetTile(x, y int) {
-	delete(fm.foragedTiles, fm.tileKey(x, y))
+	key := fm.tileKey(x, y)
+	delete(fm.foragedTiles, key)
+	delete(fm.forageHistory, key)
+}
+
+// CleanupOldEntries removes forage data for tiles not visited recently (M-002).
+// This prevents unbounded memory growth during extended play sessions.
+// regenerationTurns is the number of turns after which tiles regenerate.
+func (fm *ForageManager) CleanupOldEntries(currentTurn, regenerationTurns int) {
+	threshold := currentTurn - regenerationTurns
+	for key, lastForaged := range fm.forageHistory {
+		if lastForaged < threshold {
+			delete(fm.foragedTiles, key)
+			delete(fm.forageHistory, key)
+		}
+	}
 }
 
 // Description generation methods
+
+// getTextsWithFallback gets genre-specific texts with Fantasy fallback (M-017).
+func getTextsWithFallback(textMap map[engine.GenreID][]string, genre engine.GenreID) []string {
+	if texts, ok := textMap[genre]; ok && len(texts) > 0 {
+		return texts
+	}
+	// Fallback to Fantasy genre (M-017)
+	return textMap[engine.GenreFantasy]
+}
+
 func (fm *ForageManager) nothingDescription(gen *seed.Generator) string {
-	texts := nothingTexts[fm.genre]
+	texts := getTextsWithFallback(nothingTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 
 func (fm *ForageManager) foodDescription(gen *seed.Generator, amount float64) string {
-	texts := foodTexts[fm.genre]
+	texts := getTextsWithFallback(foodTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 
 func (fm *ForageManager) waterDescription(gen *seed.Generator, amount float64) string {
-	texts := waterTexts[fm.genre]
+	texts := getTextsWithFallback(waterTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 
 func (fm *ForageManager) fuelDescription(gen *seed.Generator, amount float64) string {
-	texts := fuelTexts[fm.genre]
+	texts := getTextsWithFallback(fuelTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 
 func (fm *ForageManager) medsDescription(gen *seed.Generator, amount float64) string {
-	texts := medsTexts[fm.genre]
+	texts := getTextsWithFallback(medsTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 
 func (fm *ForageManager) currencyDescription(gen *seed.Generator, amount float64) string {
-	texts := currencyTexts[fm.genre]
+	texts := getTextsWithFallback(currencyTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 
 func (fm *ForageManager) partsDescription(gen *seed.Generator, count int) string {
-	texts := partsTexts[fm.genre]
+	texts := getTextsWithFallback(partsTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 
 func (fm *ForageManager) encounterDescription(gen *seed.Generator) string {
-	texts := encounterTexts[fm.genre]
+	texts := getTextsWithFallback(encounterTexts, fm.genre)
 	return seed.Choice(gen, texts)
 }
 

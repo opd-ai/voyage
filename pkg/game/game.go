@@ -127,7 +127,9 @@ func (g *Game) handlePlayingInput() {
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		g.state = StatePaused
 	}
-	g.world.Update(1.0 / 60.0)
+	// Use dynamic delta time based on actual TPS (H-010)
+	dt := 1.0 / float64(ebiten.TPS())
+	g.world.Update(dt)
 }
 
 // handlePausedInput handles input in paused state.
