@@ -148,6 +148,17 @@ type FactionDef struct {
 
 // Validate checks if the mod definition is valid.
 func (m *Mod) Validate() error {
+	if err := m.validateRequiredFields(); err != nil {
+		return err
+	}
+	if err := m.validateEvents(); err != nil {
+		return err
+	}
+	return m.validateGenres()
+}
+
+// validateRequiredFields checks that mod has required ID, name, and version.
+func (m *Mod) validateRequiredFields() error {
 	if m.ID == "" {
 		return ErrMissingID
 	}
@@ -157,32 +168,39 @@ func (m *Mod) Validate() error {
 	if m.Version == "" {
 		return ErrMissingVersion
 	}
+	return nil
+}
 
+// validateEvents checks all events in the mod.
+func (m *Mod) validateEvents() error {
 	for i, e := range m.Events {
 		if err := e.Validate(); err != nil {
-			return &ValidationError{
-				Field:   "events",
-				Index:   i,
-				Message: err.Error(),
-			}
+			return &ValidationError{Field: "events", Index: i, Message: err.Error()}
 		}
 	}
+	return nil
+}
 
+// validateGenres checks all genres in the mod.
+func (m *Mod) validateGenres() error {
 	for i, g := range m.Genres {
 		if err := g.Validate(); err != nil {
-			return &ValidationError{
-				Field:   "genres",
-				Index:   i,
-				Message: err.Error(),
-			}
+			return &ValidationError{Field: "genres", Index: i, Message: err.Error()}
 		}
 	}
-
 	return nil
 }
 
 // Validate checks if the event definition is valid.
 func (e *EventDef) Validate() error {
+	if err := e.validateRequiredFields(); err != nil {
+		return err
+	}
+	return e.validateChoices()
+}
+
+// validateRequiredFields checks event's required text fields and category.
+func (e *EventDef) validateRequiredFields() error {
 	if e.Title == "" {
 		return ErrMissingTitle
 	}
@@ -198,17 +216,16 @@ func (e *EventDef) Validate() error {
 	if !isValidCategory(e.Category) {
 		return ErrInvalidCategory
 	}
+	return nil
+}
 
+// validateChoices checks that all choices have text.
+func (e *EventDef) validateChoices() error {
 	for i, c := range e.Choices {
 		if c.Text == "" {
-			return &ValidationError{
-				Field:   "choices",
-				Index:   i,
-				Message: "choice text is required",
-			}
+			return &ValidationError{Field: "choices", Index: i, Message: "choice text is required"}
 		}
 	}
-
 	return nil
 }
 

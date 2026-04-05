@@ -237,7 +237,16 @@ func (l *WASMLoader) LoadFromBytes(wasmBytes []byte, caps Capability) (*WASMMod,
 func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.Runtime, caps Capability, hd *hostData) (api.Module, error) {
 	builder := runtime.NewHostModuleBuilder("voyage")
 
-	// Register event reading function
+	registerEventFunctions(builder, caps, hd)
+	registerGenreFunctions(builder, caps, hd)
+	registerResourceFunctions(builder, caps, hd)
+	registerUtilityFunctions(builder, caps, hd)
+
+	return builder.Instantiate(ctx)
+}
+
+// registerEventFunctions adds event reading and writing host functions.
+func registerEventFunctions(builder wazero.HostModuleBuilder, caps Capability, hd *hostData) {
 	builder.NewFunctionBuilder().
 		WithFunc(func(ctx context.Context, m api.Module, ptr, len uint32) uint32 {
 			if caps&CapReadEvents == 0 {
@@ -250,7 +259,6 @@ func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.R
 		}).
 		Export("voyage_read_events")
 
-	// Register event writing function
 	builder.NewFunctionBuilder().
 		WithFunc(func(ctx context.Context, m api.Module, ptr, len uint32) uint32 {
 			if caps&CapWriteEvents == 0 {
@@ -267,8 +275,10 @@ func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.R
 			return 0
 		}).
 		Export("voyage_add_event")
+}
 
-	// Register genre reading function
+// registerGenreFunctions adds genre reading and writing host functions.
+func registerGenreFunctions(builder wazero.HostModuleBuilder, caps Capability, hd *hostData) {
 	builder.NewFunctionBuilder().
 		WithFunc(func(ctx context.Context, m api.Module, ptr, len uint32) uint32 {
 			if caps&CapReadGenres == 0 {
@@ -281,7 +291,6 @@ func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.R
 		}).
 		Export("voyage_read_genres")
 
-	// Register genre writing function
 	builder.NewFunctionBuilder().
 		WithFunc(func(ctx context.Context, m api.Module, ptr, len uint32) uint32 {
 			if caps&CapWriteGenres == 0 {
@@ -298,8 +307,10 @@ func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.R
 			return 0
 		}).
 		Export("voyage_add_genre")
+}
 
-	// Register resource reading function
+// registerResourceFunctions adds resource reading host function.
+func registerResourceFunctions(builder wazero.HostModuleBuilder, caps Capability, hd *hostData) {
 	builder.NewFunctionBuilder().
 		WithFunc(func(ctx context.Context, m api.Module, ptr, len uint32) uint32 {
 			if caps&CapReadResources == 0 {
@@ -311,8 +322,10 @@ func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.R
 			return writeToMemory(m, ptr, len, data)
 		}).
 		Export("voyage_read_resources")
+}
 
-	// Register log function (always available)
+// registerUtilityFunctions adds log and capability check host functions.
+func registerUtilityFunctions(builder wazero.HostModuleBuilder, caps Capability, hd *hostData) {
 	builder.NewFunctionBuilder().
 		WithFunc(func(ctx context.Context, m api.Module, ptr, len uint32) {
 			data := readFromMemory(m, ptr, len)
@@ -322,7 +335,6 @@ func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.R
 		}).
 		Export("voyage_log")
 
-	// Register capability check function
 	builder.NewFunctionBuilder().
 		WithFunc(func(cap uint32) uint32 {
 			if caps&Capability(cap) != 0 {
@@ -331,8 +343,6 @@ func (l *WASMLoader) registerHostFunctions(ctx context.Context, runtime wazero.R
 			return 0
 		}).
 		Export("voyage_has_capability")
-
-	return builder.Instantiate(ctx)
 }
 
 // loadMetadata extracts mod information from WASM exports.
@@ -704,44 +714,45 @@ func writeToMemory(m api.Module, ptr, maxLen uint32, data []byte) uint32 {
 	return writeLen
 }
 
+// capabilityNames maps each capability flag to its string name.
+var capabilityNames = []struct {
+	cap  Capability
+	name string
+}{
+	{CapReadEvents, "read_events"},
+	{CapWriteEvents, "write_events"},
+	{CapReadGenres, "read_genres"},
+	{CapWriteGenres, "write_genres"},
+	{CapReadResources, "read_resources"},
+	{CapWriteResources, "write_resources"},
+	{CapReadCrew, "read_crew"},
+	{CapModifyCrew, "modify_crew"},
+	{CapTriggerEvents, "trigger_events"},
+	{CapAccessRNG, "access_rng"},
+}
+
 // CapabilityString returns a human-readable capability name.
 func CapabilityString(cap Capability) string {
-	names := make([]string, 0)
-	if cap&CapReadEvents != 0 {
-		names = append(names, "read_events")
-	}
-	if cap&CapWriteEvents != 0 {
-		names = append(names, "write_events")
-	}
-	if cap&CapReadGenres != 0 {
-		names = append(names, "read_genres")
-	}
-	if cap&CapWriteGenres != 0 {
-		names = append(names, "write_genres")
-	}
-	if cap&CapReadResources != 0 {
-		names = append(names, "read_resources")
-	}
-	if cap&CapWriteResources != 0 {
-		names = append(names, "write_resources")
-	}
-	if cap&CapReadCrew != 0 {
-		names = append(names, "read_crew")
-	}
-	if cap&CapModifyCrew != 0 {
-		names = append(names, "modify_crew")
-	}
-	if cap&CapTriggerEvents != 0 {
-		names = append(names, "trigger_events")
-	}
-	if cap&CapAccessRNG != 0 {
-		names = append(names, "access_rng")
-	}
-
+	names := collectCapabilityNames(cap)
 	if len(names) == 0 {
 		return "none"
 	}
+	return joinNames(names)
+}
 
+// collectCapabilityNames returns the names of all capabilities set in cap.
+func collectCapabilityNames(cap Capability) []string {
+	names := make([]string, 0, len(capabilityNames))
+	for _, cn := range capabilityNames {
+		if cap&cn.cap != 0 {
+			names = append(names, cn.name)
+		}
+	}
+	return names
+}
+
+// joinNames concatenates names with comma separator.
+func joinNames(names []string) string {
 	result := names[0]
 	for i := 1; i < len(names); i++ {
 		result += ", " + names[i]

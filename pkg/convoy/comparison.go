@@ -270,9 +270,16 @@ func (c *Convoy) GetFirstToFinish() (*Player, *RunData) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	var first *Player
-	var firstRun *RunData
+	firstRun := c.findEarliestFinishedRun()
+	if firstRun == nil {
+		return nil, nil
+	}
+	return c.findPlayerByID(firstRun.PlayerID), firstRun
+}
 
+// findEarliestFinishedRun returns the run with the earliest finish time.
+func (c *Convoy) findEarliestFinishedRun() *RunData {
+	var firstRun *RunData
 	for _, run := range c.Runs {
 		if run.FinishedAt.IsZero() {
 			continue
@@ -281,17 +288,17 @@ func (c *Convoy) GetFirstToFinish() (*Player, *RunData) {
 			firstRun = run
 		}
 	}
+	return firstRun
+}
 
-	if firstRun != nil {
-		for _, p := range c.Players {
-			if p.ID == firstRun.PlayerID {
-				first = p
-				break
-			}
+// findPlayerByID looks up a player by ID from the convoy's player list.
+func (c *Convoy) findPlayerByID(id PlayerID) *Player {
+	for _, p := range c.Players {
+		if p.ID == id {
+			return p
 		}
 	}
-
-	return first, firstRun
+	return nil
 }
 
 // GetVictoryCount returns the number of players who achieved victory.

@@ -290,55 +290,56 @@ func (ls *LeaderboardScreen) drawHeaders(panel *ebiten.Image) {
 
 // drawEntries draws the leaderboard entries.
 func (ls *LeaderboardScreen) drawEntries(panel *ebiten.Image) {
+	if len(ls.entries) == 0 {
+		ebitenutil.DebugPrintAt(panel, "No entries found", 240, 200)
+		return
+	}
+
 	y := 110
 	lineHeight := 25
+	startIdx, endIdx := ls.visibleRange()
 
+	for i := startIdx; i < endIdx; i++ {
+		ls.drawEntry(panel, i, y)
+		y += lineHeight
+	}
+}
+
+// visibleRange returns the start and end indices of visible entries.
+func (ls *LeaderboardScreen) visibleRange() (int, int) {
 	endIdx := ls.scrollOffset + ls.maxVisible
 	if endIdx > len(ls.entries) {
 		endIdx = len(ls.entries)
 	}
+	return ls.scrollOffset, endIdx
+}
 
-	for i := ls.scrollOffset; i < endIdx; i++ {
-		entry := ls.entries[i]
-		rank := i + 1
-
-		// Highlight selected entry
-		prefix := "  "
-		if i == ls.selectedIndex {
-			prefix = "> "
-		}
-
-		// Format entry line
-		rankStr := fmt.Sprintf("%s%3d", prefix, rank)
-		scoreStr := fmt.Sprintf("%6d", entry.Score)
-		daysStr := fmt.Sprintf("%4d", entry.Days)
-		crewStr := fmt.Sprintf("%4d", entry.Survivors)
-		genreStr := genreShortName(entry.Genre)
-		seedStr := fmt.Sprintf("%d", entry.Seed)
-		playerStr := entry.PlayerName
-		if playerStr == "" {
-			playerStr = "Anonymous"
-		}
-		if len(playerStr) > 10 {
-			playerStr = playerStr[:10]
-		}
-
-		ebitenutil.DebugPrintAt(panel, rankStr, 10, y)
-		ebitenutil.DebugPrintAt(panel, scoreStr, 70, y)
-		ebitenutil.DebugPrintAt(panel, daysStr, 160, y)
-		ebitenutil.DebugPrintAt(panel, crewStr, 220, y)
-		ebitenutil.DebugPrintAt(panel, genreStr, 280, y)
-		ebitenutil.DebugPrintAt(panel, seedStr, 380, y)
-		ebitenutil.DebugPrintAt(panel, playerStr, 480, y)
-
-		y += lineHeight
+// drawEntry draws a single leaderboard entry row at the given y position.
+func (ls *LeaderboardScreen) drawEntry(panel *ebiten.Image, idx, y int) {
+	entry := ls.entries[idx]
+	prefix := "  "
+	if idx == ls.selectedIndex {
+		prefix = "> "
 	}
 
-	// Show empty message if no entries
-	if len(ls.entries) == 0 {
-		emptyMsg := "No entries found"
-		ebitenutil.DebugPrintAt(panel, emptyMsg, 240, 200)
+	ebitenutil.DebugPrintAt(panel, fmt.Sprintf("%s%3d", prefix, idx+1), 10, y)
+	ebitenutil.DebugPrintAt(panel, fmt.Sprintf("%6d", entry.Score), 70, y)
+	ebitenutil.DebugPrintAt(panel, fmt.Sprintf("%4d", entry.Days), 160, y)
+	ebitenutil.DebugPrintAt(panel, fmt.Sprintf("%4d", entry.Survivors), 220, y)
+	ebitenutil.DebugPrintAt(panel, genreShortName(entry.Genre), 280, y)
+	ebitenutil.DebugPrintAt(panel, fmt.Sprintf("%d", entry.Seed), 380, y)
+	ebitenutil.DebugPrintAt(panel, truncatePlayerName(entry.PlayerName), 480, y)
+}
+
+// truncatePlayerName formats player name for display, truncating if needed.
+func truncatePlayerName(name string) string {
+	if name == "" {
+		return "Anonymous"
 	}
+	if len(name) > 10 {
+		return name[:10]
+	}
+	return name
 }
 
 // drawScrollbar draws a scrollbar indicator.

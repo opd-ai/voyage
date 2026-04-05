@@ -79,32 +79,43 @@ func (c *Client) Submit(entry *Entry) error {
 		return err
 	}
 
-	// Always store locally first
-	if c.config.LocalStorage != nil {
-		if err := c.config.LocalStorage.AddEntry(entry); err != nil {
-			return err
-		}
+	if err := c.storeLocally(entry); err != nil {
+		return err
 	}
 
-	// Attempt server submission
+	return c.attemptServerSubmit(entry)
+}
+
+// storeLocally saves the entry to local storage if available.
+func (c *Client) storeLocally(entry *Entry) error {
+	if c.config.LocalStorage == nil {
+		return nil
+	}
+	return c.config.LocalStorage.AddEntry(entry)
+}
+
+// attemptServerSubmit tries to submit entry to server, handling success/failure.
+func (c *Client) attemptServerSubmit(entry *Entry) error {
 	data, err := entry.Marshal()
 	if err != nil {
 		return err
 	}
 
-	err = c.submitToServer(data)
-	if err != nil {
+	if err := c.submitToServer(data); err != nil {
 		c.setOnline(false)
 		return nil // Local storage succeeded, server submission deferred
 	}
 
 	c.setOnline(true)
-	// Remove from pending since server submission succeeded
+	c.clearPendingEntry(entry)
+	return nil
+}
+
+// clearPendingEntry removes entry from pending list after successful server submit.
+func (c *Client) clearPendingEntry(entry *Entry) {
 	if c.config.LocalStorage != nil {
 		c.config.LocalStorage.RemovePendingEntry(entry)
 	}
-
-	return nil
 }
 
 // submitToServer sends entry data to the server with retries.
@@ -221,34 +232,45 @@ func (c *Client) queryServer(queryURL string) (*Board, error) {
 // queryLocal queries the local storage.
 func (c *Client) queryLocal(opts QueryOptions) *Board {
 	local := c.config.LocalStorage.GetBoard()
-	result := NewBoard()
+	entries := filterLocalEntries(local, opts)
+	return buildBoardFromSlice(entries, opts)
+}
 
-	var entries []*Entry
+// filterLocalEntries returns entries from local board matching the query options.
+func filterLocalEntries(local *Board, opts QueryOptions) []*Entry {
 	if opts.Seed != nil && opts.Genre != nil {
-		entries = local.GetBySeedAndGenre(*opts.Seed, *opts.Genre)
-	} else if opts.Seed != nil {
-		entries = local.GetBySeed(*opts.Seed)
-	} else if opts.Genre != nil {
-		entries = local.GetByGenre(*opts.Genre)
-	} else {
-		entries = local.GetAll()
+		return local.GetBySeedAndGenre(*opts.Seed, *opts.Genre)
 	}
+	if opts.Seed != nil {
+		return local.GetBySeed(*opts.Seed)
+	}
+	if opts.Genre != nil {
+		return local.GetByGenre(*opts.Genre)
+	}
+	return local.GetAll()
+}
 
-	// Apply limit and offset
-	start := opts.Offset
-	if start > len(entries) {
-		start = len(entries)
-	}
-	end := len(entries)
-	if opts.Limit > 0 && start+opts.Limit < end {
-		end = start + opts.Limit
-	}
-
+// buildBoardFromSlice creates a Board from a slice applying offset and limit.
+func buildBoardFromSlice(entries []*Entry, opts QueryOptions) *Board {
+	start, end := calculatePaginationBounds(len(entries), opts.Offset, opts.Limit)
+	result := NewBoard()
 	for _, e := range entries[start:end] {
 		_ = result.Add(e)
 	}
-
 	return result
+}
+
+// calculatePaginationBounds computes start and end indices for pagination.
+func calculatePaginationBounds(total, offset, limit int) (start, end int) {
+	start = offset
+	if start > total {
+		start = total
+	}
+	end = total
+	if limit > 0 && start+limit < end {
+		end = start + limit
+	}
+	return start, end
 }
 
 // SyncPending attempts to sync pending entries to the server.

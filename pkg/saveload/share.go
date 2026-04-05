@@ -128,35 +128,48 @@ func (rd *RunData) ExportShareCode() (string, error) {
 
 // ImportShareCode decodes a share code back to RunData.
 func ImportShareCode(code string) (*RunData, error) {
-	code = strings.TrimSpace(code)
-	if len(code) < 10 {
-		return nil, ErrShareCodeTooShort
-	}
-
-	// Decode from base58
-	data, err := decodeBase58(code)
+	data, err := decodeShareCodeData(code)
 	if err != nil {
 		return nil, err
 	}
 
+	if err := validateShareCodeHeader(data); err != nil {
+		return nil, err
+	}
+
+	decompressed, err := decompressShareData(data[2:])
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeBinary(decompressed)
+}
+
+// decodeShareCodeData validates and decodes the base58 share code.
+func decodeShareCodeData(code string) ([]byte, error) {
+	code = strings.TrimSpace(code)
+	if len(code) < 10 {
+		return nil, ErrShareCodeTooShort
+	}
+	return decodeBase58(code)
+}
+
+// validateShareCodeHeader checks version and checksum in the decoded data.
+func validateShareCodeHeader(data []byte) error {
 	if len(data) < 3 {
-		return nil, ErrShareCodeCorrupted
+		return ErrShareCodeCorrupted
 	}
-
-	// Check version
-	version := data[0]
-	if version != ShareVersion {
-		return nil, ErrInvalidShareCode
+	if data[0] != ShareVersion {
+		return ErrInvalidShareCode
 	}
-
-	// Verify checksum
-	storedChecksum := data[1]
-	compressedData := data[2:]
-	if calculateChecksum(compressedData) != storedChecksum {
-		return nil, ErrInvalidChecksum
+	if calculateChecksum(data[2:]) != data[1] {
+		return ErrInvalidChecksum
 	}
+	return nil
+}
 
-	// Decompress
+// decompressShareData decompresses gzip-compressed share data.
+func decompressShareData(compressedData []byte) ([]byte, error) {
 	gz, err := gzip.NewReader(bytes.NewReader(compressedData))
 	if err != nil {
 		return nil, ErrShareCodeCorrupted
@@ -167,9 +180,7 @@ func ImportShareCode(code string) (*RunData, error) {
 	if err != nil {
 		return nil, ErrShareCodeCorrupted
 	}
-
-	// Decode binary
-	return decodeBinary(decompressed)
+	return decompressed, nil
 }
 
 // encodeBinary converts RunData to a compact binary format.

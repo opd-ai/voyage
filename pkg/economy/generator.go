@@ -32,42 +32,54 @@ func (g *Generator) SetGenre(genre engine.GenreID) {
 
 // GenerateEconomy creates a complete economy with the specified number of markets
 func (g *Generator) GenerateEconomy(marketCount int) *EconomyManager {
-	if marketCount < 2 {
-		marketCount = 2
-	}
-	if marketCount > 10 {
-		marketCount = 10
-	}
-
+	marketCount = clampMarketCount(marketCount)
 	manager := NewEconomyManager(g.genre)
 
-	// Generate markets in a rough line/network
-	for i := 0; i < marketCount; i++ {
+	g.populateMarkets(manager, marketCount)
+	g.connectMarkets(manager)
+
+	return manager
+}
+
+// clampMarketCount ensures market count is within valid range [2, 10].
+func clampMarketCount(count int) int {
+	if count < 2 {
+		return 2
+	}
+	if count > 10 {
+		return 10
+	}
+	return count
+}
+
+// populateMarkets creates and adds markets to the manager.
+func (g *Generator) populateMarkets(manager *EconomyManager, count int) {
+	for i := 0; i < count; i++ {
 		x := i*100 + g.gen.Intn(50)
 		y := g.gen.Intn(100)
 		market := g.GenerateMarket(x, y)
 		manager.AddMarket(market)
 	}
+}
 
-	// Generate trade routes connecting markets
+// connectMarkets creates trade routes between markets.
+func (g *Generator) connectMarkets(manager *EconomyManager) {
 	marketIDs := make([]string, 0, len(manager.Markets))
 	for id := range manager.Markets {
 		marketIDs = append(marketIDs, id)
 	}
 
-	// Connect sequentially and add some cross-connections
 	for i := 0; i < len(marketIDs)-1; i++ {
-		route := g.GenerateRoute(marketIDs[i], marketIDs[i+1])
-		manager.AddRoute(route)
-
-		// 30% chance of skip connection
-		if i < len(marketIDs)-2 && g.gen.Intn(10) < 3 {
-			skipRoute := g.GenerateRoute(marketIDs[i], marketIDs[i+2])
-			manager.AddRoute(skipRoute)
-		}
+		manager.AddRoute(g.GenerateRoute(marketIDs[i], marketIDs[i+1]))
+		g.maybeAddSkipConnection(manager, marketIDs, i)
 	}
+}
 
-	return manager
+// maybeAddSkipConnection adds a skip route with 30% probability.
+func (g *Generator) maybeAddSkipConnection(manager *EconomyManager, marketIDs []string, i int) {
+	if i < len(marketIDs)-2 && g.gen.Intn(10) < 3 {
+		manager.AddRoute(g.GenerateRoute(marketIDs[i], marketIDs[i+2]))
+	}
 }
 
 // GenerateMarket creates a single market
