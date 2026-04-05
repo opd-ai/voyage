@@ -138,28 +138,41 @@ func (pg *PortraitGenerator) generateBasePortrait(primaryColor, secondaryColor, 
 	size := pg.portraitSize
 	img := ebiten.NewImage(size, size)
 
-	// Generate face region (center of portrait)
 	faceTop := size / 6
 	faceBottom := size * 5 / 6
 	faceLeft := size / 4
 	faceRight := size * 3 / 4
 
-	// Draw face
-	for y := faceTop; y < faceBottom; y++ {
-		for x := faceLeft; x < faceRight; x++ {
+	pg.drawFaceRegion(img, faceTop, faceBottom, faceLeft, faceRight, skinColor)
+	pg.drawBodyRegion(img, faceBottom, primaryColor)
+	pg.drawHairRegion(img, faceTop, secondaryColor)
+	pg.drawEyes(img, faceTop, faceBottom, faceLeft, faceRight)
+
+	return img
+}
+
+// drawFaceRegion draws the face area of a portrait.
+func (pg *PortraitGenerator) drawFaceRegion(img *ebiten.Image, top, bottom, left, right int, skinColor color.Color) {
+	for y := top; y < bottom; y++ {
+		for x := left; x < right; x++ {
 			img.Set(x, y, skinColor)
 		}
 	}
+}
 
-	// Draw body (bottom portion)
-	bodyTop := faceBottom
+// drawBodyRegion draws the body area of a portrait.
+func (pg *PortraitGenerator) drawBodyRegion(img *ebiten.Image, bodyTop int, primaryColor color.Color) {
+	size := pg.portraitSize
 	for y := bodyTop; y < size; y++ {
 		for x := size / 6; x < size*5/6; x++ {
 			img.Set(x, y, primaryColor)
 		}
 	}
+}
 
-	// Draw hair (top portion with variation)
+// drawHairRegion draws the hair area with variation.
+func (pg *PortraitGenerator) drawHairRegion(img *ebiten.Image, faceTop int, secondaryColor color.Color) {
+	size := pg.portraitSize
 	hairBottom := faceTop + size/8
 	for y := 0; y < hairBottom; y++ {
 		hairWidth := size/4 + (size/4)*y/hairBottom
@@ -169,17 +182,16 @@ func (pg *PortraitGenerator) generateBasePortrait(primaryColor, secondaryColor, 
 			}
 		}
 	}
+}
 
-	// Draw eyes
+// drawEyes draws both eyes on a portrait.
+func (pg *PortraitGenerator) drawEyes(img *ebiten.Image, faceTop, faceBottom, faceLeft, faceRight int) {
 	eyeY := faceTop + (faceBottom-faceTop)/3
 	leftEyeX := faceLeft + (faceRight-faceLeft)/4
 	rightEyeX := faceRight - (faceRight-faceLeft)/4
-
 	eyeColor := color.RGBA{30, 30, 30, 255}
 	pg.drawEye(img, leftEyeX, eyeY, eyeColor)
 	pg.drawEye(img, rightEyeX, eyeY, eyeColor)
-
-	return img
 }
 
 // drawEye draws a simple eye at the given position.
@@ -188,10 +200,15 @@ func (pg *PortraitGenerator) drawEye(img *ebiten.Image, x, y int, c color.Color)
 	if eyeSize < 2 {
 		eyeSize = 2
 	}
-	for dy := -eyeSize / 2; dy <= eyeSize/2; dy++ {
-		for dx := -eyeSize / 2; dx <= eyeSize/2; dx++ {
-			if dx*dx+dy*dy <= (eyeSize/2)*(eyeSize/2) {
-				px, py := x+dx, y+dy
+	pg.drawFilledCircleAt(img, x, y, eyeSize/2, c)
+}
+
+// drawFilledCircleAt draws a filled circle at the given center with specified radius.
+func (pg *PortraitGenerator) drawFilledCircleAt(img *ebiten.Image, centerX, centerY, radius int, c color.Color) {
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if dx*dx+dy*dy <= radius*radius {
+				px, py := centerX+dx, centerY+dy
 				if px >= 0 && px < pg.portraitSize && py >= 0 && py < pg.portraitSize {
 					img.Set(px, py, c)
 				}

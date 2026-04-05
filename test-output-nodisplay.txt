@@ -1,0 +1,51 @@
+?   	github.com/opd-ai/voyage/cmd/voyage	[no test files]
+ok  	github.com/opd-ai/voyage/pkg/achievements	1.036s
+ok  	github.com/opd-ai/voyage/pkg/audio	10.788s
+ok  	github.com/opd-ai/voyage/pkg/benchmark	1.044s
+ok  	github.com/opd-ai/voyage/pkg/companions	1.050s
+ok  	github.com/opd-ai/voyage/pkg/config	1.038s
+ok  	github.com/opd-ai/voyage/pkg/council	1.032s
+ok  	github.com/opd-ai/voyage/pkg/crew	1.030s
+ok  	github.com/opd-ai/voyage/pkg/destination	1.035s
+ok  	github.com/opd-ai/voyage/pkg/economy	1.031s
+ok  	github.com/opd-ai/voyage/pkg/encounters	1.108s
+ok  	github.com/opd-ai/voyage/pkg/engine	1.024s
+ok  	github.com/opd-ai/voyage/pkg/events	1.039s
+ok  	github.com/opd-ai/voyage/pkg/factions	1.022s
+glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
+panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
+
+goroutine 1 [running]:
+github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
+	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
+FAIL	github.com/opd-ai/voyage/pkg/game	0.048s
+ok  	github.com/opd-ai/voyage/pkg/journey	1.027s
+ok  	github.com/opd-ai/voyage/pkg/lore	1.024s
+ok  	github.com/opd-ai/voyage/pkg/metaprog	1.018s
+ok  	github.com/opd-ai/voyage/pkg/narrative	1.044s
+ok  	github.com/opd-ai/voyage/pkg/npc	1.040s
+ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.028s
+ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.046s
+ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.100s
+ok  	github.com/opd-ai/voyage/pkg/quests	1.036s
+glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
+panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
+
+goroutine 1 [running]:
+github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
+	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
+FAIL	github.com/opd-ai/voyage/pkg/rendering	0.052s
+ok  	github.com/opd-ai/voyage/pkg/resources	1.018s
+ok  	github.com/opd-ai/voyage/pkg/saveload	1.060s
+ok  	github.com/opd-ai/voyage/pkg/trading	1.034s
+glfw: X11: The DISPLAY environment variable is missing: a platform-specific error occurred
+panic: glfw: The GLFW library is not initialized: the GLFW library is not initialized
+
+goroutine 1 [running]:
+github.com/hajimehoshi/ebiten/v2/internal/ui.init.0()
+	/home/user/go/pkg/mod/github.com/hajimehoshi/ebiten/v2@v2.9.9/internal/ui/ui.go:101 +0x9b
+FAIL	github.com/opd-ai/voyage/pkg/ux	0.048s
+ok  	github.com/opd-ai/voyage/pkg/vessel	1.027s
+ok  	github.com/opd-ai/voyage/pkg/weather	1.020s
+ok  	github.com/opd-ai/voyage/pkg/world	1.017s
+FAIL

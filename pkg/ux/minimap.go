@@ -3,6 +3,8 @@
 package ux
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/world"
@@ -10,13 +12,13 @@ import (
 
 // Minimap displays a small overview of the world map in the corner of the screen.
 type Minimap struct {
-	skin      *UISkin
-	genre     engine.GenreID
-	width     int
-	height    int
-	tileSize  int
-	image     *ebiten.Image
-	alpha     float64
+	skin       *UISkin
+	genre      engine.GenreID
+	width      int
+	height     int
+	tileSize   int
+	image      *ebiten.Image
+	alpha      float64
 	crisisMode bool
 }
 
@@ -244,7 +246,7 @@ func (m *Minimap) drawDestinationMarker(px, py int) {
 }
 
 // terrainColor returns the color for a terrain type.
-func (m *Minimap) terrainColor(t world.TerrainType) interface{} {
+func (m *Minimap) terrainColor(t world.TerrainType) color.Color {
 	switch t {
 	case world.TerrainPlains:
 		return m.skin.BarFill
@@ -266,7 +268,7 @@ func (m *Minimap) terrainColor(t world.TerrainType) interface{} {
 }
 
 // landmarkColor returns the color for a landmark type.
-func (m *Minimap) landmarkColor(lt world.LandmarkType) interface{} {
+func (m *Minimap) landmarkColor(lt world.LandmarkType) color.Color {
 	switch lt {
 	case world.LandmarkTown:
 		return m.skin.TextPrimary

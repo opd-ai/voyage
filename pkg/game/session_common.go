@@ -175,3 +175,61 @@ func initializeSession(cfg SessionConfig) *GameSession {
 		height:        cfg.Height,
 	}
 }
+
+// maybeGenerateEvent potentially generates an event at the current position.
+// This is shared between headless and non-headless builds.
+func (s *GameSession) maybeGenerateEvent() {
+	tile := s.worldMap.GetTile(s.playerPos.X, s.playerPos.Y)
+	if tile == nil {
+		return
+	}
+
+	// Higher chance at hazardous terrain
+	hazardChance := 0.0
+	if tile.Terrain == world.TerrainMountain || tile.Terrain == world.TerrainSwamp {
+		hazardChance = 0.2
+		// Tense music for hazardous terrain
+		s.audioPlayer.SetMusicState(audio.MusicTense)
+	} else {
+		// Peaceful music for normal travel
+		s.audioPlayer.SetMusicState(audio.MusicPeaceful)
+	}
+
+	if s.eventQueue.ShouldTrigger(hazardChance) {
+		s.eventQueue.Generate(s.playerPos.X, s.playerPos.Y, s.turn)
+		// Combat music when an event triggers
+		s.audioPlayer.SetMusicState(audio.MusicCombat)
+	}
+}
+
+// checkConditions checks win/lose conditions.
+// This is shared between headless and non-headless builds.
+func (s *GameSession) checkConditions() {
+	// Win: reached destination
+	if s.playerPos.X == s.worldMap.Destination.X && s.playerPos.Y == s.worldMap.Destination.Y {
+		s.state = StateGameOver
+		s.audioPlayer.SetMusicState(audio.MusicVictory)
+		return
+	}
+
+	// Lose: all crew dead
+	if s.party.IsEmpty() {
+		s.state = StateGameOver
+		s.audioPlayer.SetMusicState(audio.MusicDeath)
+		return
+	}
+
+	// Lose: vessel destroyed
+	if s.vessel.IsDestroyed() {
+		s.state = StateGameOver
+		s.audioPlayer.SetMusicState(audio.MusicDeath)
+		return
+	}
+
+	// Lose: morale collapsed
+	if s.resources.IsDepleted(resources.ResourceMorale) {
+		s.state = StateGameOver
+		s.audioPlayer.SetMusicState(audio.MusicDeath)
+		return
+	}
+}

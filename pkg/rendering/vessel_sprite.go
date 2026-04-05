@@ -127,10 +127,14 @@ func absInt(x int) int {
 
 // addAccentDetails adds decorative elements to the vessel sprite.
 func (vsg *VesselSpriteGenerator) addAccentDetails(img *ebiten.Image, accentColor color.Color) {
+	vsg.drawCenterStripe(img, accentColor)
+	vsg.drawWindowLights(img, accentColor)
+}
+
+// drawCenterStripe draws a vertical stripe down the center of the vessel.
+func (vsg *VesselSpriteGenerator) drawCenterStripe(img *ebiten.Image, accentColor color.Color) {
 	size := vsg.spriteSize
 	centerX := size / 2
-
-	// Add a stripe down the center
 	stripeWidth := size / 8
 	if stripeWidth < 1 {
 		stripeWidth = 1
@@ -142,8 +146,12 @@ func (vsg *VesselSpriteGenerator) addAccentDetails(img *ebiten.Image, accentColo
 			}
 		}
 	}
+}
 
-	// Add window lights
+// drawWindowLights draws window light accents on the vessel.
+func (vsg *VesselSpriteGenerator) drawWindowLights(img *ebiten.Image, accentColor color.Color) {
+	size := vsg.spriteSize
+	centerX := size / 2
 	windowY := size / 3
 	windowSpacing := size / 4
 	for i := -1; i <= 1; i++ {
@@ -226,38 +234,50 @@ func (vsg *VesselSpriteGenerator) generateCriticalSprite(pristine *ebiten.Image,
 	img := ebiten.NewImage(size, size)
 	img.DrawImage(pristine, nil)
 
-	// Heavy damage coloring
+	vsg.applyCriticalDamage(img, pristine, hullColor)
+	vsg.addMultipleBreaches(img, pristine, 4+vsg.gen.Intn(4), 2, 3)
+
+	return img
+}
+
+// applyCriticalDamage applies heavy damage coloring to a vessel sprite.
+func (vsg *VesselSpriteGenerator) applyCriticalDamage(img, pristine *ebiten.Image, hullColor color.Color) {
+	size := vsg.spriteSize
 	damageColor := vsg.darkenColor(hullColor, 0.4)
 	charColor := color.RGBA{20, 20, 20, 255}
 	fireColor := color.RGBA{200, 80, 30, 255}
-	damageCount := size
 
-	for i := 0; i < damageCount; i++ {
+	for i := 0; i < size; i++ {
 		x := vsg.gen.Intn(size)
 		y := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, x, y) {
-			roll := vsg.gen.Float64()
-			if roll < 0.2 {
-				img.Set(x, y, fireColor)
-			} else if roll < 0.5 {
-				img.Set(x, y, charColor)
-			} else {
-				img.Set(x, y, damageColor)
-			}
+			c := vsg.selectDamageColor(damageColor, charColor, fireColor)
+			img.Set(x, y, c)
 		}
 	}
+}
 
-	// Multiple breach holes
-	breachCount := 4 + vsg.gen.Intn(4)
-	for i := 0; i < breachCount; i++ {
+// selectDamageColor randomly selects a damage color based on probability thresholds.
+func (vsg *VesselSpriteGenerator) selectDamageColor(damageColor, charColor, fireColor color.Color) color.Color {
+	roll := vsg.gen.Float64()
+	if roll < 0.2 {
+		return fireColor
+	} else if roll < 0.5 {
+		return charColor
+	}
+	return damageColor
+}
+
+// addMultipleBreaches adds multiple breach holes to a damaged vessel.
+func (vsg *VesselSpriteGenerator) addMultipleBreaches(img, pristine *ebiten.Image, count, minRadius, maxRadius int) {
+	size := vsg.spriteSize
+	for i := 0; i < count; i++ {
 		bx := vsg.gen.Intn(size)
 		by := vsg.gen.Intn(size)
 		if vsg.isOnSprite(pristine, bx, by) {
-			vsg.drawBreach(img, bx, by, 2+vsg.gen.Intn(3))
+			vsg.drawBreach(img, bx, by, minRadius+vsg.gen.Intn(maxRadius))
 		}
 	}
-
-	return img
 }
 
 // drawBreach draws a breach hole at the given position.

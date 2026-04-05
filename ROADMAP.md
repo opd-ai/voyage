@@ -276,30 +276,30 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] Genre palette overlays via `SetGenre()`
 
 #### Music — Adaptive Multi-Layer
-- [ ] Dynamic layer system (peaceful travel, crisis, encounter, victory, death)
-- [ ] Biome-specific ambient music parameters (forest calm → asteroid tension → wastes drone)
-- [ ] Smooth cross-fade between intensity states
-- [ ] Genre instrument mapping via `SetGenre()` (lute/harp → synthesizer pad → distorted bass → glitch-synth → industrial grind) — all instruments procedurally synthesized, not sampled from bundled audio
+- [x] Dynamic layer system (peaceful travel, crisis, encounter, victory, death)
+- [x] Biome-specific ambient music parameters (forest calm → asteroid tension → wastes drone)
+- [x] Smooth cross-fade between intensity states
+- [x] Genre instrument mapping via `SetGenre()` (lute/harp → synthesizer pad → distorted bass → glitch-synth → industrial grind) — all instruments procedurally synthesized, not sampled from bundled audio
 
 #### Audio — Positional SFX
-- [ ] Distance attenuation for offscreen events
-- [ ] Left/right stereo panning for spatial awareness
-- [ ] Ambient loop per biome/region (wind, space hum, groaning metal, city noise, silence)
+- [x] Distance attenuation for offscreen events
+- [x] Left/right stereo panning for spatial awareness
+- [x] Ambient loop per biome/region (wind, space hum, groaning metal, city noise, silence)
 
 All SFX and music are procedurally synthesized at runtime — no pre-recorded or bundled audio files.
 
 #### Genre Post-Processing Presets
-- [ ] `fantasy` — warm desaturated vignette, bloom on magic effects
-- [ ] `scifi` — cool scanline overlay, chromatic aberration at screen edges
-- [ ] `horror` — desaturate + red-tint at low crew health, film grain
-- [ ] `cyberpunk` — neon bloom, CRT curvature, glitch artifacts on hacks
-- [ ] `postapoc` — sepia wash, dust overlay, heavy vignette
+- [x] `fantasy` — warm desaturated vignette, bloom on magic effects
+- [x] `scifi` — cool scanline overlay, chromatic aberration at screen edges
+- [x] `horror` — desaturate + red-tint at low crew health, film grain
+- [x] `cyberpunk` — neon bloom, CRT curvature, glitch artifacts on hacks
+- [x] `postapoc` — sepia wash, dust overlay, heavy vignette
 
 #### Dynamic Minimap Overlay
-- [ ] Always-visible procedurally rendered corner minimap showing explored tiles and current position
-- [ ] Icons for towns, ruins, hazards, and the destination (revealed as explored)
-- [ ] Minimap fades or dims in crisis events (damaged navigation module reduces fidelity)
-- [ ] `SetGenre()` applies genre-appropriate minimap aesthetic (parchment map → holographic display → torn atlas → AR overlay → scratched road atlas)
+- [x] Always-visible procedurally rendered corner minimap showing explored tiles and current position
+- [x] Icons for towns, ruins, hazards, and the destination (revealed as explored)
+- [x] Minimap fades or dims in crisis events (damaged navigation module reduces fidelity)
+- [x] `SetGenre()` applies genre-appropriate minimap aesthetic (parchment map → holographic display → torn atlas → AR overlay → scratched road atlas)
 
 ---
 
@@ -308,64 +308,64 @@ All SFX and music are procedurally synthesized at runtime — no pre-recorded or
 *Goal: Deepen the simulator loop — richer political landscape, procedural quest objectives, cross-run persistence, and narrative payoff.*
 
 #### Faction System
-- [ ] 4–6 procedurally generated factions per run (seeded names, ideologies, territory)
-- [ ] Faction relationship matrix (allied, neutral, hostile) affected by player choices
-- [ ] Faction-controlled territory blocks on the overworld (require safe passage or conflict)
-- [ ] Reputation track per faction (favors, betrayals, bribes shift standing)
-- [ ] Genre-mapped factions (guild/duchy/cult → corp/colony/pirate → gang/survivor-band/military remnant)
+- [x] 4–6 procedurally generated factions per run (seeded names, ideologies, territory)
+- [x] Faction relationship matrix (allied, neutral, hostile) affected by player choices
+- [x] Faction-controlled territory blocks on the overworld (require safe passage or conflict)
+- [x] Reputation track per faction (favors, betrayals, bribes shift standing)
+- [x] Genre-mapped factions (guild/duchy/cult → corp/colony/pirate → gang/survivor-band/military remnant)
 
 #### Quest / Objective System
-- [ ] Primary objective: reach destination (always)
-- [ ] Procedurally generated side quests: deliver parcel, rescue stranded crew, retrieve artifact
-- [ ] Quest board at supply points (accept/decline optional missions)
-- [ ] All quest text, objectives, and flavor procedurally generated from seed — no pre-authored quest scripts
-- [ ] Objective tracker in HUD
-- [ ] `SetGenre()` re-flavors quest vocabulary
+- [x] Primary objective: reach destination (always)
+- [x] Procedurally generated side quests: deliver parcel, rescue stranded crew, retrieve artifact
+- [x] Quest board at supply points (accept/decline optional missions)
+- [x] All quest text, objectives, and flavor procedurally generated from seed — no pre-authored quest scripts
+- [x] Objective tracker in HUD
+- [x] `SetGenre()` re-flavors quest vocabulary
 
 #### Meta-Progression Between Runs
-- [ ] Unlock log: persistent record of event types and destinations seen
-- [ ] Unlockable starting crew archetypes (seeded by cumulative game-state hash, not random)
-- [ ] Unlockable vessel starting configurations
-- [ ] Hall of Records: best run summary per genre (days, crew survivors, score)
+- [x] Unlock log: persistent record of event types and destinations seen
+- [x] Unlockable starting crew archetypes (seeded by cumulative game-state hash, not random)
+- [x] Unlockable vessel starting configurations
+- [x] Hall of Records: best run summary per genre (days, crew survivors, score)
 
 #### Advanced Narrative — Procedural Story Arc
-- [ ] Three-act structure derived from seed (departure crisis → mid-journey revelation → arrival twist)
-- [ ] Named recurring NPC that reappears across the journey (friend, nemesis, or ambiguous figure)
-- [ ] Crew backstory events that surface mid-journey and connect to the destination
-- [ ] All narrative text, character arcs, and story beats generated deterministically from seed — no pre-authored story content
+- [x] Three-act structure derived from seed (departure crisis → mid-journey revelation → arrival twist)
+- [x] Named recurring NPC that reappears across the journey (friend, nemesis, or ambiguous figure)
+- [x] Crew backstory events that surface mid-journey and connect to the destination
+- [x] All narrative text, character arcs, and story beats generated deterministically from seed — no pre-authored story content
 
 #### Environmental Storytelling
-- [ ] Procedurally generated world-map lore inscriptions (ruins with descriptions, grave markers, burnt signs)
-- [ ] Abandoned vessel/camp discoveries with item inventories and procedurally generated vignette text
-- [ ] All environmental text generated algorithmically — no pre-authored flavor text
+- [x] Procedurally generated world-map lore inscriptions (ruins with descriptions, grave markers, burnt signs)
+- [x] Abandoned vessel/camp discoveries with item inventories and procedurally generated vignette text
+- [x] All environmental text generated algorithmically — no pre-authored flavor text
 
 #### Lore Codex
-- [ ] In-game codex screen with discovered lore entries (world history, faction bios, route legends)
-- [ ] All lore texts procedurally generated per genre from seed — no embedded text assets
-- [ ] Unlock via exploration (ruins, events, NPC conversations)
+- [x] In-game codex screen with discovered lore entries (world history, faction bios, route legends)
+- [x] All lore texts procedurally generated per genre from seed — no embedded text assets
+- [x] Unlock via exploration (ruins, events, NPC conversations)
 
 #### Multi-Leg Journey Support
-- [ ] Campaign mode: chain 2–4 journey legs with state persisting between legs
-- [ ] Intermediate stopover city as hub between legs (buy, upgrade, recruit)
-- [ ] Escalating difficulty per leg (longer distances, harsher terrain, stronger factions)
-- [ ] `SetGenre()` applied per leg (option: genre shifts between legs for narrative variety)
+- [x] Campaign mode: chain 2–4 journey legs with state persisting between legs
+- [x] Intermediate stopover city as hub between legs (buy, upgrade, recruit)
+- [x] Escalating difficulty per leg (longer distances, harsher terrain, stronger factions)
+- [x] `SetGenre()` applied per leg (option: genre shifts between legs for narrative variety)
 
 #### Companion Specializations (Advanced Crew)
-- [ ] Named companions unlock special abilities at high skill levels
-- [ ] Companion ability: genre-skinned (wizard guide, AI navigator, zombie handler, netrunner, rad-doc)
-- [ ] Companion-driven special events that depend on their personality and backstory — all dialogue procedurally generated
+- [x] Named companions unlock special abilities at high skill levels
+- [x] Companion ability: genre-skinned (wizard guide, AI navigator, zombie handler, netrunner, rad-doc)
+- [x] Companion-driven special events that depend on their personality and backstory — all dialogue procedurally generated
 
 #### Achievement System
-- [ ] 20+ milestones tracked per run (survived X days, traded in every region, lost no crew, etc.)
-- [ ] Achievements displayed on end-screen and in main menu Hall of Records
-- [ ] All achievement descriptions generated from seed/genre context
+- [x] 20+ milestones tracked per run (survived X days, traded in every region, lost no crew, etc.)
+- [x] Achievements displayed on end-screen and in main menu Hall of Records
+- [x] All achievement descriptions generated from seed/genre context
 
 #### Trade Route Dynamics
-- [ ] Regional supply and demand model: goods sold in a region become cheaper; scarcities drive prices up
-- [ ] Demand shifts propagate along procedurally generated trade routes (selling food in one town raises its price there and lowers it along the supply chain)
-- [ ] Price history display at supply points (sparkline of recent trade activity for that good)
-- [ ] Speculation mechanic: buy cheap goods early in the journey to sell dear at the destination
-- [ ] `SetGenre()` re-skins trade goods and economic vocabulary (grain/spices → fuel cells/ore → medical supplies/ammo → data chips/access codes → scrap/water)
+- [x] Regional supply and demand model: goods sold in a region become cheaper; scarcities drive prices up
+- [x] Demand shifts propagate along procedurally generated trade routes (selling food in one town raises its price there and lowers it along the supply chain)
+- [x] Price history display at supply points (sparkline of recent trade activity for that good)
+- [x] Speculation mechanic: buy cheap goods early in the journey to sell dear at the destination
+- [x] `SetGenre()` re-skins trade goods and economic vocabulary (grain/spices → fuel cells/ore → medical supplies/ammo → data chips/access codes → scrap/water)
 
 ---
 
@@ -374,23 +374,23 @@ All SFX and music are procedurally synthesized at runtime — no pre-recorded or
 *Goal: Shared runs, leaderboards, async convoy play, WASM browser build, modding hooks.*
 
 #### Per-Seed Leaderboards
-- [ ] On run completion, submit (seed, genre, score, days, survivors, timestamp) to leaderboard
-- [ ] Global leaderboard screen with filter by genre and seed
-- [ ] Replay seed to attempt same world as top-score run
+- [x] On run completion, submit (seed, genre, score, days, survivors, timestamp) to leaderboard
+- [x] Global leaderboard screen with filter by genre and seed
+- [x] Replay seed to attempt same world as top-score run
 
 #### Async Convoy Mode
-- [ ] Shared-seed co-op: multiple players run same world seed simultaneously
-- [ ] Async event resolution: each player's run can diverge from shared events
-- [ ] End-of-run comparison screen (who survived best, who reached destination first)
-- [ ] High-latency tolerant design (Tor / onion-service friendly, 200–5000ms latency)
+- [x] Shared-seed co-op: multiple players run same world seed simultaneously
+- [x] Async event resolution: each player's run can diverge from shared events
+- [x] End-of-run comparison screen (who survived best, who reached destination first)
+- [x] High-latency tolerant design (Tor / onion-service friendly, 200–5000ms latency)
 
 #### WebAssembly Build
-- [ ] `make build-wasm` target with Ebitengine WASM output
-- [ ] Browser-playable version deployed via GitHub Pages
-- [ ] Touch input support for mobile browsers
+- [x] `make build-wasm` target with Ebitengine WASM output
+- [x] Browser-playable version deployed via GitHub Pages
+- [x] Touch input support for mobile browsers
 
 #### Modding System
-- [ ] JSON-based event grammar extension point (add custom event tables without code changes)
+- [x] JSON-based event grammar extension point (add custom event tables without code changes)
 - [ ] WASM-sandboxed mod loader (capability-based security)
 - [ ] Example mod: custom genre preset with new biome names, resource names, faction archetypes
 

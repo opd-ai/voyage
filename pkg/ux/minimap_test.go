@@ -249,9 +249,9 @@ func createTestWorldMap(width, height int) *world.WorldMap {
 		tiles[y] = make([]*world.Tile, width)
 		for x := 0; x < width; x++ {
 			tiles[y][x] = &world.Tile{
-				X:       x,
-				Y:       y,
-				Terrain: world.TerrainType(x % 7),
+				X:        x,
+				Y:        y,
+				Terrain:  world.TerrainType(x % 7),
 				Explored: false,
 			}
 		}

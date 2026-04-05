@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/opd-ai/voyage/pkg/engine"
+	"github.com/opd-ai/voyage/pkg/procgen/world"
 )
 
 func TestOscillator(t *testing.T) {
