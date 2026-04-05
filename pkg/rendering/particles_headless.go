@@ -10,56 +10,6 @@ import (
 	"github.com/opd-ai/voyage/pkg/engine"
 )
 
-// ParticleType categorizes different particle effects.
-type ParticleType int
-
-const (
-	ParticleTypeDust ParticleType = iota
-	ParticleTypeThruster
-	ParticleTypeTireTrack
-	ParticleTypeRain
-	ParticleTypeSnow
-	ParticleTypeSand
-	ParticleTypeEmbers
-	ParticleTypeAsh
-	ParticleTypeSparks
-	ParticleTypeHeal
-	ParticleTypeExplosion
-)
-
-// Particle represents a single particle in the system.
-type Particle struct {
-	X, Y     float64
-	VX, VY   float64
-	Life     float64
-	MaxLife  float64
-	Size     float64
-	Color    color.RGBA
-	Type     ParticleType
-	Rotation float64
-	RotSpeed float64
-	Alpha    float64
-	FadeIn   bool
-}
-
-// ParticleEmitter generates particles at a location.
-type ParticleEmitter struct {
-	X, Y         float64
-	Type         ParticleType
-	Rate         float64
-	Burst        int
-	SpreadAngle  float64
-	BaseVelocity float64
-	VelocityVar  float64
-	BaseLife     float64
-	LifeVar      float64
-	BaseSize     float64
-	SizeVar      float64
-	Active       bool
-	accumulator  float64
-	baseColor    color.RGBA
-}
-
 // ParticleSystem manages all particles and emitters.
 type ParticleSystem struct {
 	engine.BaseSystem
@@ -68,22 +18,6 @@ type ParticleSystem struct {
 	rng          *rand.Rand
 	genrePreset  *ParticlePreset
 	maxParticles int
-}
-
-// ParticlePreset contains genre-specific particle settings.
-type ParticlePreset struct {
-	MovementTrailType ParticleType
-	DustColor         color.RGBA
-	ThrusterColor     color.RGBA
-	TireTrackColor    color.RGBA
-	RainColor         color.RGBA
-	SnowColor         color.RGBA
-	SandColor         color.RGBA
-	EmberColor        color.RGBA
-	AshColor          color.RGBA
-	SparksColor       color.RGBA
-	HealColor         color.RGBA
-	ExplosionColor    color.RGBA
 }
 
 // NewParticleSystem creates a new particle system.
@@ -197,10 +131,10 @@ func (ps *ParticleSystem) Update(world *engine.World, dt float64) {
 
 // updateEmitter processes particle emission.
 func (ps *ParticleSystem) updateEmitter(emitter *ParticleEmitter, dt float64) {
-	emitter.accumulator += dt
-	particlesToEmit := int(emitter.accumulator * emitter.Rate)
+	emitter.Accumulator += dt
+	particlesToEmit := int(emitter.Accumulator * emitter.Rate)
 	if particlesToEmit > 0 {
-		emitter.accumulator -= float64(particlesToEmit) / emitter.Rate
+		emitter.Accumulator -= float64(particlesToEmit) / emitter.Rate
 		for i := 0; i < particlesToEmit && len(ps.particles) < ps.maxParticles; i++ {
 			ps.emitParticle(emitter)
 		}
@@ -209,26 +143,7 @@ func (ps *ParticleSystem) updateEmitter(emitter *ParticleEmitter, dt float64) {
 
 // emitParticle creates a new particle from an emitter.
 func (ps *ParticleSystem) emitParticle(emitter *ParticleEmitter) {
-	angle := (ps.rng.Float64() - 0.5) * emitter.SpreadAngle
-	velocity := emitter.BaseVelocity + (ps.rng.Float64()-0.5)*2*emitter.VelocityVar
-	life := emitter.BaseLife + (ps.rng.Float64()-0.5)*2*emitter.LifeVar
-	size := emitter.BaseSize + (ps.rng.Float64()-0.5)*2*emitter.SizeVar
-
-	particle := &Particle{
-		X:        emitter.X + (ps.rng.Float64()-0.5)*4,
-		Y:        emitter.Y + (ps.rng.Float64()-0.5)*4,
-		VX:       velocity * math.Cos(angle),
-		VY:       velocity * math.Sin(angle),
-		Life:     1.0,
-		MaxLife:  life,
-		Size:     size,
-		Color:    ps.getColorForType(emitter.Type),
-		Type:     emitter.Type,
-		Rotation: ps.rng.Float64() * math.Pi * 2,
-		RotSpeed: (ps.rng.Float64() - 0.5) * 2,
-		Alpha:    1.0,
-		FadeIn:   emitter.Type == ParticleTypeHeal,
-	}
+	particle := CreateEmitterParticle(emitter, ps.getColorForType(emitter.Type), ps.rng)
 	ps.particles = append(ps.particles, particle)
 }
 
@@ -407,39 +322,7 @@ func (ps *ParticleSystem) CreateWeatherEmitter(pType ParticleType, x, y, width f
 // EmitBurst emits a burst of particles at a location.
 func (ps *ParticleSystem) EmitBurst(x, y float64, pType ParticleType, count int) {
 	for i := 0; i < count && len(ps.particles) < ps.maxParticles; i++ {
-		angle := ps.rng.Float64() * math.Pi * 2
-		velocity := 20.0 + ps.rng.Float64()*30.0
-		size := 2.0 + ps.rng.Float64()*3.0
-		var life float64
-		switch pType {
-		case ParticleTypeSparks:
-			life = 0.3 + ps.rng.Float64()*0.2
-			velocity = 50.0 + ps.rng.Float64()*50.0
-		case ParticleTypeExplosion:
-			life = 0.5 + ps.rng.Float64()*0.5
-			velocity = 30.0 + ps.rng.Float64()*40.0
-			size = 4.0 + ps.rng.Float64()*4.0
-		case ParticleTypeHeal:
-			life = 1.0 + ps.rng.Float64()*0.5
-			velocity = 10.0 + ps.rng.Float64()*10.0
-		default:
-			life = 0.5 + ps.rng.Float64()*0.5
-		}
-		particle := &Particle{
-			X:        x + (ps.rng.Float64()-0.5)*8,
-			Y:        y + (ps.rng.Float64()-0.5)*8,
-			VX:       velocity * math.Cos(angle),
-			VY:       velocity * math.Sin(angle),
-			Life:     1.0,
-			MaxLife:  life,
-			Size:     size,
-			Color:    ps.getColorForType(pType),
-			Type:     pType,
-			Rotation: ps.rng.Float64() * math.Pi * 2,
-			RotSpeed: (ps.rng.Float64() - 0.5) * 4,
-			Alpha:    1.0,
-			FadeIn:   pType == ParticleTypeHeal,
-		}
+		particle := CreateBurstParticle(x, y, pType, ps.getColorForType(pType), ps.rng)
 		ps.particles = append(ps.particles, particle)
 	}
 }
