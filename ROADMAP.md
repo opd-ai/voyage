@@ -244,11 +244,11 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 - [x] `SetGenre()` re-skins destination type and arrival text vocabulary
 
 #### Crew Council
-- [ ] Critical route-choice decisions (dangerous shortcut, costly detour) trigger a crew vote
-- [ ] Each crew member votes based on their dominant trait (brave votes for risk, cautious votes against)
-- [ ] Player may overrule the vote; doing so applies a morale penalty proportional to dissent
-- [ ] Unanimous votes in the player's favor grant a small morale bonus
-- [ ] `SetGenre()` re-skins the council scene (campfire debate → bridge briefing → group argument → exec meeting → bonfire council)
+- [x] Critical route-choice decisions (dangerous shortcut, costly detour) trigger a crew vote
+- [x] Each crew member votes based on their dominant trait (brave votes for risk, cautious votes against)
+- [x] Player may overrule the vote; doing so applies a morale penalty proportional to dissent
+- [x] Unanimous votes in the player's favor grant a small morale bonus
+- [x] `SetGenre()` re-skins the council scene (campfire debate → bridge briefing → group argument → exec meeting → bonfire council)
 
 ---
 
@@ -257,7 +257,7 @@ This applies to all ECS Systems (renderer, audio, AI, event-generator, HUD, narr
 *Goal: Make the procedurally generated world feel alive and distinct per genre.*
 
 #### Dynamic Lighting
-- [ ] Day/night cycle lighting on overworld (dawn→day→dusk→night transitions)
+- [x] Day/night cycle lighting on overworld (dawn→day→dusk→night transitions)
 - [ ] Point lights at towns, campfires, vessel lanterns
 - [ ] Darkness penalty at night (reduced visibility unless torches/power used)
 - [ ] Genre presets via `SetGenre()` (warm campfire glow for `fantasy`, blue-white hull lights for `scifi`, emergency red for `horror`, neon spillover for `cyberpunk`, dim salvage lanterns for `postapoc`)
