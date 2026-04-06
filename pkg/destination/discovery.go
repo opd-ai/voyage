@@ -25,14 +25,30 @@ func (d *Destination) generateDiscoveryEvent() *DiscoveryEvent {
 }
 
 // getEventTitle returns a phase-appropriate title.
+// Falls back to fantasy genre if the current genre is not found (L-013).
 func (d *Destination) getEventTitle() string {
-	titles := discoveryTitles[d.genre][d.Phase]
+	genreTitles, ok := discoveryTitles[d.genre]
+	if !ok {
+		genreTitles = discoveryTitles[engine.GenreFantasy]
+	}
+	titles, ok := genreTitles[d.Phase]
+	if !ok || len(titles) == 0 {
+		return "Discovery"
+	}
 	return seed.Choice(d.seedGen, titles)
 }
 
 // getEventDescription returns a phase-appropriate description.
+// Falls back to fantasy genre if the current genre is not found (L-013).
 func (d *Destination) getEventDescription() string {
-	descriptions := discoveryDescriptions[d.genre][d.Phase]
+	genreDescs, ok := discoveryDescriptions[d.genre]
+	if !ok {
+		genreDescs = discoveryDescriptions[engine.GenreFantasy]
+	}
+	descriptions, ok := genreDescs[d.Phase]
+	if !ok || len(descriptions) == 0 {
+		return "Something significant has occurred."
+	}
 	return seed.Choice(d.seedGen, descriptions)
 }
 

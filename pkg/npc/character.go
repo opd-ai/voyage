@@ -35,9 +35,10 @@ func AllNPCTypes() []NPCType {
 }
 
 // NPCTypeName returns the genre-appropriate name for an NPC type.
+// Uses comma-ok pattern to properly detect missing genres (L-012).
 func NPCTypeName(t NPCType, genre engine.GenreID) string {
-	names := typeNames[genre]
-	if names == nil {
+	names, ok := typeNames[genre]
+	if !ok {
 		names = typeNames[engine.GenreFantasy]
 	}
 	return names[t]

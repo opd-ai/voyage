@@ -92,10 +92,14 @@ func (a *Achievement) UpdateProgress(value int) bool {
 	return false
 }
 
-// Earn marks the achievement as earned on a specific day
+// Earn marks the achievement as earned on a specific day.
+// Validates day is non-negative to prevent corrupt timestamps (L-010).
 func (a *Achievement) Earn(day int) {
 	if !a.Earned {
 		a.Earned = true
+		if day < 0 {
+			day = 0
+		}
 		a.EarnedAt = day
 		a.Progress = a.Required
 	}

@@ -200,9 +200,9 @@ func (st *StatusTracker) GetEffect(t StatusType) *StatusEffect {
 	return nil
 }
 
-// AllEffects returns all active effects.
+// AllEffects returns a copy of all active effects to prevent external mutation (L-009).
 func (st *StatusTracker) AllEffects() []StatusEffect {
-	return st.effects
+	return append([]StatusEffect(nil), st.effects...)
 }
 
 // IsHealthy returns true if no negative status effects.
