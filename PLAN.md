@@ -40,7 +40,7 @@
 
 ### Input Architecture Issues
 
-- [ ] **Input Manager abstraction layer entirely unused** - Location: `pkg/input/` (entire package) vs `pkg/game/game.go`, `pkg/game/session.go` - Impact: The `pkg/input` package implements a full input Manager with touch, swipe, key repeat, and action deduplication, but the game code (`pkg/game/`) directly calls raw Ebiten API functions (`ebiten.IsKeyPressed`, `inpututil.IsKeyJustPressed`) instead of using the Manager. This creates inconsistent input behavior across the codebase and renders the input package dead code.
+- [x] **Input Manager abstraction layer entirely unused** - Location: `pkg/input/` (entire package) vs `pkg/game/game.go`, `pkg/game/session.go` - Impact: The `pkg/input` package implements a full input Manager with touch, swipe, key repeat, and action deduplication, but the game code (`pkg/game/`) directly calls raw Ebiten API functions (`ebiten.IsKeyPressed`, `inpututil.IsKeyJustPressed`) instead of using the Manager. This creates inconsistent input behavior across the codebase and renders the input package dead code.
 
 - [x] **Missing touch action deduplication** - Location: `pkg/input/manager.go:243-257` - Impact: The `handleTouchEnd` path appends `ActionConfirm` without checking for duplicates (no `HasAction()` check), unlike the mouse click path at line 307 which correctly deduplicates. On touch devices, simultaneous touch + keyboard could trigger duplicate confirm actions.
 

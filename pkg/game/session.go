@@ -186,7 +186,7 @@ func (s *GameSession) handleEventChoices() {
 	}
 
 	currentEvent := pending[0]
-	
+
 	// Get option pressed from input manager (returns 1-9 or 0 if none)
 	option := s.inputMgr.GetOptionPressed()
 	if option > 0 && option <= len(currentEvent.Choices) {
