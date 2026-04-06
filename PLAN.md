@@ -26,17 +26,17 @@
 
 - [x] **Menu input uses `IsKeyPressed` causing instant state skip** | Location: `pkg/game/session.go:61-63` | Fix: `handleMenuInput()` uses `IsKeyPressed(KeyEnter)` — if the player presses Enter on the menu, the game may process multiple frames worth of input. Use `inpututil.IsKeyJustPressed` for clean single-press detection.
 
-- [ ] **`Consume()` accepts negative amounts, enabling resource exploitation** | Location: `pkg/resources/resources.go:130-139` | Fix: Calling `Consume(type, -100)` effectively adds resources since the subtraction of a negative increases the value. Add `if amount < 0 { return false }` guard.
+- [x] **`Consume()` accepts negative amounts, enabling resource exploitation** | Location: `pkg/resources/resources.go:130-139` | Fix: Calling `Consume(type, -100)` effectively adds resources since the subtraction of a negative increases the value. Add `if amount < 0 { return false }` guard.
 
-- [ ] **`Vessel.TakeDamage()` accepts negative amounts, healing without limit** | Location: `pkg/vessel/vessel.go:122-130` | Fix: Calling `TakeDamage(-50)` increases integrity beyond maxIntegrity with no clamping. Add `if amount <= 0 { return false }` guard.
+- [x] **`Vessel.TakeDamage()` accepts negative amounts, healing without limit** | Location: `pkg/vessel/vessel.go:122-130` | Fix: Calling `TakeDamage(-50)` increases integrity beyond maxIntegrity with no clamping. Add `if amount <= 0 { return false }` guard.
 
-- [ ] **`Party.Add()` accepts nil crew members** | Location: `pkg/crew/party.go:41-47` | Fix: No nil check on `member` parameter. If nil is added, `LivingCount()` will panic when iterating and accessing `m.IsAlive`. Add `if member == nil { return false }` at the top of the function.
+- [x] **`Party.Add()` accepts nil crew members** | Location: `pkg/crew/party.go:41-47` | Fix: No nil check on `member` parameter. If nil is added, `LivingCount()` will panic when iterating and accessing `m.IsAlive`. Add `if member == nil { return false }` at the top of the function.
 
-- [ ] **`CalculateMoveCost` divides by vessel `Speed()` without zero-check** | Location: `pkg/game/movement.go:35` | Fix: `fuelCost := mm.baseFuelCost * float64(terrain.MovementCost) / v.Speed()` produces `+Inf` if speed is 0 (possible with destroyed vessel). Not currently called in active session path but will produce `NaN`/`Inf` if integrated. Add `if v.Speed() == 0 { return math.Inf(1), timeCost }` guard or prevent the call.
+- [x] **`CalculateMoveCost` divides by vessel `Speed()` without zero-check** | Location: `pkg/game/movement.go:35` | Fix: `fuelCost := mm.baseFuelCost * float64(terrain.MovementCost) / v.Speed()` produces `+Inf` if speed is 0 (possible with destroyed vessel). Not currently called in active session path but will produce `NaN`/`Inf` if integrated. Add `if v.Speed() == 0 { return math.Inf(1), timeCost }` guard or prevent the call.
 
-- [ ] **`DifficultyName` and `ActionName` return empty string for invalid values** | Location: `pkg/config/settings.go:186-195,56-72` | Fix: Map lookup returns zero-value (empty string) for undefined constants. Return "Unknown" as default fallback.
+- [x] **`DifficultyName` and `ActionName` return empty string for invalid values** | Location: `pkg/config/settings.go:186-195,56-72` | Fix: Map lookup returns zero-value (empty string) for undefined constants. Return "Unknown" as default fallback.
 
-- [ ] **`SetMusicState` silently ignores invalid states** | Location: `pkg/audio/music.go:96-113` | Fix: No default case in switch — passing an invalid `MusicState` value keeps previous BPM, creating audio state inconsistency. Add a default case that sets a fallback BPM or logs a warning.
+- [x] **`SetMusicState` silently ignores invalid states** | Location: `pkg/audio/music.go:96-113` | Fix: No default case in switch — passing an invalid `MusicState` value keeps previous BPM, creating audio state inconsistency. Add a default case that sets a fallback BPM or logs a warning.
 
 ## Resolution Order
 
