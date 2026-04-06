@@ -74,12 +74,13 @@ type GameSession struct {
 	currentEventSnapshot *events.Event
 
 	// Cached strings for Draw to reduce allocations (H-003)
-	cachedHUDText            string
-	cachedEventText          string
-	cachedDestinationText    string
-	cachedTutorialHintText   string
-	cachedTutorialHintPhase  TutorialPhase
-	hudDirty                 bool
+	cachedHUDText              string
+	cachedEventText            string
+	cachedDestinationText      string
+	cachedTutorialHintText     string
+	cachedTutorialHintPhase    TutorialPhase
+	cachedTutorialHintValid    bool
+	hudDirty                   bool
 
 	// Tutorial manager for onboarding hints
 	tutorial *TutorialManager

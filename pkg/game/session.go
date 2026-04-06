@@ -78,9 +78,10 @@ func (s *GameSession) updateCachedStrings() {
 	}
 
 	// Cache tutorial hint text when phase changes (H-003)
-	if s.tutorial != nil && s.tutorial.Phase() != s.cachedTutorialHintPhase {
+	if s.tutorial != nil && (!s.cachedTutorialHintValid || s.tutorial.Phase() != s.cachedTutorialHintPhase) {
 		s.cachedTutorialHintPhase = s.tutorial.Phase()
 		s.cachedTutorialHintText = s.tutorial.GetHintText()
+		s.cachedTutorialHintValid = true
 	}
 
 	// Cache event text using strings.Builder to reduce allocations (H-003)
