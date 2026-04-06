@@ -308,11 +308,6 @@ func (ls *LightingSystem) GetLightIntensityAt(x, y float64) float64 {
 	return clampFloat(totalIntensity, 0.0, 1.0)
 }
 
-// calculateLightContribution calculates a single light's contribution at a position.
-func (ls *LightingSystem) calculateLightContribution(light *PointLight, x, y float64) float64 {
-	return CalculateLightContribution(light, x, y, ls.flickerPhase)
-}
-
 // GetLightColorAt returns the combined light color at a position.
 func (ls *LightingSystem) GetLightColorAt(x, y float64) color.RGBA {
 	return CalculateLightColorAt(ls.pointLights, ls.CurrentTint(), ls.AmbientLevel(), ls.flickerPhase, x, y)

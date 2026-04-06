@@ -67,45 +67,6 @@ type CouncilScene struct {
 	Closing     string
 }
 
-// decisionNames maps genre to decision type names.
-var decisionNames = map[engine.GenreID]map[DecisionType]string{
-	engine.GenreFantasy: {
-		DecisionRoute: "Path Choice",
-		DecisionCamp:  "Rest or March",
-		DecisionTrade: "Merchant's Offer",
-		DecisionFight: "Stand or Flee",
-		DecisionSplit: "Divide the Party",
-	},
-	engine.GenreScifi: {
-		DecisionRoute: "Course Correction",
-		DecisionCamp:  "Power Down or Continue",
-		DecisionTrade: "Contract Negotiation",
-		DecisionFight: "Engage or Evade",
-		DecisionSplit: "Deploy Away Team",
-	},
-	engine.GenreHorror: {
-		DecisionRoute: "Which Way",
-		DecisionCamp:  "Hide or Run",
-		DecisionTrade: "Dark Bargain",
-		DecisionFight: "Fight or Flight",
-		DecisionSplit: "Split Up",
-	},
-	engine.GenreCyberpunk: {
-		DecisionRoute: "Route Selection",
-		DecisionCamp:  "Lay Low or Move",
-		DecisionTrade: "The Deal",
-		DecisionFight: "Assault or Ghost",
-		DecisionSplit: "Solo Mission",
-	},
-	engine.GenrePostapoc: {
-		DecisionRoute: "The Fork",
-		DecisionCamp:  "Rest or Push",
-		DecisionTrade: "Barter Terms",
-		DecisionFight: "Engage or Evade",
-		DecisionSplit: "Scout Ahead",
-	},
-}
-
 // sceneNames maps genre to council scene names.
 var sceneNames = map[engine.GenreID]string{
 	engine.GenreFantasy:   "Campfire Debate",

@@ -188,16 +188,24 @@ func (rd *RunData) encodeBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// Write seed (8 bytes)
-	binary.Write(buf, binary.LittleEndian, rd.Seed)
+	if err := binary.Write(buf, binary.LittleEndian, rd.Seed); err != nil {
+		return nil, err
+	}
 
 	// Write genre (1 byte encoded)
-	buf.WriteByte(encodeGenre(rd.Genre))
+	if err := buf.WriteByte(encodeGenre(rd.Genre)); err != nil {
+		return nil, err
+	}
 
 	// Write difficulty (1 byte)
-	buf.WriteByte(byte(rd.Diffi))
+	if err := buf.WriteByte(byte(rd.Diffi)); err != nil {
+		return nil, err
+	}
 
 	// Write decision count (2 bytes)
-	binary.Write(buf, binary.LittleEndian, uint16(len(rd.Decisions)))
+	if err := binary.Write(buf, binary.LittleEndian, uint16(len(rd.Decisions))); err != nil {
+		return nil, err
+	}
 
 	// Write decisions (compact encoding)
 	for _, d := range rd.Decisions {
@@ -206,27 +214,51 @@ func (rd *RunData) encodeBinary() ([]byte, error) {
 		// For larger values, use extended encoding
 		if d.Turn < 1024 && d.Value < 8 {
 			packed := uint16(d.Turn&0x3FF) | (uint16(d.Type&0x7) << 10) | (uint16(d.Value&0x7) << 13)
-			binary.Write(buf, binary.LittleEndian, packed)
+			if err := binary.Write(buf, binary.LittleEndian, packed); err != nil {
+				return nil, err
+			}
 		} else {
 			// Extended encoding: marker (0xFFFF) + full data (C-005)
-			binary.Write(buf, binary.LittleEndian, uint16(0xFFFF))
-			binary.Write(buf, binary.LittleEndian, uint16(d.Turn))
-			buf.WriteByte(byte(d.Type))
-			binary.Write(buf, binary.LittleEndian, int16(d.Value))
-			binary.Write(buf, binary.LittleEndian, int16(d.Target))
+			if err := binary.Write(buf, binary.LittleEndian, uint16(0xFFFF)); err != nil {
+				return nil, err
+			}
+			if err := binary.Write(buf, binary.LittleEndian, uint16(d.Turn)); err != nil {
+				return nil, err
+			}
+			if err := buf.WriteByte(byte(d.Type)); err != nil {
+			return nil, err
+		}
+			if err := binary.Write(buf, binary.LittleEndian, int16(d.Value)); err != nil {
+				return nil, err
+			}
+			if err := binary.Write(buf, binary.LittleEndian, int16(d.Target)); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	// Write final state
-	binary.Write(buf, binary.LittleEndian, uint16(rd.FinalTurn))
-	binary.Write(buf, binary.LittleEndian, int16(rd.FinalX))
-	binary.Write(buf, binary.LittleEndian, int16(rd.FinalY))
-	if rd.WonGame {
-		buf.WriteByte(1)
-	} else {
-		buf.WriteByte(0)
+	if err := binary.Write(buf, binary.LittleEndian, uint16(rd.FinalTurn)); err != nil {
+		return nil, err
 	}
-	buf.WriteByte(byte(rd.CrewSurvived))
+	if err := binary.Write(buf, binary.LittleEndian, int16(rd.FinalX)); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.LittleEndian, int16(rd.FinalY)); err != nil {
+		return nil, err
+	}
+	if rd.WonGame {
+		if err := buf.WriteByte(1); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := buf.WriteByte(0); err != nil {
+			return nil, err
+		}
+	}
+	if err := buf.WriteByte(byte(rd.CrewSurvived)); err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), nil
 }
@@ -240,44 +272,68 @@ func decodeBinary(data []byte) (*RunData, error) {
 	buf := bytes.NewReader(data)
 	rd := &RunData{}
 
-	decodeRunHeader(buf, rd)
-	decodeDecisions(buf, rd)
-	decodeFinalState(buf, rd)
+	if err := decodeRunHeader(buf, rd); err != nil {
+		return nil, ErrShareCodeCorrupted
+	}
+	if err := decodeDecisions(buf, rd); err != nil {
+		return nil, ErrShareCodeCorrupted
+	}
+	if err := decodeFinalState(buf, rd); err != nil {
+		return nil, ErrShareCodeCorrupted
+	}
 
 	return rd, nil
 }
 
 // decodeRunHeader reads the seed, genre, and difficulty from the buffer.
-func decodeRunHeader(buf *bytes.Reader, rd *RunData) {
-	binary.Read(buf, binary.LittleEndian, &rd.Seed)
+func decodeRunHeader(buf *bytes.Reader, rd *RunData) error {
+	if err := binary.Read(buf, binary.LittleEndian, &rd.Seed); err != nil {
+		return err
+	}
 
-	genreByte, _ := buf.ReadByte()
+	genreByte, err := buf.ReadByte()
+	if err != nil {
+		return err
+	}
 	rd.Genre = decodeGenre(genreByte)
 
-	diffiByte, _ := buf.ReadByte()
+	diffiByte, err := buf.ReadByte()
+	if err != nil {
+		return err
+	}
 	rd.Diffi = int(diffiByte)
+	return nil
 }
 
 // decodeDecisions reads all decisions from the buffer.
-func decodeDecisions(buf *bytes.Reader, rd *RunData) {
+func decodeDecisions(buf *bytes.Reader, rd *RunData) error {
 	var decisionCount uint16
-	binary.Read(buf, binary.LittleEndian, &decisionCount)
+	if err := binary.Read(buf, binary.LittleEndian, &decisionCount); err != nil {
+		return err
+	}
 
 	rd.Decisions = make([]Decision, 0, decisionCount)
 	for i := uint16(0); i < decisionCount; i++ {
-		rd.Decisions = append(rd.Decisions, decodeDecision(buf))
+		d, err := decodeDecision(buf)
+		if err != nil {
+			return err
+		}
+		rd.Decisions = append(rd.Decisions, d)
 	}
+	return nil
 }
 
 // decodeDecision reads a single decision from the buffer.
-func decodeDecision(buf *bytes.Reader) Decision {
+func decodeDecision(buf *bytes.Reader) (Decision, error) {
 	var packed uint16
-	binary.Read(buf, binary.LittleEndian, &packed)
+	if err := binary.Read(buf, binary.LittleEndian, &packed); err != nil {
+		return Decision{}, err
+	}
 
 	if isExtendedEncoding(packed) {
 		return decodeExtendedDecision(buf)
 	}
-	return decodeCompactDecision(packed)
+	return decodeCompactDecision(packed), nil
 }
 
 // isExtendedEncoding checks if the packed value indicates extended encoding.
@@ -289,21 +345,31 @@ func isExtendedEncoding(packed uint16) bool {
 // decodeExtendedDecision reads a decision using extended encoding format.
 // The marker (0xFFFF) has already been read by decodeDecision, so we just
 // read the remaining data directly (C-005).
-func decodeExtendedDecision(buf *bytes.Reader) Decision {
+func decodeExtendedDecision(buf *bytes.Reader) (Decision, error) {
 	var turn uint16
 	var dtype byte
 	var value, target int16
-	binary.Read(buf, binary.LittleEndian, &turn)
-	dtype, _ = buf.ReadByte()
-	binary.Read(buf, binary.LittleEndian, &value)
-	binary.Read(buf, binary.LittleEndian, &target)
+	if err := binary.Read(buf, binary.LittleEndian, &turn); err != nil {
+		return Decision{}, err
+	}
+	var err error
+	dtype, err = buf.ReadByte()
+	if err != nil {
+		return Decision{}, err
+	}
+	if err := binary.Read(buf, binary.LittleEndian, &value); err != nil {
+		return Decision{}, err
+	}
+	if err := binary.Read(buf, binary.LittleEndian, &target); err != nil {
+		return Decision{}, err
+	}
 
 	return Decision{
 		Turn:   int(turn),
 		Type:   DecisionType(dtype),
 		Value:  int(value),
 		Target: int(target),
-	}
+	}, nil
 }
 
 // decodeCompactDecision unpacks a decision from compact 16-bit format.
@@ -316,21 +382,34 @@ func decodeCompactDecision(packed uint16) Decision {
 }
 
 // decodeFinalState reads the final game state from the buffer.
-func decodeFinalState(buf *bytes.Reader, rd *RunData) {
+func decodeFinalState(buf *bytes.Reader, rd *RunData) error {
 	var finalTurn uint16
 	var finalX, finalY int16
-	binary.Read(buf, binary.LittleEndian, &finalTurn)
-	binary.Read(buf, binary.LittleEndian, &finalX)
-	binary.Read(buf, binary.LittleEndian, &finalY)
+	if err := binary.Read(buf, binary.LittleEndian, &finalTurn); err != nil {
+		return err
+	}
+	if err := binary.Read(buf, binary.LittleEndian, &finalX); err != nil {
+		return err
+	}
+	if err := binary.Read(buf, binary.LittleEndian, &finalY); err != nil {
+		return err
+	}
 	rd.FinalTurn = int(finalTurn)
 	rd.FinalX = int(finalX)
 	rd.FinalY = int(finalY)
 
-	wonByte, _ := buf.ReadByte()
+	wonByte, err := buf.ReadByte()
+	if err != nil {
+		return err
+	}
 	rd.WonGame = wonByte == 1
 
-	crewByte, _ := buf.ReadByte()
+	crewByte, err := buf.ReadByte()
+	if err != nil {
+		return err
+	}
 	rd.CrewSurvived = int(crewByte)
+	return nil
 }
 
 // encodeGenre converts a genre ID to a byte.

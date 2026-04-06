@@ -8,10 +8,9 @@ type World struct {
 	systems     []System
 	genre       GenreID
 	registry    *ComponentRegistry
-	entityPool  []*Entity
-	toSpawn     []*Entity
-	toDespawn   []EntityID
-	initialized bool
+	entityPool []*Entity
+	toSpawn    []*Entity
+	toDespawn  []EntityID
 }
 
 // NewWorld creates a new world with the given component registry.

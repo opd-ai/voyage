@@ -36,7 +36,7 @@ func TestNewGenerator(t *testing.T) {
 	for _, genre := range engine.AllGenres() {
 		gen := NewGenerator(genre)
 		if gen == nil {
-			t.Errorf("NewGenerator(%s) returned nil", genre)
+			t.Fatalf("NewGenerator(%s) returned nil", genre)
 		}
 		if gen.genre != genre {
 			t.Errorf("Generator genre: expected %s, got %s", genre, gen.genre)

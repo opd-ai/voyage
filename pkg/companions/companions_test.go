@@ -398,7 +398,7 @@ func TestGeneratorCompanionEvent(t *testing.T) {
 	event := g.GenerateCompanionEvent(companion)
 
 	if event == nil {
-		t.Error("should generate event")
+		t.Fatal("should generate event")
 	}
 	if event.Title == "" {
 		t.Error("event should have title")

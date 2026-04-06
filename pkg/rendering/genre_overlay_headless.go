@@ -28,65 +28,6 @@ func (go_ *GenreOverlay) Genre() engine.GenreID {
 	return go_.genre
 }
 
-// genreOverlayParams holds the overlay parameters for a genre.
-type genreOverlayParams struct {
-	tintR, tintG, tintB float64
-	saturation          float64
-	brightness          float64
-	noise               float64
-}
-
-// getOverlayParams returns the overlay parameters for the current genre.
-func (go_ *GenreOverlay) getOverlayParams() genreOverlayParams {
-	switch go_.genre {
-	case engine.GenreScifi:
-		return genreOverlayParams{
-			tintR:      0.9,
-			tintG:      1.0,
-			tintB:      1.1,
-			saturation: 0.9,
-			brightness: 1.05,
-			noise:      0.02,
-		}
-	case engine.GenreHorror:
-		return genreOverlayParams{
-			tintR:      1.1,
-			tintG:      0.9,
-			tintB:      0.9,
-			saturation: 0.7,
-			brightness: 0.85,
-			noise:      0.05,
-		}
-	case engine.GenreCyberpunk:
-		return genreOverlayParams{
-			tintR:      1.1,
-			tintG:      0.95,
-			tintB:      1.15,
-			saturation: 1.2,
-			brightness: 1.1,
-			noise:      0.03,
-		}
-	case engine.GenrePostapoc:
-		return genreOverlayParams{
-			tintR:      1.15,
-			tintG:      1.1,
-			tintB:      0.9,
-			saturation: 0.6,
-			brightness: 0.9,
-			noise:      0.08,
-		}
-	default: // GenreFantasy
-		return genreOverlayParams{
-			tintR:      1.05,
-			tintG:      1.0,
-			tintB:      0.95,
-			saturation: 0.95,
-			brightness: 1.0,
-			noise:      0.01,
-		}
-	}
-}
-
 // GenrePalettes provides pre-defined color palettes for each genre.
 var GenrePalettes = map[engine.GenreID]GenreColorPalette{
 	engine.GenreFantasy: {
