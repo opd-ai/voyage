@@ -70,7 +70,18 @@ func (s *GameSession) updateCachedStrings() {
 			s.resources.Get(resources.ResourceFuel),
 			s.resources.Get(resources.ResourceMorale),
 			s.resources.Get(resources.ResourceCurrency))
+
+		// Rebuild destination indicator (changes with player position)
+		s.updateCachedDestination()
+
 		s.hudDirty = false
+	}
+
+	// Cache tutorial hint text when phase changes (H-003)
+	if s.tutorial != nil && (!s.cachedTutorialHintValid || s.tutorial.Phase() != s.cachedTutorialHintPhase) {
+		s.cachedTutorialHintPhase = s.tutorial.Phase()
+		s.cachedTutorialHintText = s.tutorial.GetHintText()
+		s.cachedTutorialHintValid = true
 	}
 
 	// Cache event text using strings.Builder to reduce allocations (H-003)
@@ -92,6 +103,25 @@ func (s *GameSession) updateCachedStrings() {
 	} else {
 		s.cachedEventText = ""
 	}
+}
+
+// updateCachedDestination rebuilds the cached destination indicator text.
+func (s *GameSession) updateCachedDestination() {
+	dx := s.worldMap.Destination.X - s.playerPos.X
+	dy := s.worldMap.Destination.Y - s.playerPos.Y
+
+	absDx := dx
+	if absDx < 0 {
+		absDx = -absDx
+	}
+	absDy := dy
+	if absDy < 0 {
+		absDy = -absDy
+	}
+	dist := absDx + absDy
+
+	dir := directionArrow(dx, dy)
+	s.cachedDestinationText = fmt.Sprintf("Destination: %s %d tiles", dir, dist)
 }
 
 // handleDebugToggle toggles debug mode with F3 using proper key release detection.
@@ -150,6 +180,10 @@ func (s *GameSession) handleMovement() bool {
 	if moved && s.worldMap.IsValidMove(s.playerPos, newPos) {
 		s.playerPos = newPos
 		s.hudDirty = true // Mark HUD for refresh (H-003)
+		// Advance tutorial on movement
+		if s.tutorial != nil {
+			s.tutorial.OnMove()
+		}
 		return true
 	}
 	return false
@@ -187,11 +221,20 @@ func (s *GameSession) handleEventChoices() {
 
 	currentEvent := pending[0]
 
+	// Notify tutorial that the player has seen an event
+	if s.tutorial != nil {
+		s.tutorial.OnEventSeen()
+	}
+
 	// Get option pressed from input manager (returns 1-9 or 0 if none)
 	option := s.inputMgr.GetOptionPressed()
 	if option > 0 && option <= len(currentEvent.Choices) {
 		// Option numbers are 1-indexed, choice IDs are also 1-indexed
 		s.resolveEvent(currentEvent.ID, option)
+		// Notify tutorial that the player resolved an event
+		if s.tutorial != nil {
+			s.tutorial.OnEventResolved()
+		}
 	}
 }
 
@@ -222,6 +265,11 @@ func (s *GameSession) resolveEvent(eventID, choiceID int) {
 func (s *GameSession) advanceTurn() {
 	s.turn++
 	s.hudDirty = true // Mark HUD for refresh (H-003)
+
+	// Advance tutorial tracking
+	if s.tutorial != nil {
+		s.tutorial.OnTurnAdvance(s.turn)
+	}
 
 	// Consume resources
 	s.consumeResources()
@@ -277,11 +325,29 @@ func (s *GameSession) Draw(screen *ebiten.Image) {
 	}
 }
 
-// drawMenu renders the main menu.
+// drawMenu renders the main menu with objective and controls overview.
 func (s *GameSession) drawMenu(screen *ebiten.Image) {
-	msg := fmt.Sprintf("VOYAGE\n\nGenre: %s\nSeed: %d\nCrew: %d\nVessel: %s\n\nPress ENTER or SPACE to start",
-		s.config.Genre, s.config.Seed, s.party.Count(), s.vessel.Name())
-	drawCenteredText(screen, msg, s.width/4, s.height/3)
+	dx := s.worldMap.Destination.X - s.worldMap.Origin.X
+	dy := s.worldMap.Destination.Y - s.worldMap.Origin.Y
+	absDx := dx
+	if absDx < 0 {
+		absDx = -absDx
+	}
+	absDy := dy
+	if absDy < 0 {
+		absDy = -absDy
+	}
+	dist := absDx + absDy
+
+	msg := "VOYAGE\n\n" +
+		fmt.Sprintf("Genre: %s\nSeed: %d\nCrew: %d\nVessel: %s\n\n", s.config.Genre, s.config.Seed, s.party.Count(), s.vessel.Name()) +
+		"--- OBJECTIVE ---\n" +
+		GetObjectiveText() + "\n" +
+		fmt.Sprintf("Distance to destination: ~%d tiles\n\n", dist) +
+		"--- CONTROLS ---\n" +
+		GetControlsText() + "\n\n" +
+		"Press ENTER or SPACE to start"
+	drawCenteredText(screen, msg, s.width/4, s.height/6)
 }
 
 // drawGame renders the main gameplay view.
@@ -291,6 +357,12 @@ func (s *GameSession) drawGame(screen *ebiten.Image) {
 
 	// Draw HUD
 	s.drawHUD(screen)
+
+	// Draw destination indicator
+	s.drawDestinationIndicator(screen)
+
+	// Draw tutorial hints if applicable
+	s.drawTutorialHint(screen)
 
 	// Draw pending events
 	if s.eventQueue.HasPending() {
@@ -349,22 +421,40 @@ func (s *GameSession) drawEventOverlay(screen *ebiten.Image) {
 	drawCenteredText(screen, s.cachedEventText, s.width/4, s.height/4)
 }
 
-// drawPauseOverlay renders the pause screen.
+// drawPauseOverlay renders the pause screen with controls reference.
 func (s *GameSession) drawPauseOverlay(screen *ebiten.Image) {
-	msg := "=== PAUSED ===\n\nPress ESC to resume"
-	drawCenteredText(screen, msg, s.width/3, s.height/2)
+	msg := "=== PAUSED ===\n\n" +
+		"--- CONTROLS ---\n" + GetControlsText() + "\n\n" +
+		"--- OBJECTIVE ---\n" + GetObjectiveText() + "\n\n" +
+		"Press ESC to resume"
+	drawCenteredText(screen, msg, s.width/4, s.height/3)
 }
 
-// drawGameOver renders the game over screen.
+// drawGameOver renders the game over screen with detailed feedback.
 func (s *GameSession) drawGameOver(screen *ebiten.Image) {
 	result := "JOURNEY ENDED"
-	if s.playerPos.X == s.worldMap.Destination.X && s.playerPos.Y == s.worldMap.Destination.Y {
+	detail := ""
+	tip := ""
+	isVictory := s.playerPos.X == s.worldMap.Destination.X && s.playerPos.Y == s.worldMap.Destination.Y
+
+	if isVictory {
 		result = "VICTORY!"
+		detail = WinConditionDescription(WinReachedDestination)
+	} else {
+		// Determine loss reason
+		_, lc := NewConditionChecker().CheckLose(s.party, s.vessel, s.resources)
+		if lc != LoseNone {
+			result = LoseConditionName(lc)
+			detail = LoseConditionDescription(lc)
+			tip = "\n" + GetLoseReasonTip(lc)
+		}
 	}
 
-	msg := fmt.Sprintf("=== %s ===\n\nTurns: %d\nCrew Survived: %d/%d\nVessel: %.0f%%\n\nPress ENTER to return to menu",
-		result, s.turn, s.party.LivingCount(), s.party.Count(), s.vessel.IntegrityRatio()*100)
-	drawCenteredText(screen, msg, s.width/4, s.height/3)
+	msg := fmt.Sprintf("=== %s ===\n\n%s\n\n", result, detail) +
+		fmt.Sprintf("Turns: %d\nCrew Survived: %d/%d\n", s.turn, s.party.LivingCount(), s.party.Count()) +
+		fmt.Sprintf("Vessel: %.0f%%", s.vessel.IntegrityRatio()*100) +
+		tip + "\n\nPress ENTER to return to menu"
+	drawCenteredText(screen, msg, s.width/4, s.height/4)
 }
 
 // drawDebug renders debug information.
@@ -446,6 +536,24 @@ func (s *GameSession) PlayerPosition() world.Point {
 // SetGenre changes the genre for all subsystems.
 func (s *GameSession) SetGenre(genre engine.GenreID) {
 	s.propagateGenre(genre)
+}
+
+// drawDestinationIndicator shows distance and direction to destination on the HUD.
+// Uses cached text rebuilt in updateCachedStrings when HUD is dirty (H-003).
+func (s *GameSession) drawDestinationIndicator(screen *ebiten.Image) {
+	drawCenteredText(screen, s.cachedDestinationText, s.width-220, s.height-80)
+}
+
+// drawTutorialHint renders the current tutorial hint at the top of the screen.
+// Uses cached hint text rebuilt in updateCachedStrings on phase change (H-003).
+func (s *GameSession) drawTutorialHint(screen *ebiten.Image) {
+	if s.tutorial == nil || !s.tutorial.ShouldShowHint() {
+		return
+	}
+	if s.cachedTutorialHintText == "" {
+		return
+	}
+	drawCenteredText(screen, s.cachedTutorialHintText, s.width/4, 4)
 }
 
 // drawCenteredText is a helper to draw debug text.

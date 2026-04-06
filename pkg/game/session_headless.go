@@ -132,3 +132,8 @@ func (s *GameSession) setPlayerPosition(pos world.Point) {
 func (s *GameSession) SetGenre(genre engine.GenreID) {
 	s.propagateGenre(genre)
 }
+
+// Tutorial returns the tutorial manager.
+func (s *GameSession) Tutorial() *TutorialManager {
+	return s.tutorial
+}

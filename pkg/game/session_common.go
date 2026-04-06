@@ -74,9 +74,16 @@ type GameSession struct {
 	currentEventSnapshot *events.Event
 
 	// Cached strings for Draw to reduce allocations (H-003)
-	cachedHUDText   string
-	cachedEventText string
-	hudDirty        bool
+	cachedHUDText              string
+	cachedEventText            string
+	cachedDestinationText      string
+	cachedTutorialHintText     string
+	cachedTutorialHintPhase    TutorialPhase
+	cachedTutorialHintValid    bool
+	hudDirty                   bool
+
+	// Tutorial manager for onboarding hints
+	tutorial *TutorialManager
 
 	// Screen dimensions
 	width  int
@@ -194,6 +201,7 @@ func initializeSession(cfg SessionConfig) *GameSession {
 		debugMode:     false,
 		f3WasPressed:  false,
 		hudDirty:      true, // Force initial HUD text generation (H-003)
+		tutorial:      NewTutorialManager(),
 		width:         cfg.Width,
 		height:        cfg.Height,
 	}
@@ -216,6 +224,11 @@ func (s *GameSession) maybeGenerateEvent() {
 	} else {
 		// Peaceful music for normal travel
 		s.audioPlayer.SetMusicState(audio.MusicPeaceful)
+	}
+
+	// Suppress event generation during the first few turns to let the player orient
+	if s.tutorial != nil && s.tutorial.IsEarlyGame(s.turn) {
+		return
 	}
 
 	if s.eventQueue.ShouldTrigger(hazardChance) {
