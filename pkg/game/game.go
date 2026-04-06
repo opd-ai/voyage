@@ -97,6 +97,15 @@ func NewGame(cfg Config) *Game {
 
 // Update implements ebiten.Game.Update.
 func (g *Game) Update() error {
+	// Check for window close and perform graceful shutdown (M-010)
+	if ebiten.IsWindowBeingClosed() {
+		// Trigger autosave before exit if game is in progress
+		if g.state == StatePlaying || g.state == StatePaused {
+			// Note: actual autosave would be called here if saveload integration exists
+		}
+		return ebiten.Termination
+	}
+
 	g.handleStateInput()
 	g.handleDebugToggle()
 	return nil

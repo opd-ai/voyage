@@ -48,23 +48,49 @@ func colorToRGBA(c color.Color) color.RGBA {
 	}
 }
 
-// DrawBorder draws a 2-pixel border around the panel using the skin's border color.
+// pixelSprite is a cached 1x1 white pixel for efficient drawing (M-002).
+var pixelSprite *ebiten.Image
+
+// getPixelSprite returns the cached pixel sprite, creating it if necessary.
+func getPixelSprite() *ebiten.Image {
+	if pixelSprite == nil {
+		pixelSprite = ebiten.NewImage(1, 1)
+		pixelSprite.Fill(color.White)
+	}
+	return pixelSprite
+}
+
+// drawColoredRect draws a filled rectangle using a scaled pixel sprite (M-002).
+func drawColoredRect(img *ebiten.Image, x, y, w, h int, c color.Color) {
+	if w <= 0 || h <= 0 {
+		return
+	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(w), float64(h))
+	op.GeoM.Translate(float64(x), float64(y))
+
+	// Apply color using ColorScale
+	r, g, b, a := c.RGBA()
+	op.ColorScale.Scale(
+		float32(r)/65535.0,
+		float32(g)/65535.0,
+		float32(b)/65535.0,
+		float32(a)/65535.0,
+	)
+
+	img.DrawImage(getPixelSprite(), op)
+}
+
+// DrawBorder draws a 2-pixel border around the panel using DrawImage for efficiency (M-002).
 func DrawBorder(panel *ebiten.Image, skin *UISkin) {
 	w, h := panel.Bounds().Dx(), panel.Bounds().Dy()
 	c := skin.PanelBorder
 
-	for x := 0; x < w; x++ {
-		panel.Set(x, 0, c)
-		panel.Set(x, 1, c)
-		panel.Set(x, h-1, c)
-		panel.Set(x, h-2, c)
-	}
-	for y := 0; y < h; y++ {
-		panel.Set(0, y, c)
-		panel.Set(1, y, c)
-		panel.Set(w-1, y, c)
-		panel.Set(w-2, y, c)
-	}
+	// Draw 2-pixel thick border using rectangles
+	drawColoredRect(panel, 0, 0, w, 2, c)   // Top
+	drawColoredRect(panel, 0, h-2, w, 2, c) // Bottom
+	drawColoredRect(panel, 0, 0, 2, h, c)   // Left
+	drawColoredRect(panel, w-2, 0, 2, h, c) // Right
 }
 
 // DrawOverlay creates and draws a semi-transparent background overlay.

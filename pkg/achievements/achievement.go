@@ -101,12 +101,13 @@ func (a *Achievement) Earn(day int) {
 	}
 }
 
-// ProgressPercent returns completion percentage (0-100)
+// ProgressPercent returns completion percentage (0-100).
+// Uses int64 for intermediate calculation to prevent overflow (L-005).
 func (a *Achievement) ProgressPercent() int {
 	if a.Required == 0 {
 		return 100
 	}
-	percent := (a.Progress * 100) / a.Required
+	percent := int(int64(a.Progress) * 100 / int64(a.Required))
 	if percent > 100 {
 		return 100
 	}

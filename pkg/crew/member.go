@@ -1,6 +1,8 @@
 package crew
 
 import (
+	"math"
+
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 )
@@ -161,18 +163,10 @@ const MaxSkillLevel = 5
 
 // SkillExpThreshold returns the experience needed to reach the next level.
 // Experience needed increases with each level.
+// Uses math.Pow for accurate floating-point exponentiation (L-006).
 func SkillExpThreshold(currentLevel int) float64 {
 	// 100, 150, 225, 337.5, 506.25
-	return 100.0 * pow(1.5, float64(currentLevel))
-}
-
-// pow returns base^exp for floats.
-func pow(base, exp float64) float64 {
-	result := 1.0
-	for i := 0; i < int(exp); i++ {
-		result *= base
-	}
-	return result
+	return 100.0 * math.Pow(1.5, float64(currentLevel))
 }
 
 // SkillExpProgress returns [0, 1] progress toward next level.

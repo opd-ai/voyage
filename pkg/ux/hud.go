@@ -24,10 +24,15 @@ type HUD struct {
 	resourcePanel *ebiten.Image
 	crewPanel     *ebiten.Image
 	minimap       *Minimap
+	pixelSprite   *ebiten.Image // Cached 1x1 white pixel for efficient drawing (M-002, M-003)
 }
 
 // NewHUD creates a new HUD with default settings.
 func NewHUD(genre engine.GenreID) *HUD {
+	// Create cached pixel sprite for efficient drawing (M-002, M-003)
+	pixelSprite := ebiten.NewImage(1, 1)
+	pixelSprite.Fill(color.White)
+
 	h := &HUD{
 		skin:         DefaultSkin(genre),
 		genre:        genre,
@@ -35,6 +40,7 @@ func NewHUD(genre engine.GenreID) *HUD {
 		panelPadding: 8,
 		barHeight:    12,
 		minimap:      NewMinimap(genre, 150, 100),
+		pixelSprite:  pixelSprite,
 	}
 	h.resourcePanel = ebiten.NewImage(h.panelWidth, 160)
 	h.crewPanel = ebiten.NewImage(h.panelWidth, 200)
@@ -154,40 +160,47 @@ func (h *HUD) drawCrewPanel(party *crew.Party) {
 	}
 }
 
-// drawPanelBorder draws a border around the panel.
+// drawPanelBorder draws a border around the panel using DrawImage for efficiency (M-002).
 func (h *HUD) drawPanelBorder(panel *ebiten.Image) {
 	w, ht := panel.Bounds().Dx(), panel.Bounds().Dy()
-	borderColor := h.skin.PanelBorder
+	h.drawRect(panel, 0, 0, w, 1, h.skin.PanelBorder)    // Top
+	h.drawRect(panel, 0, ht-1, w, 1, h.skin.PanelBorder) // Bottom
+	h.drawRect(panel, 0, 0, 1, ht, h.skin.PanelBorder)   // Left
+	h.drawRect(panel, w-1, 0, 1, ht, h.skin.PanelBorder) // Right
+}
 
-	// Top and bottom
-	for x := 0; x < w; x++ {
-		panel.Set(x, 0, borderColor)
-		panel.Set(x, ht-1, borderColor)
-	}
-	// Left and right
-	for y := 0; y < ht; y++ {
-		panel.Set(0, y, borderColor)
-		panel.Set(w-1, y, borderColor)
+// drawBar draws a horizontal bar with fill using DrawImage for efficiency (M-003).
+func (h *HUD) drawBar(img *ebiten.Image, x, y, w, ht int, ratio float64, status resources.ThresholdStatus) {
+	// Background
+	h.drawRect(img, x, y, w, ht, h.skin.BarBackground)
+
+	// Fill (with 1px inset on top/bottom for border effect)
+	fillWidth := int(float64(w) * ratio)
+	if fillWidth > 0 {
+		fillColor := h.statusColor(status)
+		h.drawRect(img, x, y+1, fillWidth, ht-2, fillColor)
 	}
 }
 
-// drawBar draws a horizontal bar with fill.
-func (h *HUD) drawBar(img *ebiten.Image, x, y, w, ht int, ratio float64, status resources.ThresholdStatus) {
-	// Background
-	for dx := 0; dx < w; dx++ {
-		for dy := 0; dy < ht; dy++ {
-			img.Set(x+dx, y+dy, h.skin.BarBackground)
-		}
+// drawRect draws a filled rectangle using a scaled pixel sprite (M-002, M-003).
+func (h *HUD) drawRect(img *ebiten.Image, x, y, w, ht int, c color.Color) {
+	if w <= 0 || ht <= 0 {
+		return
 	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(w), float64(ht))
+	op.GeoM.Translate(float64(x), float64(y))
 
-	// Fill
-	fillWidth := int(float64(w) * ratio)
-	fillColor := h.statusColor(status)
-	for dx := 0; dx < fillWidth; dx++ {
-		for dy := 1; dy < ht-1; dy++ {
-			img.Set(x+dx, y+dy, fillColor)
-		}
-	}
+	// Apply color using ColorScale
+	r, g, b, a := c.RGBA()
+	op.ColorScale.Scale(
+		float32(r)/65535.0,
+		float32(g)/65535.0,
+		float32(b)/65535.0,
+		float32(a)/65535.0,
+	)
+
+	img.DrawImage(h.pixelSprite, op)
 }
 
 // statusColor returns the appropriate color for a threshold status.

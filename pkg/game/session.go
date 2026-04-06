@@ -207,8 +207,13 @@ func (s *GameSession) resolveEvent(eventID, choiceID int) {
 
 	s.applyOutcome(outcome)
 
-	// Advance time if needed
-	for i := 0; i < outcome.TimeAdvance; i++ {
+	// Advance time if needed, clamped to prevent malformed data from freezing game (M-009)
+	const maxTimeAdvance = 100
+	timeAdvance := outcome.TimeAdvance
+	if timeAdvance > maxTimeAdvance {
+		timeAdvance = maxTimeAdvance
+	}
+	for i := 0; i < timeAdvance; i++ {
 		s.advanceTurn()
 	}
 }
