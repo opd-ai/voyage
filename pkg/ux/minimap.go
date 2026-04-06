@@ -11,6 +11,7 @@ import (
 )
 
 // Minimap displays a small overview of the world map in the corner of the screen.
+// Uses caching to avoid full redraws every frame (H-010).
 type Minimap struct {
 	skin       *UISkin
 	genre      engine.GenreID
@@ -20,18 +21,29 @@ type Minimap struct {
 	image      *ebiten.Image
 	alpha      float64
 	crisisMode bool
+
+	// Caching state (H-010)
+	cachedBase     *ebiten.Image // Cached static elements (border, terrain, landmarks)
+	lastPlayerX    int           // Last player X position
+	lastPlayerY    int           // Last player Y position
+	lastWorldHash  int64         // Hash of explored tiles for change detection
+	needsBaseRegen bool          // Flag to regenerate base cache
 }
 
 // NewMinimap creates a new minimap with the given dimensions.
 func NewMinimap(genre engine.GenreID, width, height int) *Minimap {
 	return &Minimap{
-		skin:     DefaultSkin(genre),
-		genre:    genre,
-		width:    width,
-		height:   height,
-		tileSize: 4,
-		image:    ebiten.NewImage(width, height),
-		alpha:    1.0,
+		skin:           DefaultSkin(genre),
+		genre:          genre,
+		width:          width,
+		height:         height,
+		tileSize:       4,
+		image:          ebiten.NewImage(width, height),
+		alpha:          1.0,
+		cachedBase:     ebiten.NewImage(width, height),
+		needsBaseRegen: true,
+		lastPlayerX:    -1,
+		lastPlayerY:    -1,
 	}
 }
 
@@ -39,6 +51,7 @@ func NewMinimap(genre engine.GenreID, width, height int) *Minimap {
 func (m *Minimap) SetGenre(genre engine.GenreID) {
 	m.genre = genre
 	m.skin = DefaultSkin(genre)
+	m.needsBaseRegen = true // Regenerate on genre change (H-010)
 }
 
 // SetCrisisMode enables/disables crisis mode (fades the minimap during encounters).
@@ -56,18 +69,33 @@ func (m *Minimap) IsCrisisMode() bool {
 	return m.crisisMode
 }
 
-// Draw renders the minimap to the screen.
+// Draw renders the minimap to the screen using cached base when possible (H-010).
 func (m *Minimap) Draw(screen *ebiten.Image, wm *world.WorldMap, playerX, playerY int) {
 	if wm == nil {
 		return
 	}
 
-	m.image.Fill(m.skin.PanelBackground)
-	m.drawBorder()
-	m.drawTiles(wm)
-	m.drawLandmarks(wm)
-	m.drawPlayer(wm, playerX, playerY)
-	m.drawOriginAndDestination(wm)
+	// Check if we need to regenerate the base cache
+	worldHash := m.computeWorldHash(wm)
+	if m.needsBaseRegen || worldHash != m.lastWorldHash {
+		m.regenerateBaseCache(wm)
+		m.lastWorldHash = worldHash
+		m.needsBaseRegen = false
+	}
+
+	// Only redraw if player position changed (H-010)
+	if playerX != m.lastPlayerX || playerY != m.lastPlayerY {
+		// Clear the main image and draw cached base
+		m.image.Clear()
+		m.image.DrawImage(m.cachedBase, nil)
+
+		// Draw dynamic elements (player, origin, destination)
+		m.drawPlayer(wm, playerX, playerY)
+		m.drawOriginAndDestination(wm)
+
+		m.lastPlayerX = playerX
+		m.lastPlayerY = playerY
+	}
 
 	// Position in top-right corner
 	screenW, _ := screen.Bounds().Dx(), screen.Bounds().Dy()
@@ -77,27 +105,49 @@ func (m *Minimap) Draw(screen *ebiten.Image, wm *world.WorldMap, playerX, player
 	screen.DrawImage(m.image, op)
 }
 
-// drawBorder draws the minimap frame.
-func (m *Minimap) drawBorder() {
+// computeWorldHash creates a simple hash to detect world changes (H-010).
+func (m *Minimap) computeWorldHash(wm *world.WorldMap) int64 {
+	var hash int64
+	for y := 0; y < wm.Height; y++ {
+		for x := 0; x < wm.Width; x++ {
+			tile := wm.GetTile(x, y)
+			if tile != nil && tile.Explored {
+				hash += int64(x*1000 + y)
+			}
+		}
+	}
+	return hash
+}
+
+// regenerateBaseCache rebuilds the static minimap elements (H-010).
+func (m *Minimap) regenerateBaseCache(wm *world.WorldMap) {
+	m.cachedBase.Fill(m.skin.PanelBackground)
+	m.drawBorderTo(m.cachedBase)
+	m.drawTilesTo(m.cachedBase, wm)
+	m.drawLandmarksTo(m.cachedBase, wm)
+}
+
+// drawBorderTo draws the minimap frame to the specified image.
+func (m *Minimap) drawBorderTo(img *ebiten.Image) {
 	borderColor := m.skin.PanelBorder
 	w, h := m.width, m.height
 
 	for x := 0; x < w; x++ {
-		m.image.Set(x, 0, borderColor)
-		m.image.Set(x, h-1, borderColor)
+		img.Set(x, 0, borderColor)
+		img.Set(x, h-1, borderColor)
 	}
 	for y := 0; y < h; y++ {
-		m.image.Set(0, y, borderColor)
-		m.image.Set(w-1, y, borderColor)
+		img.Set(0, y, borderColor)
+		img.Set(w-1, y, borderColor)
 	}
 }
 
-// drawTiles renders explored and unexplored tiles.
-func (m *Minimap) drawTiles(wm *world.WorldMap) {
+// drawTilesTo renders explored and unexplored tiles to the specified image.
+func (m *Minimap) drawTilesTo(img *ebiten.Image, wm *world.WorldMap) {
 	scale := m.calculateScale(wm)
 	for y := 0; y < wm.Height; y++ {
 		for x := 0; x < wm.Width; x++ {
-			m.drawTileAt(wm, x, y, scale)
+			m.drawTileAtTo(img, wm, x, y, scale)
 		}
 	}
 }
@@ -112,8 +162,8 @@ func (m *Minimap) calculateScale(wm *world.WorldMap) float64 {
 	return scaleX
 }
 
-// drawTileAt draws a single tile at the given world coordinates.
-func (m *Minimap) drawTileAt(wm *world.WorldMap, x, y int, scale float64) {
+// drawTileAtTo draws a single tile at the given world coordinates to the specified image.
+func (m *Minimap) drawTileAtTo(img *ebiten.Image, wm *world.WorldMap, x, y int, scale float64) {
 	tile := wm.GetTile(x, y)
 	if tile == nil {
 		return
@@ -123,34 +173,34 @@ func (m *Minimap) drawTileAt(wm *world.WorldMap, x, y int, scale float64) {
 	py := 1 + int(float64(y)*scale)
 
 	if tile.Explored {
-		m.drawExploredTile(px, py, tile)
+		m.drawExploredTileTo(img, px, py, tile)
 	} else {
-		m.drawFog(px, py)
+		m.drawFogTo(img, px, py)
 	}
 }
 
-// drawExploredTile draws a single explored tile with terrain color.
-func (m *Minimap) drawExploredTile(px, py int, tile *world.Tile) {
+// drawExploredTileTo draws a single explored tile with terrain color to the specified image.
+func (m *Minimap) drawExploredTileTo(img *ebiten.Image, px, py int, tile *world.Tile) {
 	c := m.terrainColor(tile.Terrain)
 	for dx := 0; dx < m.tileSize && px+dx < m.width-1; dx++ {
 		for dy := 0; dy < m.tileSize && py+dy < m.height-1; dy++ {
-			m.image.Set(px+dx, py+dy, c)
+			img.Set(px+dx, py+dy, c)
 		}
 	}
 }
 
-// drawFog draws fog overlay for unexplored areas.
-func (m *Minimap) drawFog(px, py int) {
+// drawFogTo draws fog overlay for unexplored areas to the specified image.
+func (m *Minimap) drawFogTo(img *ebiten.Image, px, py int) {
 	fogColor := m.skin.TextSecondary
 	for dx := 0; dx < m.tileSize && px+dx < m.width-1; dx++ {
 		for dy := 0; dy < m.tileSize && py+dy < m.height-1; dy++ {
-			m.image.Set(px+dx, py+dy, fogColor)
+			img.Set(px+dx, py+dy, fogColor)
 		}
 	}
 }
 
-// drawLandmarks draws icons for notable locations.
-func (m *Minimap) drawLandmarks(wm *world.WorldMap) {
+// drawLandmarksTo draws icons for notable locations to the specified image.
+func (m *Minimap) drawLandmarksTo(img *ebiten.Image, wm *world.WorldMap) {
 	scale := m.calculateScale(wm)
 	for y := 0; y < wm.Height; y++ {
 		for x := 0; x < wm.Width; x++ {
@@ -162,20 +212,20 @@ func (m *Minimap) drawLandmarks(wm *world.WorldMap) {
 			px := 1 + int(float64(x)*scale) + m.tileSize/2
 			py := 1 + int(float64(y)*scale) + m.tileSize/2
 
-			m.drawLandmarkIcon(px, py, tile.Landmark.Type)
+			m.drawLandmarkIconTo(img, px, py, tile.Landmark.Type)
 		}
 	}
 }
 
-// drawLandmarkIcon draws a specific landmark icon.
-func (m *Minimap) drawLandmarkIcon(px, py int, lt world.LandmarkType) {
+// drawLandmarkIconTo draws a specific landmark icon to the specified image.
+func (m *Minimap) drawLandmarkIconTo(img *ebiten.Image, px, py int, lt world.LandmarkType) {
 	c := m.landmarkColor(lt)
 	// Draw a small marker (cross or dot)
-	m.image.Set(px, py, c)
-	m.image.Set(px-1, py, c)
-	m.image.Set(px+1, py, c)
-	m.image.Set(px, py-1, c)
-	m.image.Set(px, py+1, c)
+	img.Set(px, py, c)
+	img.Set(px-1, py, c)
+	img.Set(px+1, py, c)
+	img.Set(px, py-1, c)
+	img.Set(px, py+1, c)
 }
 
 // drawPlayer draws the player position indicator.

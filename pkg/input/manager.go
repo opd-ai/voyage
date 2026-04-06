@@ -131,10 +131,15 @@ func (m *Manager) handleDirectionPressed(dir Direction) {
 }
 
 // processActionKeys handles confirm, cancel, and debug keys.
+// Uses separate conditions to prevent duplicate ActionConfirm (M-004).
 func (m *Manager) processActionKeys() {
+	// Check for confirm action, only add once even if both keys pressed (M-004)
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) ||
 		inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		m.currentState.Actions = append(m.currentState.Actions, ActionConfirm)
+		// Only add if not already present
+		if !m.hasAction(ActionConfirm) {
+			m.currentState.Actions = append(m.currentState.Actions, ActionConfirm)
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		m.currentState.Actions = append(m.currentState.Actions, ActionCancel)
@@ -142,6 +147,16 @@ func (m *Manager) processActionKeys() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF3) {
 		m.currentState.Actions = append(m.currentState.Actions, ActionDebug)
 	}
+}
+
+// hasAction checks if an action is already in the current state (M-004).
+func (m *Manager) hasAction(action InputAction) bool {
+	for _, a := range m.currentState.Actions {
+		if a == action {
+			return true
+		}
+	}
+	return false
 }
 
 // processOptionKeys handles number keys 1-9 for options.

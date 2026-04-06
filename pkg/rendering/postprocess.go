@@ -202,12 +202,47 @@ func (pp *PostProcessor) ApplyScanlines(img *ebiten.Image, density, alpha float6
 	return result
 }
 
-// ApplyFilmGrain adds random noise for a gritty film effect.
+// ApplyFilmGrain adds random noise using a pre-rendered noise texture (M-001).
+// This replaces per-pixel noise generation with a tiled texture overlay.
 func (pp *PostProcessor) ApplyFilmGrain(img *ebiten.Image, seed int64, intensity float64) *ebiten.Image {
-	result, w, h := copyImage(img)
-	if result == nil {
+	if img == nil {
 		return nil
 	}
+
+	bounds := img.Bounds()
+	w, h := bounds.Dx(), bounds.Dy()
+
+	// Regenerate grain texture if seed changed
+	if pp.grainTexture == nil || pp.lastGrainSeed != seed {
+		pp.generateGrainTexture(seed)
+	}
+
+	// Copy the original image
+	result := ebiten.NewImage(w, h)
+	result.DrawImage(img, nil)
+
+	// Tile the grain texture across the result
+	// Use overlay blend mode for proper grain effect
+	grainSize := pp.grainTextureSize
+	for ty := 0; ty < h; ty += grainSize {
+		for tx := 0; tx < w; tx += grainSize {
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(float64(tx), float64(ty))
+			// Scale alpha by intensity
+			op.ColorScale.Scale(1, 1, 1, float32(intensity))
+			op.Blend = ebiten.BlendSourceOver
+			result.DrawImage(pp.grainTexture, op)
+		}
+	}
+
+	return result
+}
+
+// generateGrainTexture creates a pre-rendered noise texture for film grain (M-001).
+func (pp *PostProcessor) generateGrainTexture(seed int64) {
+	size := pp.grainTextureSize
+	pp.grainTexture = ebiten.NewImage(size, size)
+	pp.lastGrainSeed = seed
 
 	// Simple LCG for deterministic noise
 	rng := uint64(seed)
@@ -216,21 +251,31 @@ func (pp *PostProcessor) ApplyFilmGrain(img *ebiten.Image, seed int64, intensity
 		return float64(rng>>33) / float64(1<<31)
 	}
 
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			r, g, b, a := img.At(x, y).RGBA()
-			noise := (nextRand() - 0.5) * 2.0 * intensity * 255
-			newR := clampUint8(float64(r>>8) + noise)
-			newG := clampUint8(float64(g>>8) + noise)
-			newB := clampUint8(float64(b>>8) + noise)
-			result.Set(x, y, color.RGBA{newR, newG, newB, uint8(a >> 8)})
+	// Generate grayscale noise
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			// Random value centered at 128 (neutral gray)
+			noise := (nextRand() - 0.5) * 128
+			gray := uint8(clampFloat64(128+noise, 0, 255))
+			// Use low alpha so it blends subtly with the underlying image
+			pp.grainTexture.Set(x, y, color.RGBA{gray, gray, gray, 64})
 		}
 	}
-
-	return result
 }
 
-// ApplyChromaticAberration offsets color channels for a digital glitch effect.
+// clampFloat64 clamps a float64 value to [min, max].
+func clampFloat64(v, min, max float64) float64 {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+
+// ApplyChromaticAberration offsets color channels using DrawImage with ColorM (H-005).
+// This replaces per-pixel triple sampling with three GPU-accelerated draw calls.
 func (pp *PostProcessor) ApplyChromaticAberration(img *ebiten.Image, offset float64) *ebiten.Image {
 	if img == nil {
 		return nil
@@ -239,26 +284,35 @@ func (pp *PostProcessor) ApplyChromaticAberration(img *ebiten.Image, offset floa
 	bounds := img.Bounds()
 	w, h := bounds.Dx(), bounds.Dy()
 	result := ebiten.NewImage(w, h)
-	off := int(offset)
+	off := offset
 
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			result.Set(x, y, chromaticPixel(img, x, y, w, off))
-		}
-	}
+	// Draw red channel shifted left
+	opR := &ebiten.DrawImageOptions{}
+	opR.GeoM.Translate(-off, 0)
+	var cmR ebiten.ColorM
+	cmR.Scale(1, 0, 0, 1) // Keep only red channel
+	opR.ColorM = cmR
+	opR.Blend = ebiten.BlendSourceOver
+	result.DrawImage(img, opR)
+
+	// Draw green channel centered (additive blend)
+	opG := &ebiten.DrawImageOptions{}
+	var cmG ebiten.ColorM
+	cmG.Scale(0, 1, 0, 1) // Keep only green channel
+	opG.ColorM = cmG
+	opG.Blend = ebiten.BlendLighter // Additive blending
+	result.DrawImage(img, opG)
+
+	// Draw blue channel shifted right (additive blend)
+	opB := &ebiten.DrawImageOptions{}
+	opB.GeoM.Translate(off, 0)
+	var cmB ebiten.ColorM
+	cmB.Scale(0, 0, 1, 1) // Keep only blue channel
+	opB.ColorM = cmB
+	opB.Blend = ebiten.BlendLighter // Additive blending
+	result.DrawImage(img, opB)
+
 	return result
-}
-
-// chromaticPixel computes the chromatic-shifted color at a pixel position.
-func chromaticPixel(img *ebiten.Image, x, y, w, off int) color.RGBA {
-	rX := clampInt(x-off, 0, w-1)
-	bX := clampInt(x+off, 0, w-1)
-
-	rr, _, _, _ := img.At(rX, y).RGBA()
-	_, gg, _, _ := img.At(x, y).RGBA()
-	_, _, bb, aa := img.At(bX, y).RGBA()
-
-	return color.RGBA{uint8(rr >> 8), uint8(gg >> 8), uint8(bb >> 8), uint8(aa >> 8)}
 }
 
 // clampInt clamps v to the range [min, max].

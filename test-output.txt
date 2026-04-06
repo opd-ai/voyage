@@ -1,40 +1,42 @@
 # github.com/opd-ai/voyage/pkg/game
 pkg/game/session.go:48:28: cannot use &e (value of type **events.Event) as *events.Event value in assignment
 FAIL	github.com/opd-ai/voyage/cmd/voyage [build failed]
-ok  	github.com/opd-ai/voyage/pkg/achievements	1.023s
-ok  	github.com/opd-ai/voyage/pkg/audio	8.794s
-ok  	github.com/opd-ai/voyage/pkg/benchmark	1.030s
-ok  	github.com/opd-ai/voyage/pkg/companions	1.032s
-ok  	github.com/opd-ai/voyage/pkg/config	1.023s
-ok  	github.com/opd-ai/voyage/pkg/convoy	1.162s
-ok  	github.com/opd-ai/voyage/pkg/council	1.022s
-ok  	github.com/opd-ai/voyage/pkg/crew	1.023s
-ok  	github.com/opd-ai/voyage/pkg/destination	1.020s
-ok  	github.com/opd-ai/voyage/pkg/economy	1.022s
-ok  	github.com/opd-ai/voyage/pkg/encounters	1.062s
-ok  	github.com/opd-ai/voyage/pkg/engine	1.017s
-ok  	github.com/opd-ai/voyage/pkg/events	1.022s
-ok  	github.com/opd-ai/voyage/pkg/factions	1.017s
+# github.com/opd-ai/voyage/pkg/input
+pkg/input/manager.go:153:36: undefined: InputAction
+ok  	github.com/opd-ai/voyage/pkg/achievements	1.021s
+ok  	github.com/opd-ai/voyage/pkg/audio	8.785s
+ok  	github.com/opd-ai/voyage/pkg/benchmark	1.032s
+ok  	github.com/opd-ai/voyage/pkg/companions	1.035s
+ok  	github.com/opd-ai/voyage/pkg/config	1.022s
+ok  	github.com/opd-ai/voyage/pkg/convoy	1.160s
+ok  	github.com/opd-ai/voyage/pkg/council	1.021s
+ok  	github.com/opd-ai/voyage/pkg/crew	1.024s
+ok  	github.com/opd-ai/voyage/pkg/destination	1.023s
+ok  	github.com/opd-ai/voyage/pkg/economy	1.023s
+ok  	github.com/opd-ai/voyage/pkg/encounters	1.070s
+ok  	github.com/opd-ai/voyage/pkg/engine	1.018s
+ok  	github.com/opd-ai/voyage/pkg/events	1.028s
+ok  	github.com/opd-ai/voyage/pkg/factions	1.023s
 FAIL	github.com/opd-ai/voyage/pkg/game [build failed]
-?   	github.com/opd-ai/voyage/pkg/input	[no test files]
-ok  	github.com/opd-ai/voyage/pkg/journey	1.018s
-ok  	github.com/opd-ai/voyage/pkg/leaderboard	1.135s
-ok  	github.com/opd-ai/voyage/pkg/lore	1.036s
-ok  	github.com/opd-ai/voyage/pkg/metaprog	1.030s
-ok  	github.com/opd-ai/voyage/pkg/modding	1.038s
-ok  	github.com/opd-ai/voyage/pkg/narrative	1.024s
-ok  	github.com/opd-ai/voyage/pkg/npc	1.024s
-ok  	github.com/opd-ai/voyage/pkg/procgen	1.078s
-ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.020s
-ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.031s
-ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.070s
-ok  	github.com/opd-ai/voyage/pkg/quests	1.024s
-ok  	github.com/opd-ai/voyage/pkg/rendering	1.132s
-ok  	github.com/opd-ai/voyage/pkg/resources	1.015s
-ok  	github.com/opd-ai/voyage/pkg/saveload	1.081s
-ok  	github.com/opd-ai/voyage/pkg/trading	1.033s
-ok  	github.com/opd-ai/voyage/pkg/ux	1.065s
+FAIL	github.com/opd-ai/voyage/pkg/input [build failed]
+ok  	github.com/opd-ai/voyage/pkg/journey	1.019s
+ok  	github.com/opd-ai/voyage/pkg/leaderboard	1.104s
+ok  	github.com/opd-ai/voyage/pkg/lore	1.026s
+ok  	github.com/opd-ai/voyage/pkg/metaprog	1.022s
+ok  	github.com/opd-ai/voyage/pkg/modding	1.047s
+ok  	github.com/opd-ai/voyage/pkg/narrative	1.025s
+ok  	github.com/opd-ai/voyage/pkg/npc	1.027s
+ok  	github.com/opd-ai/voyage/pkg/procgen	1.081s
+ok  	github.com/opd-ai/voyage/pkg/procgen/event	1.021s
+ok  	github.com/opd-ai/voyage/pkg/procgen/seed	1.029s
+ok  	github.com/opd-ai/voyage/pkg/procgen/world	1.077s
+ok  	github.com/opd-ai/voyage/pkg/quests	1.025s
+ok  	github.com/opd-ai/voyage/pkg/rendering	1.139s
+ok  	github.com/opd-ai/voyage/pkg/resources	1.017s
+ok  	github.com/opd-ai/voyage/pkg/saveload	1.084s
+ok  	github.com/opd-ai/voyage/pkg/trading	1.032s
+ok  	github.com/opd-ai/voyage/pkg/ux	1.066s
 ok  	github.com/opd-ai/voyage/pkg/vessel	1.024s
-ok  	github.com/opd-ai/voyage/pkg/weather	1.016s
+ok  	github.com/opd-ai/voyage/pkg/weather	1.015s
 ok  	github.com/opd-ai/voyage/pkg/world	1.013s
 FAIL

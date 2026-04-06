@@ -2,9 +2,13 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 )
+
+// ErrConfigCorrupted indicates the config file was corrupted and defaults were used (H-015).
+var ErrConfigCorrupted = errors.New("config file corrupted, using defaults")
 
 // ConfigPath returns the platform-appropriate path for configuration files.
 // Returns ~/.config/voyage on Linux, ~/Library/Application Support/voyage on macOS,
@@ -44,6 +48,7 @@ func SaveConfig(cfg *Config) error {
 
 // LoadConfig loads the configuration from disk.
 // Returns default config if file doesn't exist.
+// Returns ErrConfigCorrupted alongside default config if the file exists but is invalid (H-015).
 func LoadConfig() (*Config, error) {
 	data, err := os.ReadFile(ConfigFilePath())
 	if err != nil {
@@ -55,7 +60,8 @@ func LoadConfig() (*Config, error) {
 
 	cfg := &Config{}
 	if err := json.Unmarshal(data, cfg); err != nil {
-		return DefaultConfig(), nil
+		// Return defaults but also return error so caller can warn user (H-015)
+		return DefaultConfig(), ErrConfigCorrupted
 	}
 
 	// Ensure input config is initialized

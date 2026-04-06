@@ -123,69 +123,84 @@ func (m *MusicGenerator) MusicState() MusicState {
 // CrossfadeTo generates a crossfade transition from the current state to the target state.
 // Returns audio samples that transition smoothly over the specified duration in milliseconds.
 func (m *MusicGenerator) CrossfadeTo(targetState MusicState, durationMs int) []float64 {
-	if durationMs < 100 {
-		durationMs = 100
-	}
-	if durationMs > 5000 {
-		durationMs = 5000
-	}
-
-	// Calculate sample counts
+	durationMs = clampDuration(durationMs, 100, 5000)
 	durationSec := float64(durationMs) / 1000.0
 	totalSamples := int(m.sampleRate * durationSec)
 
-	// Generate audio for current state
-	currentState := m.state
-	currentBPM := m.bpm
-	barsNeeded := int(durationSec*currentBPM/60.0/4.0) + 1
-	if barsNeeded < 1 {
-		barsNeeded = 1
-	}
-	fromSamples := m.GenerateLoop(barsNeeded)
-
-	// Generate audio for target state
-	m.SetMusicState(targetState)
-	targetBPM := m.bpm
-	barsNeeded = int(durationSec*targetBPM/60.0/4.0) + 1
-	if barsNeeded < 1 {
-		barsNeeded = 1
-	}
-	toSamples := m.GenerateLoop(barsNeeded)
+	fromSamples, currentState, currentBPM := m.generateCurrentStateSamples(durationSec)
+	toSamples := m.generateTargetStateSamples(targetState, durationSec)
 
 	// Restore current state (transition hasn't completed until played)
 	m.state = currentState
 	m.bpm = currentBPM
 
-	// Guard against empty sample slices (H-016)
-	if len(fromSamples) == 0 || len(toSamples) == 0 {
-		// If either source is empty, return the non-empty one or silence
-		if len(toSamples) > 0 {
-			return toSamples
-		}
-		if len(fromSamples) > 0 {
-			return fromSamples
-		}
-		return make([]float64, totalSamples)
-	}
-
-	// Perform linear crossfade
-	result := make([]float64, totalSamples)
-	for i := 0; i < totalSamples; i++ {
-		t := float64(i) / float64(totalSamples-1)
-		// Use equal-power crossfade for smooth transition
-		fadeOut := 1.0 - t
-		fadeIn := t
-
-		fromIdx := i % len(fromSamples)
-		toIdx := i % len(toSamples)
-
-		result[i] = fromSamples[fromIdx]*fadeOut + toSamples[toIdx]*fadeIn
-	}
-
-	// After crossfade generation, update to target state
+	result := m.blendSamples(fromSamples, toSamples, totalSamples)
 	m.SetMusicState(targetState)
 
 	return result
+}
+
+// clampDuration constrains duration to the given bounds.
+func clampDuration(durationMs, min, max int) int {
+	if durationMs < min {
+		return min
+	}
+	if durationMs > max {
+		return max
+	}
+	return durationMs
+}
+
+// generateCurrentStateSamples generates samples for current state and returns state info.
+func (m *MusicGenerator) generateCurrentStateSamples(durationSec float64) ([]float64, MusicState, float64) {
+	currentState := m.state
+	currentBPM := m.bpm
+	barsNeeded := calculateBarsNeeded(durationSec, currentBPM)
+	return m.GenerateLoop(barsNeeded), currentState, currentBPM
+}
+
+// generateTargetStateSamples switches to target state and generates samples.
+func (m *MusicGenerator) generateTargetStateSamples(targetState MusicState, durationSec float64) []float64 {
+	m.SetMusicState(targetState)
+	barsNeeded := calculateBarsNeeded(durationSec, m.bpm)
+	return m.GenerateLoop(barsNeeded)
+}
+
+// calculateBarsNeeded determines how many bars are needed for a given duration and BPM.
+func calculateBarsNeeded(durationSec, bpm float64) int {
+	bars := int(durationSec*bpm/60.0/4.0) + 1
+	if bars < 1 {
+		return 1
+	}
+	return bars
+}
+
+// blendSamples performs a linear crossfade between two sample slices.
+// Guards against empty sample slices (H-016).
+func (m *MusicGenerator) blendSamples(fromSamples, toSamples []float64, totalSamples int) []float64 {
+	if len(fromSamples) == 0 || len(toSamples) == 0 {
+		return m.handleEmptySamples(fromSamples, toSamples, totalSamples)
+	}
+
+	result := make([]float64, totalSamples)
+	for i := 0; i < totalSamples; i++ {
+		t := float64(i) / float64(totalSamples-1)
+		fromIdx := i % len(fromSamples)
+		toIdx := i % len(toSamples)
+		result[i] = fromSamples[fromIdx]*(1.0-t) + toSamples[toIdx]*t
+	}
+	return result
+}
+
+// handleEmptySamples returns the non-empty sample slice or silence.
+func (m *MusicGenerator) handleEmptySamples(fromSamples, toSamples []float64, totalSamples int) []float64 {
+	if len(toSamples) > 0 {
+		return toSamples
+	}
+	if len(fromSamples) > 0 {
+		return fromSamples
+	}
+	return make([]float64, totalSamples)
 }
 
 // CrossfadeToBytes generates a crossfade transition and returns 16-bit PCM bytes.

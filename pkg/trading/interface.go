@@ -1,6 +1,8 @@
 package trading
 
 import (
+	"math"
+
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/resources"
 )
@@ -96,9 +98,16 @@ type TradeOffer struct {
 	Available int
 }
 
-// TotalPrice returns the total price for a given quantity.
+// TotalPrice returns the total price for a given quantity with rounding (H-012).
+// Rounds to two decimal places to prevent floating-point precision accumulation.
 func (to *TradeOffer) TotalPrice(quantity int) float64 {
-	return to.UnitPrice * float64(quantity)
+	return roundCurrency(to.UnitPrice * float64(quantity))
+}
+
+// roundCurrency rounds a currency value to two decimal places (H-012).
+// This prevents floating-point precision errors from accumulating over many transactions.
+func roundCurrency(value float64) float64 {
+	return math.Round(value*100) / 100
 }
 
 // Buy attempts to purchase an item from the supply post.
@@ -125,9 +134,9 @@ func (ti *TradeInterface) Buy(itemName string, quantity int) TradeResult {
 		}
 	}
 
-	// Calculate price
-	unitPrice := ti.post.AdjustedPrice(item.BasePrice, false)
-	totalCost := unitPrice * float64(quantity)
+	// Calculate price with rounding to prevent floating-point precision issues (H-012)
+	unitPrice := roundCurrency(ti.post.AdjustedPrice(item.BasePrice, false))
+	totalCost := roundCurrency(unitPrice * float64(quantity))
 
 	// Check player currency
 	currency := ti.playerResources.Get(resources.ResourceCurrency)
@@ -209,9 +218,9 @@ func (ti *TradeInterface) Sell(itemName string, quantity int) TradeResult {
 		}
 	}
 
-	// Calculate price
-	unitPrice := ti.post.AdjustedPrice(item.BasePrice, true)
-	totalValue := unitPrice * float64(quantity)
+	// Calculate price with rounding to prevent floating-point precision issues (H-012)
+	unitPrice := roundCurrency(ti.post.AdjustedPrice(item.BasePrice, true))
+	totalValue := roundCurrency(unitPrice * float64(quantity))
 
 	// Execute transaction
 	ti.playerInventory.RemoveItem(itemName, quantity)

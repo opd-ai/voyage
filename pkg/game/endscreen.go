@@ -54,39 +54,60 @@ func (es *EndStats) SetDefeat(lc LoseCondition) {
 func (es *EndStats) CalculateScore() int {
 	var score int64 = 0
 
-	// Base score for surviving
+	score += es.calculateVictoryBonus()
+	score += es.calculateSurvivalBonus()
+	score += es.calculateExplorationScore()
+	score += es.calculateEfficiencyBonus()
+	score += es.calculateEconomicScore()
+
+	return clampScore(score)
+}
+
+// calculateVictoryBonus returns points for winning the game.
+func (es *EndStats) calculateVictoryBonus() int64 {
 	if es.IsVictory {
-		score += 1000
+		return 1000
 	}
+	return 0
+}
 
-	// Bonus for crew survival
-	if es.CrewStarted > 0 {
-		survivalRate := float64(es.CrewSurvived) / float64(es.CrewStarted)
-		score += int64(survivalRate * 500)
+// calculateSurvivalBonus returns points based on crew survival rate.
+func (es *EndStats) calculateSurvivalBonus() int64 {
+	if es.CrewStarted == 0 {
+		return 0
 	}
+	survivalRate := float64(es.CrewSurvived) / float64(es.CrewStarted)
+	return int64(survivalRate * 500)
+}
 
-	// Points for distance traveled
+// calculateExplorationScore returns points for distance and exploration.
+func (es *EndStats) calculateExplorationScore() int64 {
+	var score int64
 	score += int64(es.DistanceTraveled) * 5
-
-	// Points for exploration
 	score += int64(es.TilesExplored) * 2
-
-	// Points for events resolved
 	score += int64(es.EventsResolved) * 10
+	return score
+}
 
-	// Efficiency bonus for quick completion
+// calculateEfficiencyBonus returns bonus points for quick completion.
+func (es *EndStats) calculateEfficiencyBonus() int64 {
 	if es.DaysTraveled > 0 && es.DaysTraveled < 100 {
-		efficiencyBonus := int64(100-es.DaysTraveled) * 5
-		score += efficiencyBonus
+		return int64(100-es.DaysTraveled) * 5
 	}
+	return 0
+}
 
-	// Economic score
+// calculateEconomicScore returns points for positive net currency.
+func (es *EndStats) calculateEconomicScore() int64 {
 	netCurrency := es.CurrencyEarned - es.CurrencySpent
 	if netCurrency > 0 {
-		score += int64(netCurrency) / 10
+		return int64(netCurrency) / 10
 	}
+	return 0
+}
 
-	// Cap at maximum int value to prevent overflow (M-016)
+// clampScore caps score at maximum int value to prevent overflow (M-016).
+func clampScore(score int64) int {
 	const maxScore = int64(1<<31 - 1)
 	if score > maxScore {
 		score = maxScore
@@ -94,7 +115,6 @@ func (es *EndStats) CalculateScore() int {
 	if score < 0 {
 		score = 0
 	}
-
 	return int(score)
 }
 

@@ -1,6 +1,8 @@
 package leaderboard
 
 import (
+	"sort"
+
 	"github.com/opd-ai/voyage/pkg/engine"
 )
 
@@ -214,14 +216,11 @@ func (rm *ReplayManager) buildSeedStats(entries []*Entry) []seedStats {
 }
 
 // sortSeedStatsByCount sorts seed stats by attempt count descending.
+// Uses sort.Slice for O(n log n) complexity (L-017).
 func (rm *ReplayManager) sortSeedStatsByCount(stats []seedStats) {
-	for i := 0; i < len(stats); i++ {
-		for j := i + 1; j < len(stats); j++ {
-			if stats[j].count > stats[i].count {
-				stats[i], stats[j] = stats[j], stats[i]
-			}
-		}
-	}
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i].count > stats[j].count
+	})
 }
 
 // buildReplayInfos converts seed stats to ReplayInfo slice.

@@ -496,30 +496,62 @@ func (m *WASMMod) OnEvent(ctx context.Context, eventCategory string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.module == nil {
-		return nil
-	}
-
-	hookFn := m.module.ExportedFunction("mod_on_event")
+	hookFn := m.getEventHookFunction()
 	if hookFn == nil {
 		return nil
 	}
 
-	// Write event category to memory
 	mem := m.module.Memory()
 	if mem == nil {
 		return nil
 	}
 
-	// Use a fixed buffer location for input
-	const inputPtr = 1024
-	categoryBytes := []byte(eventCategory)
-	mem.Write(inputPtr, categoryBytes)
+	ptr, length, err := m.prepareEventInput(mem, eventCategory)
+	if err != nil {
+		return err
+	}
 
+	return m.callEventHook(ctx, hookFn, ptr, length)
+}
+
+// getEventHookFunction retrieves the mod's event hook if available.
+func (m *WASMMod) getEventHookFunction() api.Function {
+	if m.module == nil {
+		return nil
+	}
+	return m.module.ExportedFunction("mod_on_event")
+}
+
+// prepareEventInput writes event category to WASM memory with bounds checking (H-011).
+// Returns the memory pointer and length for the hook call.
+func (m *WASMMod) prepareEventInput(mem api.Memory, eventCategory string) (uint64, uint64, error) {
+	const inputPtr = 1024
+	const maxInputLen = 1024
+
+	categoryBytes := []byte(eventCategory)
+	if len(categoryBytes) > maxInputLen {
+		categoryBytes = categoryBytes[:maxInputLen]
+	}
+
+	memSize := mem.Size()
+	if uint32(inputPtr+len(categoryBytes)) > memSize {
+		return 0, 0, fmt.Errorf("WASM memory too small for input: need %d, have %d",
+			inputPtr+len(categoryBytes), memSize)
+	}
+
+	if !mem.Write(inputPtr, categoryBytes) {
+		return 0, 0, fmt.Errorf("failed to write event category to WASM memory")
+	}
+
+	return inputPtr, uint64(len(categoryBytes)), nil
+}
+
+// callEventHook invokes the event hook function with timeout handling.
+func (m *WASMMod) callEventHook(ctx context.Context, hookFn api.Function, ptr, length uint64) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, m.config.ExecutionTimeout)
 	defer cancel()
 
-	_, err := hookFn.Call(timeoutCtx, inputPtr, uint64(len(categoryBytes)))
+	_, err := hookFn.Call(timeoutCtx, ptr, length)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return ErrModExecutionTimeout

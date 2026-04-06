@@ -1,6 +1,8 @@
 package economy
 
 import (
+	"sort"
+
 	"github.com/opd-ai/voyage/pkg/engine"
 )
 
@@ -96,13 +98,18 @@ func (g *TradeGood) RecordPrice() {
 	}
 }
 
-// GetSparklineData returns price history as percentages of max for display
+// GetSparklineData returns price history as percentages of max for display.
+// Returns zero-filled data when price range is too small (H-016).
 func (g *TradeGood) GetSparklineData() []float64 {
 	data := make([]float64, len(g.PriceHistory))
 	priceRange := float64(g.MaxPrice - g.MinPrice)
-	if priceRange == 0 {
-		priceRange = 1
+
+	// Use <= to catch both zero and negative ranges (H-016)
+	if priceRange <= 0 {
+		// Return zeros when range is insufficient for meaningful sparkline
+		return data
 	}
+
 	for i, price := range g.PriceHistory {
 		data[i] = float64(price-g.MinPrice) / priceRange
 	}
@@ -408,23 +415,20 @@ func clampPrice(g *TradeGood) {
 	}
 }
 
-// GetMarketsByProximity returns markets sorted by distance from a point
+// GetMarketsByProximity returns markets sorted by distance from a point.
+// Uses sort.Slice for O(n log n) complexity (M-017).
 func (e *EconomyManager) GetMarketsByProximity(x, y int) []*Market {
 	markets := make([]*Market, 0, len(e.Markets))
 	for _, m := range e.Markets {
 		markets = append(markets, m)
 	}
 
-	// Simple bubble sort by distance (small N expected)
-	for i := 0; i < len(markets)-1; i++ {
-		for j := i + 1; j < len(markets); j++ {
-			distI := (markets[i].X-x)*(markets[i].X-x) + (markets[i].Y-y)*(markets[i].Y-y)
-			distJ := (markets[j].X-x)*(markets[j].X-x) + (markets[j].Y-y)*(markets[j].Y-y)
-			if distJ < distI {
-				markets[i], markets[j] = markets[j], markets[i]
-			}
-		}
-	}
+	// Use sort.Slice for O(n log n) performance (M-017)
+	sort.Slice(markets, func(i, j int) bool {
+		distI := (markets[i].X-x)*(markets[i].X-x) + (markets[i].Y-y)*(markets[i].Y-y)
+		distJ := (markets[j].X-x)*(markets[j].X-x) + (markets[j].Y-y)*(markets[j].Y-y)
+		return distI < distJ
+	})
 
 	return markets
 }

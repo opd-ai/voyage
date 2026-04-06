@@ -184,7 +184,6 @@ func (l *Loader) LoadDirectory(dirPath string) ([]*Mod, error) {
 		return nil, err
 	}
 
-	// Resolve the base directory path for validation
 	absBase, err := filepath.Abs(dirPath)
 	if err != nil {
 		return nil, err
@@ -192,39 +191,52 @@ func (l *Loader) LoadDirectory(dirPath string) ([]*Mod, error) {
 
 	var mods []*Mod
 	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+		if mod := l.tryLoadModEntry(entry, dirPath, absBase); mod != nil {
+			mods = append(mods, mod)
 		}
-
-		if filepath.Ext(entry.Name()) != ".json" {
-			continue
-		}
-
-		// Reject entries containing path traversal sequences (C-003)
-		if containsPathTraversal(entry.Name()) {
-			continue
-		}
-
-		modPath := filepath.Join(dirPath, entry.Name())
-
-		// Validate the resolved path stays within the base directory (C-003)
-		absPath, err := filepath.Abs(modPath)
-		if err != nil {
-			continue
-		}
-		if !isSubpath(absBase, absPath) {
-			continue
-		}
-
-		mod, err := l.LoadFromFile(modPath)
-		if err != nil {
-			// Skip invalid mods but continue loading
-			continue
-		}
-		mods = append(mods, mod)
 	}
 
 	return mods, nil
+}
+
+// tryLoadModEntry attempts to load a mod from a directory entry.
+// Returns nil if the entry is not a valid mod file or loading fails.
+func (l *Loader) tryLoadModEntry(entry os.DirEntry, dirPath, absBase string) *Mod {
+	if !isValidModEntry(entry) {
+		return nil
+	}
+
+	modPath := filepath.Join(dirPath, entry.Name())
+	if !isSecurePath(modPath, absBase) {
+		return nil
+	}
+
+	mod, err := l.LoadFromFile(modPath)
+	if err != nil {
+		return nil
+	}
+	return mod
+}
+
+// isValidModEntry checks if a directory entry is a valid mod file candidate.
+func isValidModEntry(entry os.DirEntry) bool {
+	if entry.IsDir() {
+		return false
+	}
+	if filepath.Ext(entry.Name()) != ".json" {
+		return false
+	}
+	// Reject entries containing path traversal sequences (C-003)
+	return !containsPathTraversal(entry.Name())
+}
+
+// isSecurePath validates the resolved path stays within the base directory (C-003).
+func isSecurePath(modPath, absBase string) bool {
+	absPath, err := filepath.Abs(modPath)
+	if err != nil {
+		return false
+	}
+	return isSubpath(absBase, absPath)
 }
 
 // containsPathTraversal checks if a filename contains path traversal sequences.

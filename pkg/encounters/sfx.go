@@ -98,46 +98,53 @@ func (g *SFXGenerator) generateEncounterStart() []float64 {
 	result := make([]float64, samples)
 
 	preset := g.getGenrePreset()
-
-	// Three-tone alert rising
 	freqs := []float64{preset.BaseFreq, preset.BaseFreq * 1.25, preset.BaseFreq * 1.5}
-	noteLen := samples / 3
-	// Guard against zero noteLen (H-014)
-	if noteLen == 0 {
-		noteLen = 1
-	}
+	noteLen := g.calculateNoteLength(samples, 3)
 
 	for i := 0; i < samples; i++ {
-		noteIdx := i / noteLen
-		if noteIdx >= 3 {
-			noteIdx = 2
-		}
+		noteIdx := g.calculateNoteIndex(i, noteLen, 3)
 		t := float64(i) / g.sampleRate
-		freq := freqs[noteIdx]
-
-		// Basic waveform based on genre
-		var wave float64
-		switch preset.WaveType {
-		case 0: // Sine
-			wave = sin(2 * pi * freq * t)
-		case 1: // Square
-			if sin(2*pi*freq*t) > 0 {
-				wave = 0.5
-			} else {
-				wave = -0.5
-			}
-		case 2: // Sawtooth
-			wave = 2*(freq*t-float64(int(freq*t))) - 1
-		default:
-			wave = sin(2 * pi * freq * t)
-		}
-
-		// Envelope
+		wave := g.generateWaveform(preset.WaveType, freqs[noteIdx], t)
 		env := 1.0 - float64(i%noteLen)/float64(noteLen)
 		result[i] = wave * env * 0.4
 	}
 
 	return result
+}
+
+// calculateNoteLength computes note length ensuring non-zero result (H-014).
+func (g *SFXGenerator) calculateNoteLength(totalSamples, noteCount int) int {
+	noteLen := totalSamples / noteCount
+	if noteLen == 0 {
+		return 1
+	}
+	return noteLen
+}
+
+// calculateNoteIndex returns the current note index clamped to max notes.
+func (g *SFXGenerator) calculateNoteIndex(sampleIndex, noteLen, maxNotes int) int {
+	noteIdx := sampleIndex / noteLen
+	if noteIdx >= maxNotes {
+		return maxNotes - 1
+	}
+	return noteIdx
+}
+
+// generateWaveform produces a sample for the given waveform type.
+func (g *SFXGenerator) generateWaveform(waveType int, freq, t float64) float64 {
+	switch waveType {
+	case 0: // Sine
+		return sin(2 * pi * freq * t)
+	case 1: // Square
+		if sin(2*pi*freq*t) > 0 {
+			return 0.5
+		}
+		return -0.5
+	case 2: // Sawtooth
+		return 2*(freq*t-float64(int(freq*t))) - 1
+	default:
+		return sin(2 * pi * freq * t)
+	}
 }
 
 func (g *SFXGenerator) generatePhaseSuccess() []float64 {
@@ -184,20 +191,11 @@ func (g *SFXGenerator) generateVictory() []float64 {
 	result := make([]float64, samples)
 
 	preset := g.getGenrePreset()
-
-	// Triumphant arpeggio
 	notes := []float64{preset.SuccessFreq, preset.SuccessFreq * 1.25, preset.SuccessFreq * 1.5, preset.SuccessFreq * 2}
-	noteLen := samples / 4
-	// Guard against zero noteLen (H-014)
-	if noteLen == 0 {
-		noteLen = 1
-	}
+	noteLen := g.calculateNoteLength(samples, 4)
 
 	for i := 0; i < samples; i++ {
-		noteIdx := i / noteLen
-		if noteIdx >= 4 {
-			noteIdx = 3
-		}
+		noteIdx := g.calculateNoteIndex(i, noteLen, 4)
 		t := float64(i) / g.sampleRate
 		freq := notes[noteIdx]
 		env := 0.8 - 0.3*float64(i)/float64(samples)
