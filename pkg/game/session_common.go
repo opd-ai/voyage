@@ -6,6 +6,7 @@ import (
 	"github.com/opd-ai/voyage/pkg/crew"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/events"
+	"github.com/opd-ai/voyage/pkg/input"
 	"github.com/opd-ai/voyage/pkg/procgen/world"
 	"github.com/opd-ai/voyage/pkg/rendering"
 	"github.com/opd-ai/voyage/pkg/resources"
@@ -57,6 +58,9 @@ type GameSession struct {
 	eventQueue    *events.Queue
 	audioPlayer   *audio.Player
 	renderer      *rendering.Renderer
+
+	// Input manager for unified input handling (nil in headless mode)
+	inputMgr *input.Manager
 
 	// Game state
 	state        GameState
@@ -117,11 +121,20 @@ func (s *GameSession) consumeResources() {
 	s.resources.Consume(resources.ResourceWater, crewCount*0.3)
 	s.resources.Consume(resources.ResourceFuel, s.vessel.Speed())
 
+	// Calculate morale penalties for resource depletion, capped to prevent unfair stacking
+	var totalPenalty float64
 	if s.resources.IsDepleted(resources.ResourceFood) {
-		s.resources.Add(resources.ResourceMorale, -5)
+		totalPenalty += 5
 	}
 	if s.resources.IsDepleted(resources.ResourceWater) {
-		s.resources.Add(resources.ResourceMorale, -8)
+		totalPenalty += 8
+	}
+	// Cap combined penalty per turn to prevent rapid morale collapse
+	if totalPenalty > 10 {
+		totalPenalty = 10
+	}
+	if totalPenalty > 0 {
+		s.resources.Add(resources.ResourceMorale, -totalPenalty)
 	}
 }
 

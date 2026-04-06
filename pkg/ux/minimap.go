@@ -97,10 +97,14 @@ func (m *Minimap) Draw(screen *ebiten.Image, wm *world.WorldMap, playerX, player
 		m.lastPlayerY = playerY
 	}
 
-	// Position in top-right corner
+	// Position in top-right corner with bounds check for narrow windows
 	screenW, _ := screen.Bounds().Dx(), screen.Bounds().Dy()
+	x := screenW - m.width - 10
+	if x < 0 {
+		x = 0
+	}
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(screenW-m.width-10), 10)
+	op.GeoM.Translate(float64(x), 10)
 	op.ColorScale.ScaleAlpha(float32(m.alpha))
 	screen.DrawImage(m.image, op)
 }

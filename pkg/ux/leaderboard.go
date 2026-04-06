@@ -362,7 +362,12 @@ func (ls *LeaderboardScreen) drawScrollbar(panel *ebiten.Image, panelHeight int)
 		if thumbSize < 10 {
 			thumbSize = 10
 		}
-		for y := thumbPos; y < thumbPos+thumbSize && y < barBottom; y += 10 {
+		// Clamp thumb to not exceed track bounds
+		thumbEnd := thumbPos + thumbSize
+		if thumbEnd > barBottom {
+			thumbEnd = barBottom
+		}
+		for y := thumbPos; y < thumbEnd; y += 10 {
 			ebitenutil.DebugPrintAt(panel, "#", x, y)
 		}
 	}

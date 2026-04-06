@@ -156,6 +156,9 @@ func (s *SlotSelectionScreen) Draw(screen *ebiten.Image) {
 	// Draw slots
 	y := 50
 	visibleSlots := (panelHeight - 100) / 50
+	if visibleSlots < 1 {
+		visibleSlots = 1 // Ensure at least one slot is visible on small panels
+	}
 	startIdx := 0
 	if s.selectedIndex >= visibleSlots {
 		startIdx = s.selectedIndex - visibleSlots + 1

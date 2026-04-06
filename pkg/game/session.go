@@ -8,11 +8,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/opd-ai/voyage/pkg/audio"
 	"github.com/opd-ai/voyage/pkg/crew"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/events"
+	"github.com/opd-ai/voyage/pkg/input"
 	"github.com/opd-ai/voyage/pkg/procgen/world"
 	"github.com/opd-ai/voyage/pkg/rendering"
 	"github.com/opd-ai/voyage/pkg/resources"
@@ -21,11 +21,17 @@ import (
 
 // NewGameSession creates a new game session with all subsystems initialized.
 func NewGameSession(cfg SessionConfig) *GameSession {
-	return initializeSession(cfg)
+	session := initializeSession(cfg)
+	// Initialize input manager for non-headless builds
+	session.inputMgr = input.NewManager()
+	return session
 }
 
 // Update implements ebiten.Game.Update.
 func (s *GameSession) Update() error {
+	// Update input manager to process this frame's input
+	s.inputMgr.Update()
+
 	s.handleDebugToggle()
 	s.handleStateInput()
 
@@ -44,8 +50,7 @@ func (s *GameSession) snapshotCurrentEvent() {
 	pending := s.eventQueue.Pending()
 	if len(pending) > 0 {
 		// Copy the event to prevent race conditions
-		e := pending[0]
-		s.currentEventSnapshot = &e
+		s.currentEventSnapshot = pending[0]
 	} else {
 		s.currentEventSnapshot = nil
 	}
@@ -91,13 +96,8 @@ func (s *GameSession) updateCachedStrings() {
 
 // handleDebugToggle toggles debug mode with F3 using proper key release detection.
 func (s *GameSession) handleDebugToggle() {
-	if ebiten.IsKeyPressed(ebiten.KeyF3) {
-		if !s.f3WasPressed {
-			s.debugMode = !s.debugMode
-		}
-		s.f3WasPressed = true
-	} else {
-		s.f3WasPressed = false
+	if s.inputMgr.JustDebugToggled() {
+		s.debugMode = !s.debugMode
 	}
 }
 
@@ -116,17 +116,17 @@ func (s *GameSession) handleStateInput() {
 }
 
 // handleMenuInput handles input in menu state.
-// Uses IsKeyJustPressed for clean single-press detection.
+// Uses Input Manager for clean single-press detection.
 func (s *GameSession) handleMenuInput() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if s.inputMgr.JustConfirmed() {
 		s.state = StatePlaying
 	}
 }
 
 // handlePlayingInput handles input during gameplay.
 func (s *GameSession) handlePlayingInput() {
-	// Use IsKeyJustPressed for ESC to prevent rapid toggling (M-001)
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	// Use Input Manager for ESC to prevent rapid toggling
+	if s.inputMgr.JustCancelled() {
 		s.state = StatePaused
 		return
 	}
@@ -156,26 +156,25 @@ func (s *GameSession) handleMovement() bool {
 }
 
 // getMovementInput checks for directional key presses and returns the target position.
-// getMovementInput reads directional input.
-// Uses IsKeyJustPressed for single-tile movement per keypress.
+// getMovementInput reads directional input from the Input Manager.
 func (s *GameSession) getMovementInput() (world.Point, bool) {
-	if inpututil.IsKeyJustPressed(ebiten.KeyUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
+	dir := s.inputMgr.GetDirection()
+	switch dir {
+	case input.DirectionUp:
 		return world.Point{X: s.playerPos.X, Y: s.playerPos.Y - 1}, true
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
+	case input.DirectionDown:
 		return world.Point{X: s.playerPos.X, Y: s.playerPos.Y + 1}, true
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
+	case input.DirectionLeft:
 		return world.Point{X: s.playerPos.X - 1, Y: s.playerPos.Y}, true
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
+	case input.DirectionRight:
 		return world.Point{X: s.playerPos.X + 1, Y: s.playerPos.Y}, true
+	default:
+		return world.Point{}, false
 	}
-	return world.Point{}, false
 }
 
 // handleEventChoices processes number key input for event choice selection.
-// Uses IsKeyJustPressed to prevent duplicate resource consumption (C-002).
+// Uses Input Manager to prevent duplicate resource consumption.
 func (s *GameSession) handleEventChoices() {
 	if !s.eventQueue.HasPending() {
 		return
@@ -187,14 +186,12 @@ func (s *GameSession) handleEventChoices() {
 	}
 
 	currentEvent := pending[0]
-	choiceKeys := []ebiten.Key{ebiten.Key1, ebiten.Key2, ebiten.Key3, ebiten.Key4}
-
-	for i, key := range choiceKeys {
-		// Use IsKeyJustPressed to fire only once per keypress (C-002)
-		if inpututil.IsKeyJustPressed(key) && i < len(currentEvent.Choices) {
-			s.resolveEvent(currentEvent.ID, i)
-			break
-		}
+	
+	// Get option pressed from input manager (returns 1-9 or 0 if none)
+	option := s.inputMgr.GetOptionPressed()
+	if option > 0 && option <= len(currentEvent.Choices) {
+		// Option numbers are 1-indexed, choice IDs are also 1-indexed
+		s.resolveEvent(currentEvent.ID, option)
 	}
 }
 
@@ -210,6 +207,9 @@ func (s *GameSession) resolveEvent(eventID, choiceID int) {
 	// Advance time if needed, clamped to prevent malformed data from freezing game (M-009)
 	const maxTimeAdvance = 100
 	timeAdvance := outcome.TimeAdvance
+	if timeAdvance < 0 {
+		timeAdvance = 0
+	}
 	if timeAdvance > maxTimeAdvance {
 		timeAdvance = maxTimeAdvance
 	}
@@ -226,27 +226,30 @@ func (s *GameSession) advanceTurn() {
 	// Consume resources
 	s.consumeResources()
 
-	// Maybe generate event
-	s.maybeGenerateEvent()
-
 	// Advance party day
 	s.party.AdvanceDay()
 
-	// Check win/lose conditions
+	// Check win/lose conditions before generating new events
+	// This prevents events from being generated/queued after game over
 	s.checkConditions()
+
+	// Only generate events if game is still active
+	if s.state == StatePlaying {
+		s.maybeGenerateEvent()
+	}
 }
 
 // handlePausedInput handles input in paused state.
 func (s *GameSession) handlePausedInput() {
-	// Use IsKeyJustPressed for ESC to prevent rapid toggling (M-001)
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	// Use Input Manager for ESC to prevent rapid toggling
+	if s.inputMgr.JustCancelled() {
 		s.state = StatePlaying
 	}
 }
 
 // handleGameOverInput handles input in game over state.
 func (s *GameSession) handleGameOverInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
+	if s.inputMgr.JustConfirmed() {
 		s.state = StateMenu
 		// Reset would go here for new game
 	}

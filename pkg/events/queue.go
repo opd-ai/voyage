@@ -156,6 +156,11 @@ func (q *Queue) Resolve(eventID, choiceID int) *EventOutcome {
 			// Move to resolved
 			q.pending = append(q.pending[:i], q.pending[i+1:]...)
 			q.resolved = append(q.resolved, event)
+			// Prune resolved list to prevent unbounded memory growth
+			const maxResolved = 100
+			if len(q.resolved) > maxResolved {
+				q.resolved = q.resolved[len(q.resolved)-maxResolved:]
+			}
 			return &choice.Outcome
 		}
 	}

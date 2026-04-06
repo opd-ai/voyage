@@ -147,6 +147,11 @@ func (pp *PostProcessor) ApplyVignette(img *ebiten.Image, intensity float64) *eb
 // generateVignetteCache creates a pre-rendered vignette overlay image (H-004).
 // The overlay uses alpha channel to darken edges when composited.
 func (pp *PostProcessor) generateVignetteCache(w, h int, intensity float64) {
+	// Guard against zero dimensions to prevent division by zero
+	if w <= 0 || h <= 0 {
+		return
+	}
+
 	pp.vignetteCache = ebiten.NewImage(w, h)
 	pp.vignetteCacheSize = [2]int{w, h}
 	pp.vignetteIntensity = intensity
@@ -155,6 +160,11 @@ func (pp *PostProcessor) generateVignetteCache(w, h int, intensity float64) {
 	centerY := float64(h) / 2
 	maxDist := math.Max(centerX, centerY)
 	maxDistSq := maxDist * maxDist
+
+	// Guard against zero maxDistSq (should not happen with positive w,h but be safe)
+	if maxDistSq <= 0 {
+		return
+	}
 
 	// Generate the vignette as a darkening overlay
 	// We use RGBA where RGB is black and A controls the darkening amount

@@ -198,7 +198,17 @@ func (eo *EventOverlay) buildWrappedLines(words []string, maxWidth int) []string
 }
 
 // addWordToLine adds a word to the current line or starts a new line.
+// Words longer than maxWidth are truncated with ellipsis to prevent overflow.
 func (eo *EventOverlay) addWordToLine(currentLine, word string, maxWidth int, lines []string) (string, []string) {
+	// Truncate overly long words to prevent overflow
+	if len(word) > maxWidth {
+		if maxWidth > 3 {
+			word = word[:maxWidth-3] + "..."
+		} else {
+			word = word[:maxWidth]
+		}
+	}
+
 	if len(currentLine)+len(word)+1 > maxWidth {
 		if currentLine != "" {
 			lines = append(lines, currentLine)

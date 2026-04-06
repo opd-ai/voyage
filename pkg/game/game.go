@@ -8,8 +8,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/opd-ai/voyage/pkg/engine"
+	"github.com/opd-ai/voyage/pkg/input"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 	"github.com/opd-ai/voyage/pkg/rendering"
 )
@@ -39,15 +39,17 @@ type Game struct {
 	turn      int
 	debugMode bool
 
+	// Input manager for unified input handling
+	inputMgr *input.Manager
+
 	// Screen dimensions
 	width  int
 	height int
 
-	// Input state tracking for key release detection
-	f3WasPressed bool
-
 	// Cached overlay image to avoid per-frame allocations (C-004)
-	pauseOverlay *ebiten.Image
+	pauseOverlay       *ebiten.Image
+	pauseOverlayWidth  int
+	pauseOverlayHeight int
 }
 
 // Config holds game configuration options.
@@ -90,6 +92,7 @@ func NewGame(cfg Config) *Game {
 		tileGen:   tileGen,
 		turn:      0,
 		debugMode: false,
+		inputMgr:  input.NewManager(),
 		width:     cfg.Width,
 		height:    cfg.Height,
 	}
@@ -105,6 +108,9 @@ func (g *Game) Update() error {
 		}
 		return ebiten.Termination
 	}
+
+	// Update input manager to process this frame's input
+	g.inputMgr.Update()
 
 	g.handleStateInput()
 	g.handleDebugToggle()
@@ -127,14 +133,14 @@ func (g *Game) handleStateInput() {
 
 // handleMenuInput handles input in menu state.
 func (g *Game) handleMenuInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEnter) || ebiten.IsKeyPressed(ebiten.KeySpace) {
+	if g.inputMgr.JustConfirmed() {
 		g.state = StatePlaying
 	}
 }
 
 // handlePlayingInput handles input during gameplay.
 func (g *Game) handlePlayingInput() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if g.inputMgr.JustCancelled() {
 		g.state = StatePaused
 	}
 	// Use dynamic delta time based on actual TPS (H-010)
@@ -144,28 +150,22 @@ func (g *Game) handlePlayingInput() {
 
 // handlePausedInput handles input in paused state.
 func (g *Game) handlePausedInput() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if g.inputMgr.JustCancelled() {
 		g.state = StatePlaying
 	}
 }
 
 // handleGameOverInput handles input in game over state.
 func (g *Game) handleGameOverInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
+	if g.inputMgr.JustConfirmed() {
 		g.state = StateMenu
 	}
 }
 
 // handleDebugToggle toggles debug mode with F3 key.
-// Uses key release detection to prevent multiple toggles per frame.
 func (g *Game) handleDebugToggle() {
-	if ebiten.IsKeyPressed(ebiten.KeyF3) {
-		if !g.f3WasPressed {
-			g.debugMode = !g.debugMode
-		}
-		g.f3WasPressed = true
-	} else {
-		g.f3WasPressed = false
+	if g.inputMgr.JustDebugToggled() {
+		g.debugMode = !g.debugMode
 	}
 }
 
@@ -262,10 +262,15 @@ func (g *Game) drawGame(screen *ebiten.Image) {
 
 // drawPauseOverlay renders the pause screen overlay.
 func (g *Game) drawPauseOverlay(screen *ebiten.Image) {
-	// Use cached overlay to avoid per-frame allocations (C-004)
-	if g.pauseOverlay == nil {
+	// Recreate overlay if size changed or not yet created (C-004)
+	if g.pauseOverlay == nil || g.pauseOverlayWidth != g.width || g.pauseOverlayHeight != g.height {
+		if g.pauseOverlay != nil {
+			g.pauseOverlay.Dispose()
+		}
 		g.pauseOverlay = ebiten.NewImage(g.width, g.height)
 		g.pauseOverlay.Fill(color.RGBA{0, 0, 0, 128})
+		g.pauseOverlayWidth = g.width
+		g.pauseOverlayHeight = g.height
 	}
 	screen.DrawImage(g.pauseOverlay, nil)
 

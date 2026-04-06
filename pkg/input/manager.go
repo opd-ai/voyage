@@ -126,7 +126,13 @@ func (m *Manager) handleDirectionPressed(dir Direction) {
 		if now.Sub(m.lastDirectionRepeat) >= m.keyRepeatInterval {
 			m.lastDirectionRepeat = now
 			m.currentState.Direction = dir
+		} else {
+			// Between repeat intervals - clear direction to prevent unintended movement
+			m.currentState.Direction = DirectionNone
 		}
+	} else {
+		// Initial delay not elapsed - clear direction to prevent unintended movement
+		m.currentState.Direction = DirectionNone
 	}
 }
 
@@ -150,7 +156,7 @@ func (m *Manager) processActionKeys() {
 }
 
 // hasAction checks if an action is already in the current state (M-004).
-func (m *Manager) hasAction(action InputAction) bool {
+func (m *Manager) hasAction(action Action) bool {
 	for _, a := range m.currentState.Actions {
 		if a == action {
 			return true
@@ -249,7 +255,10 @@ func (m *Manager) handleTouchEnd(touch *TouchState) {
 
 	// Check if it's a tap
 	if duration < TapMaxDuration && distance < TapMaxDistance {
-		m.currentState.Actions = append(m.currentState.Actions, ActionConfirm)
+		// Only add if not already present (deduplication for simultaneous inputs)
+		if !m.hasAction(ActionConfirm) {
+			m.currentState.Actions = append(m.currentState.Actions, ActionConfirm)
+		}
 		m.currentState.TapPosition = &Position{
 			X: touch.CurrentX,
 			Y: touch.CurrentY,

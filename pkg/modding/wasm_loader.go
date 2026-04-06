@@ -436,24 +436,22 @@ func (m *WASMMod) callStringFunc(ctx context.Context, fn api.Function) string {
 	return string(data)
 }
 
-// Initialize calls the mod's init function if present.
-func (m *WASMMod) Initialize(ctx context.Context) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
+// callOptionalHook is a helper that calls an optional WASM function with timeout handling.
+// Returns nil if the function doesn't exist. Handles timeout and panic errors consistently.
+func (m *WASMMod) callOptionalHook(ctx context.Context, fnName string, args ...uint64) error {
 	if m.module == nil {
 		return nil
 	}
 
-	initFn := m.module.ExportedFunction("mod_init")
-	if initFn == nil {
-		return nil // Init is optional
+	hookFn := m.module.ExportedFunction(fnName)
+	if hookFn == nil {
+		return nil // Hook is optional
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, m.config.ExecutionTimeout)
 	defer cancel()
 
-	_, err := initFn.Call(timeoutCtx)
+	_, err := hookFn.Call(timeoutCtx, args...)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return ErrModExecutionTimeout
@@ -464,32 +462,20 @@ func (m *WASMMod) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// Initialize calls the mod's init function if present.
+func (m *WASMMod) Initialize(ctx context.Context) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.callOptionalHook(ctx, "mod_init")
+}
+
 // OnTurnStart calls the mod's turn start hook.
 func (m *WASMMod) OnTurnStart(ctx context.Context, turn int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.module == nil {
-		return nil
-	}
-
-	hookFn := m.module.ExportedFunction("mod_on_turn_start")
-	if hookFn == nil {
-		return nil
-	}
-
-	timeoutCtx, cancel := context.WithTimeout(ctx, m.config.ExecutionTimeout)
-	defer cancel()
-
-	_, err := hookFn.Call(timeoutCtx, uint64(turn))
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return ErrModExecutionTimeout
-		}
-		return fmt.Errorf("%w: %v", ErrModPanicked, err)
-	}
-
-	return nil
+	return m.callOptionalHook(ctx, "mod_on_turn_start", uint64(turn))
 }
 
 // OnEvent calls the mod's event hook.
