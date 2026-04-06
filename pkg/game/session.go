@@ -299,18 +299,24 @@ func (s *GameSession) Draw(screen *ebiten.Image) {
 func (s *GameSession) drawMenu(screen *ebiten.Image) {
 	dx := s.worldMap.Destination.X - s.worldMap.Origin.X
 	dy := s.worldMap.Destination.Y - s.worldMap.Origin.Y
-	dist := dx
-	if dy > dx {
-		dist = dy
+	absDx := dx
+	if absDx < 0 {
+		absDx = -absDx
 	}
-	if dist < 0 {
-		dist = -dist
+	absDy := dy
+	if absDy < 0 {
+		absDy = -absDy
 	}
+	dist := absDx + absDy
 
-	msg := fmt.Sprintf("VOYAGE\n\nGenre: %s\nSeed: %d\nCrew: %d\nVessel: %s\n\n--- OBJECTIVE ---\n%s\nDistance to destination: ~%d tiles\n\n--- CONTROLS ---\n%s\n\nPress ENTER or SPACE to start",
-		s.config.Genre, s.config.Seed, s.party.Count(), s.vessel.Name(),
-		GetObjectiveText(), dist,
-		GetControlsText())
+	msg := "VOYAGE\n\n" +
+		fmt.Sprintf("Genre: %s\nSeed: %d\nCrew: %d\nVessel: %s\n\n", s.config.Genre, s.config.Seed, s.party.Count(), s.vessel.Name()) +
+		"--- OBJECTIVE ---\n" +
+		GetObjectiveText() + "\n" +
+		fmt.Sprintf("Distance to destination: ~%d tiles\n\n", dist) +
+		"--- CONTROLS ---\n" +
+		GetControlsText() + "\n\n" +
+		"Press ENTER or SPACE to start"
 	drawCenteredText(screen, msg, s.width/4, s.height/6)
 }
 
@@ -387,8 +393,10 @@ func (s *GameSession) drawEventOverlay(screen *ebiten.Image) {
 
 // drawPauseOverlay renders the pause screen with controls reference.
 func (s *GameSession) drawPauseOverlay(screen *ebiten.Image) {
-	msg := fmt.Sprintf("=== PAUSED ===\n\n--- CONTROLS ---\n%s\n\n--- OBJECTIVE ---\n%s\n\nPress ESC to resume",
-		GetControlsText(), GetObjectiveText())
+	msg := "=== PAUSED ===\n\n" +
+		"--- CONTROLS ---\n" + GetControlsText() + "\n\n" +
+		"--- OBJECTIVE ---\n" + GetObjectiveText() + "\n\n" +
+		"Press ESC to resume"
 	drawCenteredText(screen, msg, s.width/4, s.height/3)
 }
 
@@ -412,8 +420,10 @@ func (s *GameSession) drawGameOver(screen *ebiten.Image) {
 		}
 	}
 
-	msg := fmt.Sprintf("=== %s ===\n\n%s\n\nTurns: %d\nCrew Survived: %d/%d\nVessel: %.0f%%%s\n\nPress ENTER to return to menu",
-		result, detail, s.turn, s.party.LivingCount(), s.party.Count(), s.vessel.IntegrityRatio()*100, tip)
+	msg := fmt.Sprintf("=== %s ===\n\n%s\n\n", result, detail) +
+		fmt.Sprintf("Turns: %d\nCrew Survived: %d/%d\n", s.turn, s.party.LivingCount(), s.party.Count()) +
+		fmt.Sprintf("Vessel: %.0f%%", s.vessel.IntegrityRatio()*100) +
+		tip + "\n\nPress ENTER to return to menu"
 	drawCenteredText(screen, msg, s.width/4, s.height/4)
 }
 
