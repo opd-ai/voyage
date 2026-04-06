@@ -280,8 +280,9 @@ func (h *CargoHold) GetByCategory(cat CargoCategory) []*Cargo {
 }
 
 // Clear empties the cargo hold.
+// Reuses existing slice capacity instead of allocating new slice (L-008).
 func (h *CargoHold) Clear() {
-	h.items = make([]*Cargo, 0)
+	h.items = h.items[:0]
 	h.usedWeight = 0
 	h.usedVolume = 0
 }

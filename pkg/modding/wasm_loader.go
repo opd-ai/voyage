@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -805,11 +806,7 @@ func collectCapabilityNames(cap Capability) []string {
 	return names
 }
 
-// joinNames concatenates names with comma separator.
+// joinNames concatenates names with comma separator using strings.Join (L-014).
 func joinNames(names []string) string {
-	result := names[0]
-	for i := 1; i < len(names); i++ {
-		result += ", " + names[i]
-	}
-	return result
+	return strings.Join(names, ", ")
 }
