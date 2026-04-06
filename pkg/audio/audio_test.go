@@ -201,8 +201,8 @@ func TestPlayer(t *testing.T) {
 	}
 
 	samples := player.PlaySFX(SFXClick)
-	if samples != nil {
-		t.Error("muted player should not return samples")
+	if len(samples) != 0 {
+		t.Error("muted player should return empty samples")
 	}
 
 	player.Unmute()

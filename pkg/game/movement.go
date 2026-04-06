@@ -1,6 +1,8 @@
 package game
 
 import (
+	"math"
+
 	"github.com/opd-ai/voyage/pkg/procgen/world"
 	"github.com/opd-ai/voyage/pkg/resources"
 	"github.com/opd-ai/voyage/pkg/vessel"

@@ -18,13 +18,13 @@
 
 - [x] **`Resolve()` returns nil outcome without caller guard** | Location: `pkg/events/queue.go:100-114`, callers at `pkg/game/session.go:140`, `pkg/game/session_common.go:74` | Fix: `Resolve()` returns nil for invalid eventID or choiceID. Session callers at `session.go:140-141` check for nil before calling `applyOutcome`, so immediate crash is prevented. However, `pkg/events/resolution.go`'s `Apply()` dereferences the outcome pointer without nil check — if used elsewhere, it panics. Add nil guard in `Apply()`.
 
-- [ ] **Audio methods return nil when muted, risking caller panics** | Location: `pkg/audio/player.go:74,113,141` | Fix: `PlaySFX()`, `GenerateAmbientMusic()`, and `CrossfadeMusicTo()` return nil when `p.muted == true`. Any caller iterating over the returned slice/struct without nil-checking will panic. Return empty `[]float64{}` or empty `*AmbientLoop{}` instead of nil.
+- [x] **Audio methods return nil when muted, risking caller panics** | Location: `pkg/audio/player.go:74,113,141` | Fix: `PlaySFX()`, `GenerateAmbientMusic()`, and `CrossfadeMusicTo()` return nil when `p.muted == true`. Any caller iterating over the returned slice/struct without nil-checking will panic. Return empty `[]float64{}` or empty `*AmbientLoop{}` instead of nil.
 
 ## Medium Priority (playable but broken)
 
-- [ ] **Movement input uses `IsKeyPressed` causing multi-tile-per-frame movement** | Location: `pkg/game/session.go:99-112` | Fix: `getMovementInput()` uses `ebiten.IsKeyPressed()` which fires every frame while held, moving the player every tick (60 tiles/sec at 60 TPS). Use `inpututil.IsKeyJustPressed()` for single-tile movement per keypress, or implement a movement cooldown/repeat delay.
+- [x] **Movement input uses `IsKeyPressed` causing multi-tile-per-frame movement** | Location: `pkg/game/session.go:99-112` | Fix: `getMovementInput()` uses `ebiten.IsKeyPressed()` which fires every frame while held, moving the player every tick (60 tiles/sec at 60 TPS). Use `inpututil.IsKeyJustPressed()` for single-tile movement per keypress, or implement a movement cooldown/repeat delay.
 
-- [ ] **Menu input uses `IsKeyPressed` causing instant state skip** | Location: `pkg/game/session.go:61-63` | Fix: `handleMenuInput()` uses `IsKeyPressed(KeyEnter)` — if the player presses Enter on the menu, the game may process multiple frames worth of input. Use `inpututil.IsKeyJustPressed` for clean single-press detection.
+- [x] **Menu input uses `IsKeyPressed` causing instant state skip** | Location: `pkg/game/session.go:61-63` | Fix: `handleMenuInput()` uses `IsKeyPressed(KeyEnter)` — if the player presses Enter on the menu, the game may process multiple frames worth of input. Use `inpututil.IsKeyJustPressed` for clean single-press detection.
 
 - [ ] **`Consume()` accepts negative amounts, enabling resource exploitation** | Location: `pkg/resources/resources.go:130-139` | Fix: Calling `Consume(type, -100)` effectively adds resources since the subtraction of a negative increases the value. Add `if amount < 0 { return false }` guard.
 

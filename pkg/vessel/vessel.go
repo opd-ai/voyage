@@ -119,7 +119,11 @@ func (v *Vessel) FreeCapacity() int {
 
 // TakeDamage reduces integrity by the given amount.
 // Returns true if the vessel is destroyed.
+// Returns false for zero or negative amounts to prevent healing exploits.
 func (v *Vessel) TakeDamage(amount float64) bool {
+	if amount <= 0 {
+		return false
+	}
 	v.integrity -= amount
 	if v.integrity <= 0 {
 		v.integrity = 0

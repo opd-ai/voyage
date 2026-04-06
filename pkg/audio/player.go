@@ -138,9 +138,10 @@ func (p *Player) MusicState() MusicState {
 
 // CrossfadeMusicTo generates a crossfade transition to a new music state.
 // Returns audio samples for the transition period.
+// Returns empty slice when muted to avoid nil pointer issues.
 func (p *Player) CrossfadeMusicTo(targetState MusicState, durationMs int) []float64 {
 	if p.muted {
-		return nil
+		return []float64{}
 	}
 
 	samples := p.musicGen.CrossfadeTo(targetState, durationMs)

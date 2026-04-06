@@ -129,7 +129,11 @@ func (r *Resources) Add(rt ResourceType, delta float64) {
 
 // Consume subtracts from a resource level.
 // Returns true if there was enough to consume, false if depleted.
+// Returns false for negative amounts to prevent resource exploitation.
 func (r *Resources) Consume(rt ResourceType, amount float64) bool {
+	if amount < 0 {
+		return false
+	}
 	if r.levels[rt] < amount {
 		r.levels[rt] = 0
 		return false

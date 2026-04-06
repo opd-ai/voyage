@@ -116,8 +116,9 @@ func (s *GameSession) handleStateInput() {
 }
 
 // handleMenuInput handles input in menu state.
+// Uses IsKeyJustPressed for clean single-press detection.
 func (s *GameSession) handleMenuInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEnter) || ebiten.IsKeyPressed(ebiten.KeySpace) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		s.state = StatePlaying
 	}
 }
@@ -155,17 +156,19 @@ func (s *GameSession) handleMovement() bool {
 }
 
 // getMovementInput checks for directional key presses and returns the target position.
+// getMovementInput reads directional input.
+// Uses IsKeyJustPressed for single-tile movement per keypress.
 func (s *GameSession) getMovementInput() (world.Point, bool) {
-	if ebiten.IsKeyPressed(ebiten.KeyUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		return world.Point{X: s.playerPos.X, Y: s.playerPos.Y - 1}, true
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		return world.Point{X: s.playerPos.X, Y: s.playerPos.Y + 1}, true
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		return world.Point{X: s.playerPos.X - 1, Y: s.playerPos.Y}, true
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
 		return world.Point{X: s.playerPos.X + 1, Y: s.playerPos.Y}, true
 	}
 	return world.Point{}, false

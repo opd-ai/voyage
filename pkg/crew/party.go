@@ -37,8 +37,11 @@ func (p *Party) Genre() engine.GenreID {
 }
 
 // Add adds a crew member to the party.
-// Returns false if the party is full.
+// Returns false if the party is full or member is nil.
 func (p *Party) Add(member *CrewMember) bool {
+	if member == nil {
+		return false
+	}
 	if len(p.members) >= p.capacity {
 		return false
 	}
