@@ -386,14 +386,12 @@ func (ls *LightingSystem) CreatePointLightOverlay(width, height int, worldToScre
 	return overlay
 }
 
-// drawRadialLight draws a radial gradient light on the overlay.
-// Uses WritePixels for efficient bulk pixel upload instead of per-pixel Set().
-func (ls *LightingSystem) drawRadialLight(overlay *ebiten.Image, cx, cy, radius float64, col color.RGBA, intensity float64) {
-	// Calculate bounding box
-	minX := int(cx - radius)
-	maxX := int(cx + radius)
-	minY := int(cy - radius)
-	maxY := int(cy + radius)
+// radialLightBounds calculates clamped bounding box for a radial light.
+func (ls *LightingSystem) radialLightBounds(overlay *ebiten.Image, cx, cy, radius float64) (minX, maxX, minY, maxY int, valid bool) {
+	minX = int(cx - radius)
+	maxX = int(cx + radius)
+	minY = int(cy - radius)
+	maxY = int(cy + radius)
 
 	bounds := overlay.Bounds()
 	minX = max(minX, bounds.Min.X)
@@ -401,43 +399,58 @@ func (ls *LightingSystem) drawRadialLight(overlay *ebiten.Image, cx, cy, radius 
 	minY = max(minY, bounds.Min.Y)
 	maxY = min(maxY, bounds.Max.Y)
 
-	// Early exit if nothing to draw
-	if minX >= maxX || minY >= maxY {
+	return minX, maxX, minY, maxY, minX < maxX && minY < maxY
+}
+
+// fillRadialLightPixels populates pixel data for a radial gradient light.
+func (ls *LightingSystem) fillRadialLightPixels(pixels []byte, lightW, minX, minY, maxX, maxY int, cx, cy, radius float64, col color.RGBA, intensity float64) {
+	for y := minY; y < maxY; y++ {
+		for x := minX; x < maxX; x++ {
+			ls.setRadialPixel(pixels, lightW, x, y, minX, minY, cx, cy, radius, col, intensity)
+		}
+	}
+}
+
+// setRadialPixel sets a single pixel in the radial light buffer if within radius.
+func (ls *LightingSystem) setRadialPixel(pixels []byte, lightW, x, y, minX, minY int, cx, cy, radius float64, col color.RGBA, intensity float64) {
+	dx := float64(x) - cx
+	dy := float64(y) - cy
+	dist := math.Sqrt(dx*dx + dy*dy)
+	if dist >= radius {
+		return
+	}
+	falloff := 1.0 - (dist / radius)
+	falloff = falloff * falloff
+	alpha := uint8(clampFloat(float64(col.A)*falloff*intensity, 0, 255))
+	if alpha == 0 {
+		return
+	}
+	i := ((y-minY)*lightW + (x - minX)) * 4
+	pixels[i] = col.R
+	pixels[i+1] = col.G
+	pixels[i+2] = col.B
+	pixels[i+3] = alpha
+}
+
+// drawRadialLight draws a radial gradient light on the overlay.
+// Uses WritePixels for efficient bulk pixel upload instead of per-pixel Set().
+func (ls *LightingSystem) drawRadialLight(overlay *ebiten.Image, cx, cy, radius float64, col color.RGBA, intensity float64) {
+	minX, maxX, minY, maxY, valid := ls.radialLightBounds(overlay, cx, cy, radius)
+	if !valid {
 		return
 	}
 
-	// Create a temporary image for the radial light
 	lightW := maxX - minX
 	lightH := maxY - minY
 	pixels := make([]byte, lightW*lightH*4)
 
-	for y := minY; y < maxY; y++ {
-		for x := minX; x < maxX; x++ {
-			dx := float64(x) - cx
-			dy := float64(y) - cy
-			dist := math.Sqrt(dx*dx + dy*dy)
+	ls.fillRadialLightPixels(pixels, lightW, minX, minY, maxX, maxY, cx, cy, radius, col, intensity)
 
-			if dist < radius {
-				falloff := 1.0 - (dist / radius)
-				falloff = falloff * falloff
-				alpha := uint8(clampFloat(float64(col.A)*falloff*intensity, 0, 255))
-				if alpha > 0 {
-					i := ((y-minY)*lightW + (x - minX)) * 4
-					pixels[i] = col.R
-					pixels[i+1] = col.G
-					pixels[i+2] = col.B
-					pixels[i+3] = alpha
-				}
-			}
-		}
-	}
-
-	// Create a temp image, write pixels, and composite onto overlay
 	lightImg := ebiten.NewImage(lightW, lightH)
 	lightImg.WritePixels(pixels)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(minX), float64(minY))
-	op.Blend = ebiten.BlendLighter // Additive blending for lights
+	op.Blend = ebiten.BlendLighter
 	overlay.DrawImage(lightImg, op)
 	lightImg.Dispose()
 }

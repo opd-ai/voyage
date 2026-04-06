@@ -142,100 +142,112 @@ func (wmv *WorldMapView) drawFogOverlay(screen *ebiten.Image, x, y int) {
 // Uses WritePixels for efficient initialization instead of per-pixel Set().
 func (wmv *WorldMapView) drawDestinationMarker(screen *ebiten.Image, x, y int) {
 	if wmv.destinationMarker == nil {
-		wmv.destinationMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
-
-		// Draw a star-like pattern using bulk pixel data
-		// Convert color.Color to RGBA components via RGBA() method
-		r32, g32, b32, a32 := wmv.skin.HighlightColor.RGBA()
-		cR, cG, cB, cA := uint8(r32>>8), uint8(g32>>8), uint8(b32>>8), uint8(a32>>8)
-		half := wmv.tileSize / 2
-		size := wmv.tileSize
-		pixels := make([]byte, size*size*4)
-
-		// Vertical line
-		for i := 0; i < size; i++ {
-			idx := (i*size + half) * 4
-			pixels[idx] = cR
-			pixels[idx+1] = cG
-			pixels[idx+2] = cB
-			pixels[idx+3] = cA
-		}
-		// Horizontal line
-		for i := 0; i < size; i++ {
-			idx := (half*size + i) * 4
-			pixels[idx] = cR
-			pixels[idx+1] = cG
-			pixels[idx+2] = cB
-			pixels[idx+3] = cA
-		}
-		// Diagonals
-		for i := 0; i < size; i++ {
-			// Top-left to bottom-right
-			idx := (i*size + i) * 4
-			pixels[idx] = cR
-			pixels[idx+1] = cG
-			pixels[idx+2] = cB
-			pixels[idx+3] = cA
-
-			// Top-right to bottom-left
-			if size-1-i >= 0 {
-				idx2 := (i*size + (size - 1 - i)) * 4
-				pixels[idx2] = cR
-				pixels[idx2+1] = cG
-				pixels[idx2+2] = cB
-				pixels[idx2+3] = cA
-			}
-		}
-		wmv.destinationMarker.WritePixels(pixels)
+		wmv.createDestinationMarker()
 	}
-
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(wmv.destinationMarker, op)
+}
+
+// createDestinationMarker initializes the destination marker image.
+func (wmv *WorldMapView) createDestinationMarker() {
+	wmv.destinationMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
+	cR, cG, cB, cA := wmv.extractSkinColor(wmv.skin.HighlightColor)
+	pixels := wmv.buildStarPixels(cR, cG, cB, cA)
+	wmv.destinationMarker.WritePixels(pixels)
+}
+
+// extractSkinColor converts a color.Color to RGBA uint8 components.
+func (wmv *WorldMapView) extractSkinColor(c interface {
+	RGBA() (uint32, uint32, uint32, uint32)
+}) (uint8, uint8, uint8, uint8) {
+	r32, g32, b32, a32 := c.RGBA()
+	return uint8(r32 >> 8), uint8(g32 >> 8), uint8(b32 >> 8), uint8(a32 >> 8)
+}
+
+// buildStarPixels creates a star pattern for the destination marker.
+func (wmv *WorldMapView) buildStarPixels(cR, cG, cB, cA uint8) []byte {
+	size := wmv.tileSize
+	half := size / 2
+	pixels := make([]byte, size*size*4)
+	wmv.drawCrossLines(pixels, size, half, cR, cG, cB, cA)
+	wmv.drawDiagonalLines(pixels, size, cR, cG, cB, cA)
+	return pixels
+}
+
+// drawCrossLines draws vertical and horizontal lines on the pixel buffer.
+func (wmv *WorldMapView) drawCrossLines(pixels []byte, size, half int, cR, cG, cB, cA uint8) {
+	for i := 0; i < size; i++ {
+		wmv.setPixel(pixels, size, i, half, cR, cG, cB, cA) // Vertical
+		wmv.setPixel(pixels, size, half, i, cR, cG, cB, cA) // Horizontal
+	}
+}
+
+// drawDiagonalLines draws diagonal lines on the pixel buffer.
+func (wmv *WorldMapView) drawDiagonalLines(pixels []byte, size int, cR, cG, cB, cA uint8) {
+	for i := 0; i < size; i++ {
+		wmv.setPixel(pixels, size, i, i, cR, cG, cB, cA)
+		if size-1-i >= 0 {
+			wmv.setPixel(pixels, size, i, size-1-i, cR, cG, cB, cA)
+		}
+	}
+}
+
+// setPixel sets an RGBA pixel at (row, col) in the pixel buffer.
+func (wmv *WorldMapView) setPixel(pixels []byte, size, row, col int, cR, cG, cB, cA uint8) {
+	idx := (row*size + col) * 4
+	pixels[idx] = cR
+	pixels[idx+1] = cG
+	pixels[idx+2] = cB
+	pixels[idx+3] = cA
 }
 
 // drawVesselMarker draws the vessel's position marker.
 // Uses cached marker image to avoid per-frame allocations (H-002).
 // Uses WritePixels for efficient initialization instead of per-pixel Set().
 func (wmv *WorldMapView) drawVesselMarker(screen *ebiten.Image, x, y int) {
-	// Only draw if on screen
-	if x < 0 || y < 0 || x >= wmv.viewWidth || y >= wmv.viewHeight {
+	if !wmv.isVesselOnScreen(x, y) {
 		return
 	}
-
 	if wmv.vesselMarker == nil {
-		wmv.vesselMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
-
-		// Draw a simple arrow or dot for the vessel using bulk pixel data
-		// Convert color.Color to RGBA components via RGBA() method
-		r32, g32, b32, a32 := wmv.skin.TextPrimary.RGBA()
-		cR, cG, cB, cA := uint8(r32>>8), uint8(g32>>8), uint8(b32>>8), uint8(a32>>8)
-		half := wmv.tileSize / 2
-		quarter := wmv.tileSize / 4
-		size := wmv.tileSize
-		pixels := make([]byte, size*size*4)
-
-		// Draw a filled triangle pointing right
-		for dy := -quarter; dy <= quarter; dy++ {
-			width := quarter - abs(dy)
-			for dx := 0; dx <= width; dx++ {
-				py := half + dy
-				px := half - quarter + dx
-				if py >= 0 && py < size && px >= 0 && px < size {
-					idx := (py*size + px) * 4
-					pixels[idx] = cR
-					pixels[idx+1] = cG
-					pixels[idx+2] = cB
-					pixels[idx+3] = cA
-				}
-			}
-		}
-		wmv.vesselMarker.WritePixels(pixels)
+		wmv.createVesselMarker()
 	}
-
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(wmv.vesselMarker, op)
+}
+
+// isVesselOnScreen checks if the vessel position is within screen bounds.
+func (wmv *WorldMapView) isVesselOnScreen(x, y int) bool {
+	return x >= 0 && y >= 0 && x < wmv.viewWidth && y < wmv.viewHeight
+}
+
+// createVesselMarker initializes the vessel marker image.
+func (wmv *WorldMapView) createVesselMarker() {
+	wmv.vesselMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
+	cR, cG, cB, cA := wmv.extractSkinColor(wmv.skin.TextPrimary)
+	pixels := wmv.buildTrianglePixels(cR, cG, cB, cA)
+	wmv.vesselMarker.WritePixels(pixels)
+}
+
+// buildTrianglePixels creates a filled triangle pattern for the vessel marker.
+func (wmv *WorldMapView) buildTrianglePixels(cR, cG, cB, cA uint8) []byte {
+	size := wmv.tileSize
+	half := size / 2
+	quarter := size / 4
+	pixels := make([]byte, size*size*4)
+
+	for dy := -quarter; dy <= quarter; dy++ {
+		width := quarter - abs(dy)
+		for dx := 0; dx <= width; dx++ {
+			py := half + dy
+			px := half - quarter + dx
+			if py >= 0 && py < size && px >= 0 && px < size {
+				wmv.setPixel(pixels, size, py, px, cR, cG, cB, cA)
+			}
+		}
+	}
+	return pixels
 }
 
 // abs returns the absolute value of an integer.

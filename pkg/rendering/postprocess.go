@@ -230,7 +230,6 @@ func (pp *PostProcessor) ApplyVignette(img *ebiten.Image, intensity float64) *eb
 // The overlay uses alpha channel to darken edges when composited.
 // Uses WritePixels for efficient bulk pixel upload instead of per-pixel Set().
 func (pp *PostProcessor) generateVignetteCache(w, h int, intensity float64) {
-	// Guard against zero dimensions to prevent division by zero
 	if w <= 0 || h <= 0 {
 		return
 	}
@@ -239,39 +238,52 @@ func (pp *PostProcessor) generateVignetteCache(w, h int, intensity float64) {
 	pp.vignetteCacheSize = [2]int{w, h}
 	pp.vignetteIntensity = intensity
 
-	centerX := float64(w) / 2
-	centerY := float64(h) / 2
-	maxDist := math.Max(centerX, centerY)
-	maxDistSq := maxDist * maxDist
-
-	// Guard against zero maxDistSq (should not happen with positive w,h but be safe)
-	if maxDistSq <= 0 {
+	params := pp.calculateVignetteParams(w, h)
+	if params.maxDistSq <= 0 {
 		return
 	}
 
-	// Generate the vignette as a darkening overlay using bulk pixel data
-	// We use RGBA where RGB is black and A controls the darkening amount
+	pixels := pp.buildVignettePixels(w, h, intensity, params)
+	pp.vignetteCache.WritePixels(pixels)
+}
+
+// vignetteParams holds precomputed values for vignette generation.
+type vignetteParams struct {
+	centerX, centerY float64
+	maxDistSq        float64
+}
+
+// calculateVignetteParams computes center and max distance for vignette.
+func (pp *PostProcessor) calculateVignetteParams(w, h int) vignetteParams {
+	centerX := float64(w) / 2
+	centerY := float64(h) / 2
+	maxDist := math.Max(centerX, centerY)
+	return vignetteParams{centerX, centerY, maxDist * maxDist}
+}
+
+// buildVignettePixels generates the pixel data for a vignette overlay.
+func (pp *PostProcessor) buildVignettePixels(w, h int, intensity float64, params vignetteParams) []byte {
 	pixels := make([]byte, w*h*4)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			dx := float64(x) - centerX
-			dy := float64(y) - centerY
-			dist := (dx*dx + dy*dy) / maxDistSq
-			// Calculate darkening: 0 at center, increases toward edges
-			darkness := dist * intensity
-			if darkness > 1 {
-				darkness = 1
-			}
-			// Alpha controls how much black is applied
-			alpha := uint8(darkness * 255)
+			alpha := pp.calculateVignetteAlpha(x, y, intensity, params)
 			i := (y*w + x) * 4
-			pixels[i] = 0   // R
-			pixels[i+1] = 0 // G
-			pixels[i+2] = 0 // B
 			pixels[i+3] = alpha
 		}
 	}
-	pp.vignetteCache.WritePixels(pixels)
+	return pixels
+}
+
+// calculateVignetteAlpha computes the darkness alpha for a single pixel.
+func (pp *PostProcessor) calculateVignetteAlpha(x, y int, intensity float64, params vignetteParams) uint8 {
+	dx := float64(x) - params.centerX
+	dy := float64(y) - params.centerY
+	dist := (dx*dx + dy*dy) / params.maxDistSq
+	darkness := dist * intensity
+	if darkness > 1 {
+		darkness = 1
+	}
+	return uint8(darkness * 255)
 }
 
 // ApplyScanlines adds horizontal scanline effect for retro/sci-fi feel.
