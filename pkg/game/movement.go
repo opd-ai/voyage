@@ -32,12 +32,18 @@ func NewMovementManager() *MovementManager {
 }
 
 // CalculateMoveCost calculates the cost of moving into terrain.
+// Returns infinite fuel cost if vessel speed is zero (destroyed vessel).
 func (mm *MovementManager) CalculateMoveCost(terrain world.TerrainInfo, v *vessel.Vessel) (float64, int) {
-	// Fuel cost = base * terrain modifier / vessel speed
-	fuelCost := mm.baseFuelCost * float64(terrain.MovementCost) / v.Speed()
-
 	// Time cost = base * terrain modifier (rounded up)
 	timeCost := mm.baseTimeCost * terrain.MovementCost
+
+	// Guard against division by zero from destroyed vessel
+	if v.Speed() == 0 {
+		return math.Inf(1), timeCost
+	}
+
+	// Fuel cost = base * terrain modifier / vessel speed
+	fuelCost := mm.baseFuelCost * float64(terrain.MovementCost) / v.Speed()
 
 	return fuelCost, timeCost
 }

@@ -95,6 +95,7 @@ func (m *MusicGenerator) SetGenre(genre engine.GenreID) {
 
 // SetMusicState changes the music intensity state.
 // This affects BPM, melody density, and waveform selection.
+// Invalid states default to peaceful BPM.
 func (m *MusicGenerator) SetMusicState(state MusicState) {
 	m.state = state
 	// Adjust BPM based on state
@@ -109,6 +110,8 @@ func (m *MusicGenerator) SetMusicState(state MusicState) {
 		m.bpm = 120
 	case MusicDeath:
 		m.bpm = 60
+	default:
+		m.bpm = 80 // Default to peaceful BPM for invalid states
 	}
 }
 

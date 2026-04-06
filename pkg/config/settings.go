@@ -53,6 +53,7 @@ func AllActions() []Action {
 }
 
 // ActionName returns the human-readable name for an action.
+// Returns "Unknown" for invalid action values.
 func ActionName(a Action) string {
 	names := map[Action]string{
 		ActionMoveUp:    "Move Up",
@@ -68,7 +69,10 @@ func ActionName(a Action) string {
 		ActionDebug:     "Toggle Debug",
 		ActionRest:      "Rest",
 	}
-	return names[a]
+	if name, ok := names[a]; ok {
+		return name
+	}
+	return "Unknown"
 }
 
 // KeyBinding maps an action to a key code.
@@ -184,6 +188,7 @@ const (
 )
 
 // DifficultyName returns the name of a difficulty level.
+// Returns "Unknown" for invalid difficulty values.
 func DifficultyName(d Difficulty) string {
 	names := map[Difficulty]string{
 		DifficultyEasy:      "Easy",
@@ -191,7 +196,10 @@ func DifficultyName(d Difficulty) string {
 		DifficultyHard:      "Hard",
 		DifficultyNightmare: "Nightmare",
 	}
-	return names[d]
+	if name, ok := names[d]; ok {
+		return name
+	}
+	return "Unknown"
 }
 
 // AllDifficulties returns all difficulty levels.
