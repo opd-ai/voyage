@@ -238,10 +238,11 @@ func (g *Game) Seed() int64 {
 	return g.seed
 }
 
-// drawMenu renders the main menu.
+// drawMenu renders the main menu with controls overview.
 func (g *Game) drawMenu(screen *ebiten.Image) {
-	msg := fmt.Sprintf("VOYAGE\n\nGenre: %s\nSeed: %d\n\nPress ENTER or SPACE to start", g.genre, g.seed)
-	ebitenutil.DebugPrintAt(screen, msg, g.width/4, g.height/3)
+	msg := fmt.Sprintf("VOYAGE\n\nGenre: %s\nSeed: %d\n\n--- CONTROLS ---\n%s\n\n--- OBJECTIVE ---\n%s\n\nPress ENTER or SPACE to start",
+		g.genre, g.seed, GetControlsText(), GetObjectiveText())
+	ebitenutil.DebugPrintAt(screen, msg, g.width/4, g.height/4)
 }
 
 // drawGame renders the main gameplay view.
@@ -260,7 +261,7 @@ func (g *Game) drawGame(screen *ebiten.Image) {
 	}
 }
 
-// drawPauseOverlay renders the pause screen overlay.
+// drawPauseOverlay renders the pause screen overlay with controls reference.
 func (g *Game) drawPauseOverlay(screen *ebiten.Image) {
 	// Recreate overlay if size changed or not yet created (C-004)
 	if g.pauseOverlay == nil || g.pauseOverlayWidth != g.width || g.pauseOverlayHeight != g.height {
@@ -274,13 +275,15 @@ func (g *Game) drawPauseOverlay(screen *ebiten.Image) {
 	}
 	screen.DrawImage(g.pauseOverlay, nil)
 
-	ebitenutil.DebugPrintAt(screen, "PAUSED\n\nPress ESC to resume", g.width/3, g.height/2)
+	msg := fmt.Sprintf("PAUSED\n\n--- CONTROLS ---\n%s\n\nPress ESC to resume", GetControlsText())
+	ebitenutil.DebugPrintAt(screen, msg, g.width/4, g.height/3)
 }
 
-// drawGameOver renders the game over screen.
+// drawGameOver renders the game over screen with tips for improvement.
 func (g *Game) drawGameOver(screen *ebiten.Image) {
-	msg := fmt.Sprintf("GAME OVER\n\nTurns: %d\n\nPress ENTER to return to menu", g.turn)
-	ebitenutil.DebugPrintAt(screen, msg, g.width/3, g.height/3)
+	msg := fmt.Sprintf("GAME OVER\n\nTurns: %d\n\n%s\n\nPress ENTER to return to menu",
+		g.turn, GetLoseReasonTip(LoseNone))
+	ebitenutil.DebugPrintAt(screen, msg, g.width/4, g.height/3)
 }
 
 // drawDebug renders debug information.

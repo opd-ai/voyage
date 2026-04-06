@@ -78,6 +78,9 @@ type GameSession struct {
 	cachedEventText string
 	hudDirty        bool
 
+	// Tutorial manager for onboarding hints
+	tutorial *TutorialManager
+
 	// Screen dimensions
 	width  int
 	height int
@@ -194,6 +197,7 @@ func initializeSession(cfg SessionConfig) *GameSession {
 		debugMode:     false,
 		f3WasPressed:  false,
 		hudDirty:      true, // Force initial HUD text generation (H-003)
+		tutorial:      NewTutorialManager(),
 		width:         cfg.Width,
 		height:        cfg.Height,
 	}
@@ -202,6 +206,11 @@ func initializeSession(cfg SessionConfig) *GameSession {
 // maybeGenerateEvent potentially generates an event at the current position.
 // This is shared between headless and non-headless builds.
 func (s *GameSession) maybeGenerateEvent() {
+	// Suppress events during the first few turns to let the player orient
+	if s.tutorial != nil && s.tutorial.IsEarlyGame(s.turn) {
+		return
+	}
+
 	tile := s.worldMap.GetTile(s.playerPos.X, s.playerPos.Y)
 	if tile == nil {
 		return
