@@ -1,6 +1,8 @@
 package events
 
 import (
+	"strings"
+
 	"github.com/opd-ai/voyage/pkg/crew"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
@@ -122,15 +124,8 @@ func buildRelationshipEvent(tmpl *RelationshipEventTemplate, nameA, nameB string
 
 // formatRelationshipText replaces %A and %B with crew member names.
 func formatRelationshipText(text, nameA, nameB string) string {
-	result := text
-	// Simple replacement - in production use proper template
-	for i := 0; i < len(result)-1; i++ {
-		if result[i] == '%' && result[i+1] == 'A' {
-			result = result[:i] + nameA + result[i+2:]
-		} else if result[i] == '%' && result[i+1] == 'B' {
-			result = result[:i] + nameB + result[i+2:]
-		}
-	}
+	result := strings.ReplaceAll(text, "%A", nameA)
+	result = strings.ReplaceAll(result, "%B", nameB)
 	return result
 }
 

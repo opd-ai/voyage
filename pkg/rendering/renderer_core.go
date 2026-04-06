@@ -16,14 +16,16 @@ type Camera struct {
 
 // Palette defines the color scheme for rendering.
 type Palette struct {
-	Background color.Color
-	Foreground color.Color
-	Primary    color.Color
-	Secondary  color.Color
-	Accent     color.Color
-	Warning    color.Color
-	Danger     color.Color
-	TileColors []color.Color
+	Background        color.Color
+	Foreground        color.Color
+	Primary           color.Color
+	Secondary         color.Color
+	Accent            color.Color
+	Warning           color.Color
+	Danger            color.Color
+	TileColors        []color.Color
+	PlayerMarker      color.Color
+	DestinationMarker color.Color
 }
 
 // DefaultPalette returns the default palette for the given genre.
@@ -58,6 +60,8 @@ func buildScifiPalette() *Palette {
 			color.RGBA{50, 50, 60, 255},   // asteroid
 			color.RGBA{80, 100, 120, 255}, // station
 		},
+		PlayerMarker:      color.RGBA{0, 255, 0, 255},   // bright green
+		DestinationMarker: color.RGBA{255, 200, 0, 255}, // gold/yellow
 	}
 }
 
@@ -77,6 +81,8 @@ func buildHorrorPalette() *Palette {
 			color.RGBA{40, 50, 40, 255}, // toxic
 			color.RGBA{60, 55, 50, 255}, // shelter
 		},
+		PlayerMarker:      color.RGBA{100, 255, 100, 255}, // pale green
+		DestinationMarker: color.RGBA{255, 200, 0, 255},   // gold/yellow
 	}
 }
 
@@ -96,6 +102,8 @@ func buildCyberpunkPalette() *Palette {
 			color.RGBA{60, 50, 80, 255},  // market
 			color.RGBA{80, 80, 100, 255}, // tower
 		},
+		PlayerMarker:      color.RGBA{0, 255, 0, 255},   // neon green
+		DestinationMarker: color.RGBA{255, 255, 0, 255}, // neon yellow
 	}
 }
 
@@ -115,6 +123,8 @@ func buildPostapocPalette() *Palette {
 			color.RGBA{80, 70, 55, 255},  // scrapyard
 			color.RGBA{100, 90, 70, 255}, // settlement
 		},
+		PlayerMarker:      color.RGBA{50, 255, 50, 255},  // bright green
+		DestinationMarker: color.RGBA{255, 200, 50, 255}, // amber
 	}
 }
 
@@ -134,11 +144,25 @@ func buildFantasyPalette() *Palette {
 			color.RGBA{100, 90, 80, 255}, // mountain
 			color.RGBA{80, 100, 80, 255}, // town
 		},
+		PlayerMarker:      color.RGBA{50, 255, 50, 255},  // bright green
+		DestinationMarker: color.RGBA{255, 200, 50, 255}, // golden
 	}
 }
 
+// Tile type constants for special markers.
+const (
+	TileTypePlayerMarker      = 10
+	TileTypeDestinationMarker = 11
+)
+
 // GetTileColor returns the color for a tile type.
 func (p *Palette) GetTileColor(tileType int) color.Color {
+	switch tileType {
+	case TileTypePlayerMarker:
+		return p.PlayerMarker
+	case TileTypeDestinationMarker:
+		return p.DestinationMarker
+	}
 	if tileType >= 0 && tileType < len(p.TileColors) {
 		return p.TileColors[tileType]
 	}

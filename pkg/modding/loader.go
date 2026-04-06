@@ -177,8 +177,15 @@ func (l *Loader) Disable(modID string) error {
 }
 
 // LoadDirectory loads all .json files from a directory.
+// Validates paths to prevent directory traversal attacks (C-003).
 func (l *Loader) LoadDirectory(dirPath string) ([]*Mod, error) {
 	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve the base directory path for validation
+	absBase, err := filepath.Abs(dirPath)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +200,22 @@ func (l *Loader) LoadDirectory(dirPath string) ([]*Mod, error) {
 			continue
 		}
 
+		// Reject entries containing path traversal sequences (C-003)
+		if containsPathTraversal(entry.Name()) {
+			continue
+		}
+
 		modPath := filepath.Join(dirPath, entry.Name())
+
+		// Validate the resolved path stays within the base directory (C-003)
+		absPath, err := filepath.Abs(modPath)
+		if err != nil {
+			continue
+		}
+		if !isSubpath(absBase, absPath) {
+			continue
+		}
+
 		mod, err := l.LoadFromFile(modPath)
 		if err != nil {
 			// Skip invalid mods but continue loading
@@ -203,6 +225,33 @@ func (l *Loader) LoadDirectory(dirPath string) ([]*Mod, error) {
 	}
 
 	return mods, nil
+}
+
+// containsPathTraversal checks if a filename contains path traversal sequences.
+func containsPathTraversal(name string) bool {
+	// Check for ".." anywhere in the name
+	if len(name) >= 2 {
+		for i := 0; i < len(name)-1; i++ {
+			if name[i] == '.' && name[i+1] == '.' {
+				return true
+			}
+		}
+	}
+	// Check for absolute path indicators
+	if filepath.IsAbs(name) {
+		return true
+	}
+	return false
+}
+
+// isSubpath checks if child is within parent directory.
+func isSubpath(parent, child string) bool {
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+	// If the relative path starts with "..", child is outside parent
+	return len(rel) < 2 || (rel[0] != '.' || rel[1] != '.')
 }
 
 // GetAllEvents returns all events from all enabled mods.

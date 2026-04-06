@@ -177,16 +177,20 @@ func (g *Generator) assignTerrain(w *WorldMap) {
 
 // placeOriginDestination sets start and end points.
 func (g *Generator) placeOriginDestination(w *WorldMap) {
+	// Guard against small map dimensions that could cause Intn(0) panic
+	widthRange := max(1, w.Width/4)
+	heightRange := max(1, w.Height/3)
+
 	// Origin on left side
 	w.Origin = Point{
-		X: 1 + g.gen.Intn(w.Width/4),
-		Y: w.Height/3 + g.gen.Intn(w.Height/3),
+		X: 1 + g.gen.Intn(widthRange),
+		Y: heightRange + g.gen.Intn(heightRange),
 	}
 
 	// Destination on right side
 	w.Destination = Point{
-		X: w.Width - 2 - g.gen.Intn(w.Width/4),
-		Y: w.Height/3 + g.gen.Intn(w.Height/3),
+		X: w.Width - 2 - g.gen.Intn(widthRange),
+		Y: heightRange + g.gen.Intn(heightRange),
 	}
 
 	// Mark tiles

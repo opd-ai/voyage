@@ -24,7 +24,12 @@ func NewResolver() *Resolver {
 }
 
 // Apply applies an event outcome to the game state.
+// Returns an empty ResolutionResult if outcome is nil.
 func (r *Resolver) Apply(outcome *EventOutcome, res *resources.Resources, party *crew.Party, v *vessel.Vessel) ResolutionResult {
+	if outcome == nil {
+		return ResolutionResult{}
+	}
+
 	result := ResolutionResult{
 		Outcome: *outcome,
 		Message: outcome.Description,

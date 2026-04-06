@@ -65,6 +65,15 @@ type GameSession struct {
 	debugMode    bool
 	f3WasPressed bool
 
+	// Event snapshot for Draw synchronization (C-004)
+	// Updated in Update(), read in Draw() to prevent desync
+	currentEventSnapshot *events.Event
+
+	// Cached strings for Draw to reduce allocations (H-003)
+	cachedHUDText   string
+	cachedEventText string
+	hudDirty        bool
+
 	// Screen dimensions
 	width  int
 	height int
@@ -171,6 +180,7 @@ func initializeSession(cfg SessionConfig) *GameSession {
 		playerPos:     worldMap.Origin,
 		debugMode:     false,
 		f3WasPressed:  false,
+		hudDirty:      true, // Force initial HUD text generation (H-003)
 		width:         cfg.Width,
 		height:        cfg.Height,
 	}

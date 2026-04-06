@@ -208,8 +208,8 @@ func (rd *RunData) encodeBinary() ([]byte, error) {
 			packed := uint16(d.Turn&0x3FF) | (uint16(d.Type&0x7) << 10) | (uint16(d.Value&0x7) << 13)
 			binary.Write(buf, binary.LittleEndian, packed)
 		} else {
-			// Extended encoding: marker byte + full data
-			buf.WriteByte(0xFF)
+			// Extended encoding: marker (0xFFFF) + full data (C-005)
+			binary.Write(buf, binary.LittleEndian, uint16(0xFFFF))
 			binary.Write(buf, binary.LittleEndian, uint16(d.Turn))
 			buf.WriteByte(byte(d.Type))
 			binary.Write(buf, binary.LittleEndian, int16(d.Value))
@@ -281,19 +281,15 @@ func decodeDecision(buf *bytes.Reader) Decision {
 }
 
 // isExtendedEncoding checks if the packed value indicates extended encoding.
+// Uses exact marker value 0xFFFF to avoid false positives (C-005).
 func isExtendedEncoding(packed uint16) bool {
-	return packed == 0xFF00 || (packed&0xFF) == 0xFF
+	return packed == 0xFFFF
 }
 
 // decodeExtendedDecision reads a decision using extended encoding format.
+// The marker (0xFFFF) has already been read by decodeDecision, so we just
+// read the remaining data directly (C-005).
 func decodeExtendedDecision(buf *bytes.Reader) Decision {
-	buf.UnreadByte()
-	buf.UnreadByte()
-	marker, _ := buf.ReadByte()
-	if marker != 0xFF {
-		return Decision{}
-	}
-
 	var turn uint16
 	var dtype byte
 	var value, target int16

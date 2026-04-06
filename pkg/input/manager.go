@@ -57,6 +57,18 @@ func (m *Manager) SetTouchEnabled(enabled bool) {
 	m.touchEnabled = enabled
 }
 
+// Reset clears all input state for scene transitions (H-008).
+// Call this when transitioning between scenes to prevent phantom inputs.
+func (m *Manager) Reset() {
+	m.lastDirection = DirectionNone
+	m.directionHeldSince = time.Time{}
+	m.lastDirectionRepeat = time.Time{}
+	m.currentState = InputState{
+		Direction: DirectionNone,
+		Actions:   nil,
+	}
+}
+
 // Update processes input for the current frame.
 // Call this once per frame before querying input state.
 func (m *Manager) Update() {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/opd-ai/voyage/pkg/engine"
 	"github.com/opd-ai/voyage/pkg/procgen/seed"
 	"github.com/opd-ai/voyage/pkg/rendering"
@@ -124,7 +125,7 @@ func (g *Game) handleMenuInput() {
 
 // handlePlayingInput handles input during gameplay.
 func (g *Game) handlePlayingInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		g.state = StatePaused
 	}
 	// Use dynamic delta time based on actual TPS (H-010)
@@ -134,7 +135,7 @@ func (g *Game) handlePlayingInput() {
 
 // handlePausedInput handles input in paused state.
 func (g *Game) handlePausedInput() {
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		g.state = StatePlaying
 	}
 }

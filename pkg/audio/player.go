@@ -69,9 +69,10 @@ func (p *Player) IsMuted() bool {
 
 // PlaySFX generates and plays a sound effect.
 // Returns the generated samples (for potential caching).
+// Returns empty slice when muted to avoid nil pointer issues.
 func (p *Player) PlaySFX(sfxType SFXType) []float64 {
 	if p.muted {
-		return nil
+		return []float64{}
 	}
 
 	samples := p.sfxGen.Generate(sfxType)
@@ -108,9 +109,10 @@ func (p *Player) MusicGenerator() *MusicGenerator {
 
 // GenerateAmbientMusic creates a looping ambient music track.
 // Returns the generated samples for playback.
+// Returns empty AmbientLoop when muted to avoid nil pointer issues.
 func (p *Player) GenerateAmbientMusic(bars int) *AmbientLoop {
 	if p.muted {
-		return nil
+		return &AmbientLoop{Samples: []float64{}}
 	}
 
 	loop := p.musicGen.GenerateAmbientLoop(bars)

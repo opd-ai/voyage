@@ -44,7 +44,8 @@ func (q *Queue) Generate(x, y, turn int) *Event {
 	posGen := seed.NewGenerator(q.gen.Int63(), q.positionKey(x, y, turn))
 
 	// Choose category based on weighted distribution
-	weights := []float64{0.15, 0.25, 0.20, 0.25, 0.15}
+	// Weights for: Weather, Encounter, Discovery, Hardship, Windfall, Hazard, Crew
+	weights := []float64{0.12, 0.20, 0.18, 0.20, 0.12, 0.10, 0.08}
 	category := seed.WeightedChoice(posGen, AllEventCategories(), weights)
 
 	event := q.generateForCategory(posGen, category)
@@ -67,17 +68,65 @@ var categoryTemplates = map[EventCategory]map[engine.GenreID][]EventTemplate{
 	CategoryDiscovery: discoveryTemplates,
 	CategoryHardship:  hardshipTemplates,
 	CategoryWindfall:  windfallTemplates,
+	CategoryHazard:    hazardTemplates,
 }
 
 // generateForCategory creates an event of the given category using the
 // appropriate template set. Falls back to fantasy genre if no templates
-// exist for the current genre.
+// exist for the current genre. CategoryCrew is handled specially using
+// crew-specific templates.
 func (q *Queue) generateForCategory(gen *seed.Generator, cat EventCategory) *Event {
+	// Handle crew events specially since they use a different template type
+	if cat == CategoryCrew {
+		return q.generateCrewEvent(gen)
+	}
+
 	templateMap, ok := categoryTemplates[cat]
 	if !ok {
 		templateMap = categoryTemplates[CategoryHardship]
 	}
 	return q.generateEventFromTemplates(gen, cat, templateMap)
+}
+
+// generateCrewEvent creates a crew-specific event using CrewEventTemplates.
+func (q *Queue) generateCrewEvent(gen *seed.Generator) *Event {
+	templates := crewTemplates[q.genre]
+	if len(templates) == 0 {
+		templates = crewTemplates[engine.GenreFantasy]
+	}
+	tmpl := seed.Choice(gen, templates)
+
+	// Crew events use %s for crew member name - use a placeholder
+	crewName := "A crew member"
+	title := tmpl.Title
+	desc := tmpl.Description
+	// Replace %s placeholders with crew name if present
+	if len(title) > 0 {
+		title = replaceCrewPlaceholder(title, crewName)
+	}
+	if len(desc) > 0 {
+		desc = replaceCrewPlaceholder(desc, crewName)
+	}
+
+	event := NewEvent(0, CategoryCrew, title, desc, q.genre)
+	for _, c := range tmpl.Choices {
+		event.AddChoice(c.Text, c.Outcome)
+	}
+	return event
+}
+
+// replaceCrewPlaceholder replaces %s placeholders with the crew name.
+func replaceCrewPlaceholder(s, name string) string {
+	result := make([]byte, 0, len(s)+len(name)*2)
+	for i := 0; i < len(s); i++ {
+		if i < len(s)-1 && s[i] == '%' && s[i+1] == 's' {
+			result = append(result, name...)
+			i++ // skip 's'
+		} else {
+			result = append(result, s[i])
+		}
+	}
+	return string(result)
 }
 
 // generateEventFromTemplates creates an event by selecting from the given

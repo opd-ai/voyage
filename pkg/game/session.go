@@ -4,6 +4,7 @@ package game
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -27,7 +28,65 @@ func NewGameSession(cfg SessionConfig) *GameSession {
 func (s *GameSession) Update() error {
 	s.handleDebugToggle()
 	s.handleStateInput()
+
+	// Snapshot current event for Draw() synchronization (C-004)
+	s.snapshotCurrentEvent()
+
+	// Cache display strings for Draw() to reduce allocations (H-003)
+	s.updateCachedStrings()
+
 	return nil
+}
+
+// snapshotCurrentEvent captures the current event state for Draw() to use.
+// This prevents desynchronization between Update() and Draw() (C-004).
+func (s *GameSession) snapshotCurrentEvent() {
+	pending := s.eventQueue.Pending()
+	if len(pending) > 0 {
+		// Copy the event to prevent race conditions
+		e := pending[0]
+		s.currentEventSnapshot = &e
+	} else {
+		s.currentEventSnapshot = nil
+	}
+}
+
+// updateCachedStrings pre-builds display strings to reduce Draw() allocations (H-003).
+func (s *GameSession) updateCachedStrings() {
+	// Only rebuild HUD text when state changes (marked dirty by advanceTurn, movement, etc.)
+	if s.hudDirty || s.cachedHUDText == "" {
+		s.cachedHUDText = fmt.Sprintf("Turn: %d | Pos: (%d,%d) | Crew: %d/%d | Vessel: %.0f%%\nFood: %.0f | Water: %.0f | Fuel: %.0f | Morale: %.0f | Gold: %.0f",
+			s.turn,
+			s.playerPos.X, s.playerPos.Y,
+			s.party.LivingCount(), s.party.Count(),
+			s.vessel.IntegrityRatio()*100,
+			s.resources.Get(resources.ResourceFood),
+			s.resources.Get(resources.ResourceWater),
+			s.resources.Get(resources.ResourceFuel),
+			s.resources.Get(resources.ResourceMorale),
+			s.resources.Get(resources.ResourceCurrency))
+		s.hudDirty = false
+	}
+
+	// Cache event text using strings.Builder to reduce allocations (H-003)
+	if event := s.currentEventSnapshot; event != nil {
+		var builder strings.Builder
+		builder.WriteString("=== ")
+		builder.WriteString(event.Title)
+		builder.WriteString(" ===\n")
+		builder.WriteString(event.Description)
+		builder.WriteString("\n\n")
+		for i, choice := range event.Choices {
+			builder.WriteString("[")
+			builder.WriteString(fmt.Sprintf("%d", i+1))
+			builder.WriteString("] ")
+			builder.WriteString(choice.Text)
+			builder.WriteString("\n")
+		}
+		s.cachedEventText = builder.String()
+	} else {
+		s.cachedEventText = ""
+	}
 }
 
 // handleDebugToggle toggles debug mode with F3 using proper key release detection.
@@ -89,6 +148,7 @@ func (s *GameSession) handleMovement() bool {
 	newPos, moved := s.getMovementInput()
 	if moved && s.worldMap.IsValidMove(s.playerPos, newPos) {
 		s.playerPos = newPos
+		s.hudDirty = true // Mark HUD for refresh (H-003)
 		return true
 	}
 	return false
@@ -153,6 +213,7 @@ func (s *GameSession) resolveEvent(eventID, choiceID int) {
 // advanceTurn processes one turn of gameplay.
 func (s *GameSession) advanceTurn() {
 	s.turn++
+	s.hudDirty = true // Mark HUD for refresh (H-003)
 
 	// Consume resources
 	s.consumeResources()
@@ -262,37 +323,19 @@ func (s *GameSession) drawTileAt(screen *ebiten.Image, screenX, screenY, offsetX
 	}
 }
 
-// drawHUD renders the heads-up display.
+// drawHUD renders the heads-up display using cached text (H-003).
 func (s *GameSession) drawHUD(screen *ebiten.Image) {
 	hudY := s.height - 80
-	msg := fmt.Sprintf("Turn: %d | Pos: (%d,%d) | Crew: %d/%d | Vessel: %.0f%%\nFood: %.0f | Water: %.0f | Fuel: %.0f | Morale: %.0f | Gold: %.0f",
-		s.turn,
-		s.playerPos.X, s.playerPos.Y,
-		s.party.LivingCount(), s.party.Count(),
-		s.vessel.IntegrityRatio()*100,
-		s.resources.Get(resources.ResourceFood),
-		s.resources.Get(resources.ResourceWater),
-		s.resources.Get(resources.ResourceFuel),
-		s.resources.Get(resources.ResourceMorale),
-		s.resources.Get(resources.ResourceCurrency))
-	drawCenteredText(screen, msg, 10, hudY)
+	drawCenteredText(screen, s.cachedHUDText, 10, hudY)
 }
 
 // drawEventOverlay renders the current event dialog.
+// Uses snapshotted event and cached text to prevent allocations (C-004, H-003).
 func (s *GameSession) drawEventOverlay(screen *ebiten.Image) {
-	pending := s.eventQueue.Pending()
-	if len(pending) == 0 {
+	if s.cachedEventText == "" {
 		return
 	}
-
-	event := pending[0]
-	msg := fmt.Sprintf("=== %s ===\n%s\n\n", event.Title, event.Description)
-	for i, choice := range event.Choices {
-		msg += fmt.Sprintf("[%d] %s\n", i+1, choice.Text)
-	}
-
-	// Draw semi-transparent background
-	drawCenteredText(screen, msg, s.width/4, s.height/4)
+	drawCenteredText(screen, s.cachedEventText, s.width/4, s.height/4)
 }
 
 // drawPauseOverlay renders the pause screen.

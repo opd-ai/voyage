@@ -47,19 +47,21 @@ type ForageResult struct {
 
 // ForageManager handles gathering resources at wilderness and ruin tiles.
 type ForageManager struct {
-	gen           *seed.Generator
-	genre         engine.GenreID
-	foragedTiles  map[string]int // Map of "x,y" -> times foraged
-	forageHistory map[string]int // Map of "x,y" -> turn when last foraged (M-002)
+	gen             *seed.Generator
+	genre           engine.GenreID
+	foragedTiles    map[string]int // Map of "x,y" -> times foraged
+	forageHistory   map[string]int // Map of "x,y" -> turn when last foraged (M-002)
+	maxTrackedTiles int            // Maximum number of tiles to track (H-007)
 }
 
 // NewForageManager creates a new forage manager.
 func NewForageManager(masterSeed int64, genre engine.GenreID) *ForageManager {
 	return &ForageManager{
-		gen:           seed.NewGenerator(masterSeed, "forage"),
-		genre:         genre,
-		foragedTiles:  make(map[string]int),
-		forageHistory: make(map[string]int),
+		gen:             seed.NewGenerator(masterSeed, "forage"),
+		genre:           genre,
+		foragedTiles:    make(map[string]int),
+		forageHistory:   make(map[string]int),
+		maxTrackedTiles: 500, // Limit tracked tiles to prevent memory growth (H-007)
 	}
 }
 
@@ -132,6 +134,9 @@ func (fm *ForageManager) Forage(tile *world.Tile, turn int) *ForageResult {
 	fm.foragedTiles[posKey]++
 	fm.forageHistory[posKey] = turn
 
+	// Evict oldest entries if map exceeds max size (H-007)
+	fm.evictOldEntries(turn)
+
 	// Determine outcome based on terrain and RNG
 	outcome := fm.rollOutcome(localGen, tile)
 	result := fm.generateResult(localGen, outcome, tile, yieldMod)
@@ -143,6 +148,27 @@ func (fm *ForageManager) Forage(tile *world.Tile, turn int) *ForageResult {
 // tileKey creates a unique string key for a tile position.
 func (fm *ForageManager) tileKey(x, y int) string {
 	return fmt.Sprintf("%d,%d", x, y)
+}
+
+// evictOldEntries removes the oldest entries when map exceeds max size (H-007).
+// Uses LRU-like eviction based on forageHistory turn numbers.
+func (fm *ForageManager) evictOldEntries(currentTurn int) {
+	if len(fm.foragedTiles) <= fm.maxTrackedTiles {
+		return
+	}
+
+	// Find and remove entries older than a threshold (50 turns)
+	turnThreshold := currentTurn - 50
+	for key, turnForaged := range fm.forageHistory {
+		if turnForaged < turnThreshold {
+			delete(fm.foragedTiles, key)
+			delete(fm.forageHistory, key)
+		}
+		// Stop if we've reduced to acceptable size
+		if len(fm.foragedTiles) <= fm.maxTrackedTiles {
+			break
+		}
+	}
 }
 
 // calculateYieldModifier returns a multiplier based on times foraged.
