@@ -4,21 +4,33 @@ package rendering
 
 import (
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/opd-ai/voyage/pkg/engine"
 )
 
 // PostProcessor applies post-processing effects to rendered images.
+// Uses cached overlay images and DrawImage for GPU-accelerated compositing (H-004, H-005, H-006, M-001).
 type PostProcessor struct {
 	genre  engine.GenreID
 	config PostProcessorConfig
+
+	// Cached overlays for efficient rendering (H-004, M-001)
+	vignetteCache     *ebiten.Image
+	vignetteCacheSize [2]int // [width, height]
+	vignetteIntensity float64
+
+	grainTexture     *ebiten.Image
+	grainTextureSize int // Size of the grain texture (typically 256x256)
+	lastGrainSeed    int64
 }
 
 // NewPostProcessor creates a new post processor.
 func NewPostProcessor(genre engine.GenreID) *PostProcessor {
 	pp := &PostProcessor{
-		config: DefaultPostProcessorConfig(),
+		config:           DefaultPostProcessorConfig(),
+		grainTextureSize: 256, // Small repeating texture
 	}
 	pp.SetGenre(genre)
 	return pp
@@ -102,7 +114,8 @@ func (pp *PostProcessor) maybeApplySepia(img *ebiten.Image) *ebiten.Image {
 	return img
 }
 
-// ApplyVignette darkens the edges of an image to focus attention on center.
+// ApplyVignette darkens the edges of an image using a pre-rendered overlay (H-004).
+// This replaces per-pixel Set() operations with a single DrawImage composite.
 func (pp *PostProcessor) ApplyVignette(img *ebiten.Image, intensity float64) *ebiten.Image {
 	if img == nil {
 		return nil
@@ -110,63 +123,56 @@ func (pp *PostProcessor) ApplyVignette(img *ebiten.Image, intensity float64) *eb
 
 	bounds := img.Bounds()
 	w, h := bounds.Dx(), bounds.Dy()
+
+	// Check if we need to regenerate the vignette cache
+	if pp.vignetteCache == nil ||
+		pp.vignetteCacheSize[0] != w ||
+		pp.vignetteCacheSize[1] != h ||
+		pp.vignetteIntensity != intensity {
+		pp.generateVignetteCache(w, h, intensity)
+	}
+
+	// Create result by drawing original then compositing vignette overlay
 	result := ebiten.NewImage(w, h)
 	result.DrawImage(img, nil)
 
-	vc := newVignetteCalculator(w, h, intensity)
-	vc.applyToImage(result, img)
+	// Composite the vignette overlay using multiply blend via ColorScale
+	op := &ebiten.DrawImageOptions{}
+	op.Blend = ebiten.BlendSourceOver
+	result.DrawImage(pp.vignetteCache, op)
+
 	return result
 }
 
-// vignetteCalculator handles vignette darkening calculations.
-type vignetteCalculator struct {
-	centerX, centerY float64
-	maxDistSq        float64
-	intensity        float64
-	w, h             int
-}
+// generateVignetteCache creates a pre-rendered vignette overlay image (H-004).
+// The overlay uses alpha channel to darken edges when composited.
+func (pp *PostProcessor) generateVignetteCache(w, h int, intensity float64) {
+	pp.vignetteCache = ebiten.NewImage(w, h)
+	pp.vignetteCacheSize = [2]int{w, h}
+	pp.vignetteIntensity = intensity
 
-func newVignetteCalculator(w, h int, intensity float64) *vignetteCalculator {
 	centerX := float64(w) / 2
 	centerY := float64(h) / 2
-	maxDist := centerX
-	if centerY > maxDist {
-		maxDist = centerY
-	}
-	return &vignetteCalculator{
-		centerX:   centerX,
-		centerY:   centerY,
-		maxDistSq: maxDist * maxDist,
-		intensity: intensity,
-		w:         w,
-		h:         h,
-	}
-}
+	maxDist := math.Max(centerX, centerY)
+	maxDistSq := maxDist * maxDist
 
-func (vc *vignetteCalculator) applyToImage(result, img *ebiten.Image) {
-	for y := 0; y < vc.h; y++ {
-		for x := 0; x < vc.w; x++ {
-			factor := vc.darkeningFactor(x, y)
-			r, g, b, a := img.At(x, y).RGBA()
-			result.Set(x, y, color.RGBA{
-				uint8(float64(r>>8) * factor),
-				uint8(float64(g>>8) * factor),
-				uint8(float64(b>>8) * factor),
-				uint8(a >> 8),
-			})
+	// Generate the vignette as a darkening overlay
+	// We use RGBA where RGB is black and A controls the darkening amount
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			dx := float64(x) - centerX
+			dy := float64(y) - centerY
+			dist := (dx*dx + dy*dy) / maxDistSq
+			// Calculate darkening: 0 at center, increases toward edges
+			darkness := dist * intensity
+			if darkness > 1 {
+				darkness = 1
+			}
+			// Alpha controls how much black is applied
+			alpha := uint8(darkness * 255)
+			pp.vignetteCache.Set(x, y, color.RGBA{0, 0, 0, alpha})
 		}
 	}
-}
-
-func (vc *vignetteCalculator) darkeningFactor(x, y int) float64 {
-	dx := float64(x) - vc.centerX
-	dy := float64(y) - vc.centerY
-	dist := (dx*dx + dy*dy) / vc.maxDistSq
-	factor := 1.0 - (dist * vc.intensity)
-	if factor < 0 {
-		return 0
-	}
-	return factor
 }
 
 // ApplyScanlines adds horizontal scanline effect for retro/sci-fi feel.
