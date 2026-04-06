@@ -227,7 +227,7 @@ func TestLeaderboardScreenFilterInfo(t *testing.T) {
 
 	// Test genre filter type
 	ls.CycleFilterTab()
-	filterType, filterValue = ls.GetFilterInfo()
+	filterType, _ = ls.GetFilterInfo()
 	if filterType != "genre" {
 		t.Errorf("expected 'genre', got %s", filterType)
 	}

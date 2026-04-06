@@ -34,7 +34,7 @@ func TestNewCouncil(t *testing.T) {
 	for _, genre := range engine.AllGenres() {
 		c := NewCouncil(genre)
 		if c == nil {
-			t.Errorf("NewCouncil(%s) returned nil", genre)
+			t.Fatalf("NewCouncil(%s) returned nil", genre)
 		}
 		if c.genre != genre {
 			t.Errorf("Genre: expected %s, got %s", genre, c.genre)

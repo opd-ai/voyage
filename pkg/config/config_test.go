@@ -24,8 +24,7 @@ func TestInputConfigDefaults(t *testing.T) {
 	for _, action := range AllActions() {
 		binding := ic.GetBinding(action)
 		if binding.KeyCode == 0 && action != ActionMoveUp {
-			// Note: KeyCode 0 is technically valid for some keys, but our defaults don't use it
-			// ActionMoveUp uses code 38
+			t.Errorf("action %v has unexpected KeyCode 0", action)
 		}
 	}
 
