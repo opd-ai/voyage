@@ -145,7 +145,9 @@ func (wmv *WorldMapView) drawDestinationMarker(screen *ebiten.Image, x, y int) {
 		wmv.destinationMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
 
 		// Draw a star-like pattern using bulk pixel data
-		c := wmv.skin.HighlightColor
+		// Convert color.Color to RGBA components via RGBA() method
+		r32, g32, b32, a32 := wmv.skin.HighlightColor.RGBA()
+		cR, cG, cB, cA := uint8(r32>>8), uint8(g32>>8), uint8(b32>>8), uint8(a32>>8)
 		half := wmv.tileSize / 2
 		size := wmv.tileSize
 		pixels := make([]byte, size*size*4)
@@ -153,35 +155,35 @@ func (wmv *WorldMapView) drawDestinationMarker(screen *ebiten.Image, x, y int) {
 		// Vertical line
 		for i := 0; i < size; i++ {
 			idx := (i*size + half) * 4
-			pixels[idx] = c.R
-			pixels[idx+1] = c.G
-			pixels[idx+2] = c.B
-			pixels[idx+3] = c.A
+			pixels[idx] = cR
+			pixels[idx+1] = cG
+			pixels[idx+2] = cB
+			pixels[idx+3] = cA
 		}
 		// Horizontal line
 		for i := 0; i < size; i++ {
 			idx := (half*size + i) * 4
-			pixels[idx] = c.R
-			pixels[idx+1] = c.G
-			pixels[idx+2] = c.B
-			pixels[idx+3] = c.A
+			pixels[idx] = cR
+			pixels[idx+1] = cG
+			pixels[idx+2] = cB
+			pixels[idx+3] = cA
 		}
 		// Diagonals
 		for i := 0; i < size; i++ {
 			// Top-left to bottom-right
 			idx := (i*size + i) * 4
-			pixels[idx] = c.R
-			pixels[idx+1] = c.G
-			pixels[idx+2] = c.B
-			pixels[idx+3] = c.A
+			pixels[idx] = cR
+			pixels[idx+1] = cG
+			pixels[idx+2] = cB
+			pixels[idx+3] = cA
 
 			// Top-right to bottom-left
 			if size-1-i >= 0 {
 				idx2 := (i*size + (size - 1 - i)) * 4
-				pixels[idx2] = c.R
-				pixels[idx2+1] = c.G
-				pixels[idx2+2] = c.B
-				pixels[idx2+3] = c.A
+				pixels[idx2] = cR
+				pixels[idx2+1] = cG
+				pixels[idx2+2] = cB
+				pixels[idx2+3] = cA
 			}
 		}
 		wmv.destinationMarker.WritePixels(pixels)
@@ -205,7 +207,9 @@ func (wmv *WorldMapView) drawVesselMarker(screen *ebiten.Image, x, y int) {
 		wmv.vesselMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
 
 		// Draw a simple arrow or dot for the vessel using bulk pixel data
-		c := wmv.skin.TextPrimary
+		// Convert color.Color to RGBA components via RGBA() method
+		r32, g32, b32, a32 := wmv.skin.TextPrimary.RGBA()
+		cR, cG, cB, cA := uint8(r32>>8), uint8(g32>>8), uint8(b32>>8), uint8(a32>>8)
 		half := wmv.tileSize / 2
 		quarter := wmv.tileSize / 4
 		size := wmv.tileSize
@@ -219,10 +223,10 @@ func (wmv *WorldMapView) drawVesselMarker(screen *ebiten.Image, x, y int) {
 				px := half - quarter + dx
 				if py >= 0 && py < size && px >= 0 && px < size {
 					idx := (py*size + px) * 4
-					pixels[idx] = c.R
-					pixels[idx+1] = c.G
-					pixels[idx+2] = c.B
-					pixels[idx+3] = c.A
+					pixels[idx] = cR
+					pixels[idx+1] = cG
+					pixels[idx+2] = cB
+					pixels[idx+3] = cA
 				}
 			}
 		}

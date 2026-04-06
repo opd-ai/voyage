@@ -3,7 +3,6 @@
 package rendering
 
 import (
-	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -32,10 +31,10 @@ type PostProcessor struct {
 	scanlinesCacheAlpha   float64
 
 	// Double buffer for ping-pong rendering to avoid per-frame allocations (M-004)
-	bufferA     *ebiten.Image
-	bufferB     *ebiten.Image
-	bufferSize  [2]int
-	useBufferA  bool
+	bufferA    *ebiten.Image
+	bufferB    *ebiten.Image
+	bufferSize [2]int
+	useBufferA bool
 }
 
 // NewPostProcessor creates a new post processor.
@@ -266,9 +265,9 @@ func (pp *PostProcessor) generateVignetteCache(w, h int, intensity float64) {
 			// Alpha controls how much black is applied
 			alpha := uint8(darkness * 255)
 			i := (y*w + x) * 4
-			pixels[i] = 0     // R
-			pixels[i+1] = 0   // G
-			pixels[i+2] = 0   // B
+			pixels[i] = 0   // R
+			pixels[i+1] = 0 // G
+			pixels[i+2] = 0 // B
 			pixels[i+3] = alpha
 		}
 	}
@@ -333,9 +332,9 @@ func (pp *PostProcessor) generateScanlinesCache(w, h int, density, alpha float64
 	for y := 0; y < h; y += spacing {
 		for x := 0; x < w; x++ {
 			i := (y*w + x) * 4
-			pixels[i] = 0            // R
-			pixels[i+1] = 0          // G
-			pixels[i+2] = 0          // B
+			pixels[i] = 0             // R
+			pixels[i+1] = 0           // G
+			pixels[i+2] = 0           // B
 			pixels[i+3] = darkenAlpha // A
 		}
 	}
