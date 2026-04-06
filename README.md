@@ -161,6 +161,23 @@ scripts/            # Validation and utility scripts
 5. **Route Choice with Consequence** — Multiple paths with varying risk/reward
 6. **Fully Procedural World** — Every element generated from the master seed
 
+## Online Features
+
+### Leaderboards
+
+Voyage supports both **offline** and **online** leaderboards:
+
+- **Offline mode (default)**: Scores are stored locally and persist between sessions. No internet connection required.
+- **Online mode**: Requires a self-hosted leaderboard server. The default server URL is a placeholder; online features will not work without configuration.
+
+To use online leaderboards, you would need to:
+1. Deploy a compatible leaderboard server (reference implementation not yet available)
+2. Configure the server URL via environment variable or config file
+
+### Convoy Mode
+
+Async convoy mode allows players to share seeds and compare runs. This feature works entirely offline using seed-based determinism.
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.

@@ -69,8 +69,25 @@ func (r *Renderer) Camera() *Camera {
 func (r *Renderer) SetGenre(genreID engine.GenreID) {
 	r.BaseSystem.SetGenre(genreID)
 	r.palette = DefaultPalette(genreID)
+	// Dispose old tile cache images before clearing
+	for _, img := range r.tileCache {
+		if img != nil {
+			img.Dispose()
+		}
+	}
 	// Clear tile cache when palette changes
 	r.tileCache = make(map[tileCacheKey]*ebiten.Image)
+}
+
+// Dispose releases all GPU resources held by the renderer.
+// Call this when the renderer is no longer needed.
+func (r *Renderer) Dispose() {
+	for _, img := range r.tileCache {
+		if img != nil {
+			img.Dispose()
+		}
+	}
+	r.tileCache = nil
 }
 
 // Palette returns the current color palette.

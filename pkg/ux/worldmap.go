@@ -139,24 +139,52 @@ func (wmv *WorldMapView) drawFogOverlay(screen *ebiten.Image, x, y int) {
 
 // drawDestinationMarker draws a marker for the destination tile.
 // Uses cached marker image to avoid per-frame allocations (H-002).
+// Uses WritePixels for efficient initialization instead of per-pixel Set().
 func (wmv *WorldMapView) drawDestinationMarker(screen *ebiten.Image, x, y int) {
 	if wmv.destinationMarker == nil {
 		wmv.destinationMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
 
-		// Draw a star-like pattern
+		// Draw a star-like pattern using bulk pixel data
 		c := wmv.skin.HighlightColor
 		half := wmv.tileSize / 2
-		for i := 0; i < wmv.tileSize; i++ {
-			wmv.destinationMarker.Set(half, i, c)
-			wmv.destinationMarker.Set(i, half, c)
+		size := wmv.tileSize
+		pixels := make([]byte, size*size*4)
+
+		// Vertical line
+		for i := 0; i < size; i++ {
+			idx := (i*size + half) * 4
+			pixels[idx] = c.R
+			pixels[idx+1] = c.G
+			pixels[idx+2] = c.B
+			pixels[idx+3] = c.A
+		}
+		// Horizontal line
+		for i := 0; i < size; i++ {
+			idx := (half*size + i) * 4
+			pixels[idx] = c.R
+			pixels[idx+1] = c.G
+			pixels[idx+2] = c.B
+			pixels[idx+3] = c.A
 		}
 		// Diagonals
-		for i := 0; i < wmv.tileSize; i++ {
-			wmv.destinationMarker.Set(i, i, c)
-			if wmv.tileSize-1-i >= 0 {
-				wmv.destinationMarker.Set(i, wmv.tileSize-1-i, c)
+		for i := 0; i < size; i++ {
+			// Top-left to bottom-right
+			idx := (i*size + i) * 4
+			pixels[idx] = c.R
+			pixels[idx+1] = c.G
+			pixels[idx+2] = c.B
+			pixels[idx+3] = c.A
+
+			// Top-right to bottom-left
+			if size-1-i >= 0 {
+				idx2 := (i*size + (size - 1 - i)) * 4
+				pixels[idx2] = c.R
+				pixels[idx2+1] = c.G
+				pixels[idx2+2] = c.B
+				pixels[idx2+3] = c.A
 			}
 		}
+		wmv.destinationMarker.WritePixels(pixels)
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -166,6 +194,7 @@ func (wmv *WorldMapView) drawDestinationMarker(screen *ebiten.Image, x, y int) {
 
 // drawVesselMarker draws the vessel's position marker.
 // Uses cached marker image to avoid per-frame allocations (H-002).
+// Uses WritePixels for efficient initialization instead of per-pixel Set().
 func (wmv *WorldMapView) drawVesselMarker(screen *ebiten.Image, x, y int) {
 	// Only draw if on screen
 	if x < 0 || y < 0 || x >= wmv.viewWidth || y >= wmv.viewHeight {
@@ -175,18 +204,29 @@ func (wmv *WorldMapView) drawVesselMarker(screen *ebiten.Image, x, y int) {
 	if wmv.vesselMarker == nil {
 		wmv.vesselMarker = ebiten.NewImage(wmv.tileSize, wmv.tileSize)
 
-		// Draw a simple arrow or dot for the vessel
+		// Draw a simple arrow or dot for the vessel using bulk pixel data
 		c := wmv.skin.TextPrimary
 		half := wmv.tileSize / 2
 		quarter := wmv.tileSize / 4
+		size := wmv.tileSize
+		pixels := make([]byte, size*size*4)
 
 		// Draw a filled triangle pointing right
 		for dy := -quarter; dy <= quarter; dy++ {
 			width := quarter - abs(dy)
 			for dx := 0; dx <= width; dx++ {
-				wmv.vesselMarker.Set(half-quarter+dx, half+dy, c)
+				py := half + dy
+				px := half - quarter + dx
+				if py >= 0 && py < size && px >= 0 && px < size {
+					idx := (py*size + px) * 4
+					pixels[idx] = c.R
+					pixels[idx+1] = c.G
+					pixels[idx+2] = c.B
+					pixels[idx+3] = c.A
+				}
 			}
 		}
+		wmv.vesselMarker.WritePixels(pixels)
 	}
 
 	op := &ebiten.DrawImageOptions{}

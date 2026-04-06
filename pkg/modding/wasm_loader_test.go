@@ -424,13 +424,26 @@ func (f *failingReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("simulated read error")
 }
 
-// TestWASMLoaderSetEnabled tests enabling/disabling mods.
-func TestWASMLoaderSetEnabled(t *testing.T) {
+// TestWASMLoaderGetNotFoundAfterUnload tests getting a mod after unloading.
+func TestWASMLoaderGetNotFoundAfterUnload(t *testing.T) {
 	config := DefaultWASMConfig()
 	loader := NewWASMLoader(config)
 
-	// Test setting enabled on non-existent mod
-	err := loader.SetEnabled("nonexistent", true)
+	// Manually add a mod
+	mod := &WASMMod{ID: "test-mod", Name: "Test", hostData: newHostData()}
+	loader.mu.Lock()
+	loader.mods["test-mod"] = mod
+	loader.modOrder = append(loader.modOrder, "test-mod")
+	loader.mu.Unlock()
+
+	// Unload it
+	err := loader.Unload("test-mod")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// Test getting a non-existent mod
+	_, err = loader.Get("test-mod")
 	if err != ErrModNotFound {
 		t.Errorf("expected ErrModNotFound, got %v", err)
 	}

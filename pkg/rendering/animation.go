@@ -100,6 +100,7 @@ func (atg *AnimatedTileGenerator) GenerateAnimatedTile(animType AnimationType, b
 }
 
 // generateWaterTile creates a flowing water animation with 4 frames.
+// Uses WritePixels for efficient bulk pixel upload instead of per-pixel Set().
 func (atg *AnimatedTileGenerator) generateWaterTile(baseColor, highlightColor color.Color) *AnimatedTile {
 	const frameCount = 4
 	frames := make([]*ebiten.Image, frameCount)
@@ -107,14 +108,21 @@ func (atg *AnimatedTileGenerator) generateWaterTile(baseColor, highlightColor co
 
 	for f := 0; f < frameCount; f++ {
 		img := ebiten.NewImage(size, size)
+		pixels := make([]byte, size*size*4)
 		offset := float64(f) * (float64(size) / float64(frameCount))
 		for y := 0; y < size; y++ {
 			for x := 0; x < size; x++ {
 				wave := atg.waterWaveValue(x, y, offset)
 				c := atg.blendColors(baseColor, highlightColor, wave)
-				img.Set(x, y, c)
+				r, g, b, a := c.RGBA()
+				i := (y*size + x) * 4
+				pixels[i] = uint8(r >> 8)
+				pixels[i+1] = uint8(g >> 8)
+				pixels[i+2] = uint8(b >> 8)
+				pixels[i+3] = uint8(a >> 8)
 			}
 		}
+		img.WritePixels(pixels)
 		frames[f] = img
 	}
 	return NewAnimatedTile(frames, 0.2, true)
@@ -131,6 +139,7 @@ func (atg *AnimatedTileGenerator) waterWaveValue(x, y int, offset float64) float
 }
 
 // generateGrassTile creates a wind-swept grass animation with 4 frames.
+// Uses bulk pixel operations for efficient initialization.
 func (atg *AnimatedTileGenerator) generateGrassTile(baseColor, tipColor color.Color) *AnimatedTile {
 	const frameCount = 4
 	frames := make([]*ebiten.Image, frameCount)
@@ -138,11 +147,29 @@ func (atg *AnimatedTileGenerator) generateGrassTile(baseColor, tipColor color.Co
 
 	grassBlades := atg.generateGrassPattern(size)
 
+	// Pre-extract color components
+	br, bg, bb, ba := baseColor.RGBA()
+	tr, tg, tb, ta := tipColor.RGBA()
+	baseR, baseG, baseB, baseA := uint8(br>>8), uint8(bg>>8), uint8(bb>>8), uint8(ba>>8)
+	tipR, tipG, tipB, tipA := uint8(tr>>8), uint8(tg>>8), uint8(tb>>8), uint8(ta>>8)
+
 	for f := 0; f < frameCount; f++ {
 		img := ebiten.NewImage(size, size)
-		img.Fill(baseColor)
+		pixels := make([]byte, size*size*4)
+
+		// Fill with base color
+		for i := 0; i < size*size; i++ {
+			pixels[i*4] = baseR
+			pixels[i*4+1] = baseG
+			pixels[i*4+2] = baseB
+			pixels[i*4+3] = baseA
+		}
+
+		// Draw grass blades
 		windOffset := float64(f) / float64(frameCount)
-		atg.drawGrassBlades(img, grassBlades, tipColor, windOffset)
+		atg.drawGrassBladesToPixels(pixels, grassBlades, tipR, tipG, tipB, tipA, windOffset)
+
+		img.WritePixels(pixels)
 		frames[f] = img
 	}
 	return NewAnimatedTile(frames, 0.15, true)
@@ -169,6 +196,7 @@ func (atg *AnimatedTileGenerator) generateGrassPattern(size int) []grassBlade {
 }
 
 // drawGrassBlades draws grass blades with wind sway effect.
+// Uses per-pixel Set for sparse drawing (few blade pixels).
 func (atg *AnimatedTileGenerator) drawGrassBlades(img *ebiten.Image, blades []grassBlade, tipColor color.Color, windOffset float64) {
 	for _, blade := range blades {
 		sway := int(sinApprox((float64(blade.x)/float64(atg.tileSize)+windOffset)*6.28) * 2)
@@ -177,6 +205,25 @@ func (atg *AnimatedTileGenerator) drawGrassBlades(img *ebiten.Image, blades []gr
 			px := blade.x + (sway * h / blade.height)
 			if py >= 0 && py < atg.tileSize && px >= 0 && px < atg.tileSize {
 				img.Set(px, py, tipColor)
+			}
+		}
+	}
+}
+
+// drawGrassBladesToPixels draws grass blades directly to a pixel buffer.
+func (atg *AnimatedTileGenerator) drawGrassBladesToPixels(pixels []byte, blades []grassBlade, r, g, b, a uint8, windOffset float64) {
+	size := atg.tileSize
+	for _, blade := range blades {
+		sway := int(sinApprox((float64(blade.x)/float64(size)+windOffset)*6.28) * 2)
+		for h := 0; h < blade.height; h++ {
+			py := blade.y - h
+			px := blade.x + (sway * h / blade.height)
+			if py >= 0 && py < size && px >= 0 && px < size {
+				i := (py*size + px) * 4
+				pixels[i] = r
+				pixels[i+1] = g
+				pixels[i+2] = b
+				pixels[i+3] = a
 			}
 		}
 	}
@@ -197,15 +244,23 @@ func (atg *AnimatedTileGenerator) generateFireTile(baseColor, brightColor color.
 }
 
 // drawFireFrame draws a single frame of fire animation.
+// Uses WritePixels for efficient bulk pixel upload instead of per-pixel Set().
 func (atg *AnimatedTileGenerator) drawFireFrame(img *ebiten.Image, baseColor, brightColor color.Color, frame int) {
 	size := atg.tileSize
+	pixels := make([]byte, size*size*4)
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
 			intensity := atg.fireIntensity(x, y, frame)
 			c := atg.blendColors(baseColor, brightColor, intensity)
-			img.Set(x, y, c)
+			r, g, b, a := c.RGBA()
+			i := (y*size + x) * 4
+			pixels[i] = uint8(r >> 8)
+			pixels[i+1] = uint8(g >> 8)
+			pixels[i+2] = uint8(b >> 8)
+			pixels[i+3] = uint8(a >> 8)
 		}
 	}
+	img.WritePixels(pixels)
 }
 
 // fireIntensity calculates fire brightness with random flickering.
