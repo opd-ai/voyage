@@ -110,54 +110,22 @@ func roundCurrency(value float64) float64 {
 	return math.Round(value*100) / 100
 }
 
-// Buy attempts to purchase an item from the supply post.
-func (ti *TradeInterface) Buy(itemName string, quantity int) TradeResult {
-	// Find the item
-	item := ti.post.Inventory.GetItem(itemName)
-	if item == nil {
-		return TradeResult{
-			Success:  false,
-			Action:   ActionBuy,
-			ItemName: itemName,
-			Message:  "Item not available",
-		}
+// buyValidationError returns a TradeResult for a buy validation failure.
+func buyValidationError(itemName string, quantity int, unitPrice, totalCost float64, message string) TradeResult {
+	return TradeResult{
+		Success:   false,
+		Action:    ActionBuy,
+		ItemName:  itemName,
+		Quantity:  quantity,
+		UnitPrice: unitPrice,
+		TotalCost: totalCost,
+		Message:   message,
 	}
+}
 
-	// Check quantity
-	if item.Quantity < quantity {
-		return TradeResult{
-			Success:  false,
-			Action:   ActionBuy,
-			ItemName: itemName,
-			Quantity: quantity,
-			Message:  "Insufficient stock",
-		}
-	}
-
-	// Calculate price with rounding to prevent floating-point precision issues (H-012)
-	unitPrice := roundCurrency(ti.post.AdjustedPrice(item.BasePrice, false))
-	totalCost := roundCurrency(unitPrice * float64(quantity))
-
-	// Check player currency
-	currency := ti.playerResources.Get(resources.ResourceCurrency)
-	if currency < totalCost {
-		return TradeResult{
-			Success:   false,
-			Action:    ActionBuy,
-			ItemName:  itemName,
-			Quantity:  quantity,
-			UnitPrice: unitPrice,
-			TotalCost: totalCost,
-			Message:   "Insufficient currency",
-		}
-	}
-
-	// Execute transaction
-	ti.playerResources.Consume(resources.ResourceCurrency, totalCost)
-	ti.post.Inventory.RemoveItem(itemName, quantity)
-
-	// Add to player inventory (create copy to avoid aliasing issues)
-	boughtItem := &Item{
+// createBoughtItem copies an item for the buyer's inventory.
+func createBoughtItem(item *Item, quantity int) *Item {
+	return &Item{
 		Name:        item.Name,
 		Description: item.Description,
 		Category:    item.Category,
@@ -166,13 +134,26 @@ func (ti *TradeInterface) Buy(itemName string, quantity int) TradeResult {
 		Quality:     item.Quality,
 		Genre:       item.Genre,
 	}
-	ti.playerInventory.AddItem(boughtItem)
+}
 
-	// Apply resource effect if applicable
-	ti.applyResourceEffect(item.Category, quantity, item.Quality)
+// Buy attempts to purchase an item from the supply post.
+func (ti *TradeInterface) Buy(itemName string, quantity int) TradeResult {
+	item := ti.post.Inventory.GetItem(itemName)
+	if item == nil {
+		return buyValidationError(itemName, 0, 0, 0, "Item not available")
+	}
+	if item.Quantity < quantity {
+		return buyValidationError(itemName, quantity, 0, 0, "Insufficient stock")
+	}
 
-	// Small reputation boost for trading
-	ti.post.UpdateReputation(0.01)
+	unitPrice := roundCurrency(ti.post.AdjustedPrice(item.BasePrice, false))
+	totalCost := roundCurrency(unitPrice * float64(quantity))
+	currency := ti.playerResources.Get(resources.ResourceCurrency)
+	if currency < totalCost {
+		return buyValidationError(itemName, quantity, unitPrice, totalCost, "Insufficient currency")
+	}
+
+	ti.executeBuy(item, itemName, quantity, totalCost)
 
 	return TradeResult{
 		Success:   true,
@@ -185,49 +166,29 @@ func (ti *TradeInterface) Buy(itemName string, quantity int) TradeResult {
 	}
 }
 
-// Sell attempts to sell an item to the supply post.
-func (ti *TradeInterface) Sell(itemName string, quantity int) TradeResult {
-	if ti.playerInventory == nil {
-		return TradeResult{
-			Success:  false,
-			Action:   ActionSell,
-			ItemName: itemName,
-			Message:  "No player inventory",
-		}
+// executeBuy performs the buy transaction.
+func (ti *TradeInterface) executeBuy(item *Item, itemName string, quantity int, totalCost float64) {
+	ti.playerResources.Consume(resources.ResourceCurrency, totalCost)
+	ti.post.Inventory.RemoveItem(itemName, quantity)
+	ti.playerInventory.AddItem(createBoughtItem(item, quantity))
+	ti.applyResourceEffect(item.Category, quantity, item.Quality)
+	ti.post.UpdateReputation(0.01)
+}
+
+// sellValidationError returns a TradeResult for a sell validation failure.
+func sellValidationError(itemName string, quantity int, message string) TradeResult {
+	return TradeResult{
+		Success:  false,
+		Action:   ActionSell,
+		ItemName: itemName,
+		Quantity: quantity,
+		Message:  message,
 	}
+}
 
-	// Find the item
-	item := ti.playerInventory.GetItem(itemName)
-	if item == nil {
-		return TradeResult{
-			Success:  false,
-			Action:   ActionSell,
-			ItemName: itemName,
-			Message:  "Item not in inventory",
-		}
-	}
-
-	// Check quantity
-	if item.Quantity < quantity {
-		return TradeResult{
-			Success:  false,
-			Action:   ActionSell,
-			ItemName: itemName,
-			Quantity: quantity,
-			Message:  "Insufficient quantity to sell",
-		}
-	}
-
-	// Calculate price with rounding to prevent floating-point precision issues (H-012)
-	unitPrice := roundCurrency(ti.post.AdjustedPrice(item.BasePrice, true))
-	totalValue := roundCurrency(unitPrice * float64(quantity))
-
-	// Execute transaction
-	ti.playerInventory.RemoveItem(itemName, quantity)
-	ti.playerResources.Add(resources.ResourceCurrency, totalValue)
-
-	// Add to post inventory
-	soldItem := &Item{
+// createSoldItem copies an item for the post's inventory.
+func createSoldItem(item *Item, quantity int) *Item {
+	return &Item{
 		Name:        item.Name,
 		Description: item.Description,
 		Category:    item.Category,
@@ -236,10 +197,26 @@ func (ti *TradeInterface) Sell(itemName string, quantity int) TradeResult {
 		Quality:     item.Quality,
 		Genre:       item.Genre,
 	}
-	ti.post.Inventory.AddItem(soldItem)
+}
 
-	// Small reputation boost for trading
-	ti.post.UpdateReputation(0.01)
+// Sell attempts to sell an item to the supply post.
+func (ti *TradeInterface) Sell(itemName string, quantity int) TradeResult {
+	if ti.playerInventory == nil {
+		return sellValidationError(itemName, 0, "No player inventory")
+	}
+
+	item := ti.playerInventory.GetItem(itemName)
+	if item == nil {
+		return sellValidationError(itemName, 0, "Item not in inventory")
+	}
+	if item.Quantity < quantity {
+		return sellValidationError(itemName, quantity, "Insufficient quantity to sell")
+	}
+
+	unitPrice := roundCurrency(ti.post.AdjustedPrice(item.BasePrice, true))
+	totalValue := roundCurrency(unitPrice * float64(quantity))
+
+	ti.executeSell(item, itemName, quantity, totalValue)
 
 	return TradeResult{
 		Success:   true,
@@ -250,6 +227,14 @@ func (ti *TradeInterface) Sell(itemName string, quantity int) TradeResult {
 		TotalCost: totalValue,
 		Message:   ti.sellMessage(itemName, quantity),
 	}
+}
+
+// executeSell performs the sell transaction.
+func (ti *TradeInterface) executeSell(item *Item, itemName string, quantity int, totalValue float64) {
+	ti.playerInventory.RemoveItem(itemName, quantity)
+	ti.playerResources.Add(resources.ResourceCurrency, totalValue)
+	ti.post.Inventory.AddItem(createSoldItem(item, quantity))
+	ti.post.UpdateReputation(0.01)
 }
 
 // applyResourceEffect adds resources based on item category.
