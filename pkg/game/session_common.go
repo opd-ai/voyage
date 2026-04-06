@@ -74,9 +74,12 @@ type GameSession struct {
 	currentEventSnapshot *events.Event
 
 	// Cached strings for Draw to reduce allocations (H-003)
-	cachedHUDText   string
-	cachedEventText string
-	hudDirty        bool
+	cachedHUDText            string
+	cachedEventText          string
+	cachedDestinationText    string
+	cachedTutorialHintText   string
+	cachedTutorialHintPhase  TutorialPhase
+	hudDirty                 bool
 
 	// Tutorial manager for onboarding hints
 	tutorial *TutorialManager
@@ -206,11 +209,6 @@ func initializeSession(cfg SessionConfig) *GameSession {
 // maybeGenerateEvent potentially generates an event at the current position.
 // This is shared between headless and non-headless builds.
 func (s *GameSession) maybeGenerateEvent() {
-	// Suppress events during the first few turns to let the player orient
-	if s.tutorial != nil && s.tutorial.IsEarlyGame(s.turn) {
-		return
-	}
-
 	tile := s.worldMap.GetTile(s.playerPos.X, s.playerPos.Y)
 	if tile == nil {
 		return
@@ -225,6 +223,11 @@ func (s *GameSession) maybeGenerateEvent() {
 	} else {
 		// Peaceful music for normal travel
 		s.audioPlayer.SetMusicState(audio.MusicPeaceful)
+	}
+
+	// Suppress event generation during the first few turns to let the player orient
+	if s.tutorial != nil && s.tutorial.IsEarlyGame(s.turn) {
+		return
 	}
 
 	if s.eventQueue.ShouldTrigger(hazardChance) {

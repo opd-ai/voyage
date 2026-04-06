@@ -70,7 +70,17 @@ func (s *GameSession) updateCachedStrings() {
 			s.resources.Get(resources.ResourceFuel),
 			s.resources.Get(resources.ResourceMorale),
 			s.resources.Get(resources.ResourceCurrency))
+
+		// Rebuild destination indicator (changes with player position)
+		s.updateCachedDestination()
+
 		s.hudDirty = false
+	}
+
+	// Cache tutorial hint text when phase changes (H-003)
+	if s.tutorial != nil && s.tutorial.Phase() != s.cachedTutorialHintPhase {
+		s.cachedTutorialHintPhase = s.tutorial.Phase()
+		s.cachedTutorialHintText = s.tutorial.GetHintText()
 	}
 
 	// Cache event text using strings.Builder to reduce allocations (H-003)
@@ -92,6 +102,25 @@ func (s *GameSession) updateCachedStrings() {
 	} else {
 		s.cachedEventText = ""
 	}
+}
+
+// updateCachedDestination rebuilds the cached destination indicator text.
+func (s *GameSession) updateCachedDestination() {
+	dx := s.worldMap.Destination.X - s.playerPos.X
+	dy := s.worldMap.Destination.Y - s.playerPos.Y
+
+	absDx := dx
+	if absDx < 0 {
+		absDx = -absDx
+	}
+	absDy := dy
+	if absDy < 0 {
+		absDy = -absDy
+	}
+	dist := absDx + absDy
+
+	dir := directionArrow(dx, dy)
+	s.cachedDestinationText = fmt.Sprintf("Destination: %s %d tiles", dir, dist)
 }
 
 // handleDebugToggle toggles debug mode with F3 using proper key release detection.
@@ -509,40 +538,21 @@ func (s *GameSession) SetGenre(genre engine.GenreID) {
 }
 
 // drawDestinationIndicator shows distance and direction to destination on the HUD.
+// Uses cached text rebuilt in updateCachedStrings when HUD is dirty (H-003).
 func (s *GameSession) drawDestinationIndicator(screen *ebiten.Image) {
-	dx := s.worldMap.Destination.X - s.playerPos.X
-	dy := s.worldMap.Destination.Y - s.playerPos.Y
-
-	// Calculate Manhattan distance
-	absDx := dx
-	if absDx < 0 {
-		absDx = -absDx
-	}
-	absDy := dy
-	if absDy < 0 {
-		absDy = -absDy
-	}
-	dist := absDx + absDy
-
-	// Determine cardinal direction
-	dir := directionArrow(dx, dy)
-
-	indicator := fmt.Sprintf("Destination: %s %d tiles", dir, dist)
-	drawCenteredText(screen, indicator, s.width-220, s.height-80)
+	drawCenteredText(screen, s.cachedDestinationText, s.width-220, s.height-80)
 }
 
 // drawTutorialHint renders the current tutorial hint at the top of the screen.
+// Uses cached hint text rebuilt in updateCachedStrings on phase change (H-003).
 func (s *GameSession) drawTutorialHint(screen *ebiten.Image) {
 	if s.tutorial == nil || !s.tutorial.ShouldShowHint() {
 		return
 	}
-
-	hint := s.tutorial.GetHintText()
-	if hint == "" {
+	if s.cachedTutorialHintText == "" {
 		return
 	}
-
-	drawCenteredText(screen, hint, s.width/4, 4)
+	drawCenteredText(screen, s.cachedTutorialHintText, s.width/4, 4)
 }
 
 // drawCenteredText is a helper to draw debug text.

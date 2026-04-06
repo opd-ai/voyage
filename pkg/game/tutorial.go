@@ -26,10 +26,8 @@ var tutorialPhaseThresholds = map[TutorialPhase]int{
 
 // TutorialManager tracks tutorial progress and generates contextual hints.
 type TutorialManager struct {
-	phase          TutorialPhase
-	turnsSinceMove int
-	hasSeenEvent   bool
-	dismissed      bool // Player dismissed the current hint
+	phase        TutorialPhase
+	hasSeenEvent bool
 }
 
 // NewTutorialManager creates a new tutorial manager starting at the welcome phase.
@@ -55,26 +53,17 @@ func (tm *TutorialManager) IsEarlyGame(turn int) bool {
 	return turn < 3
 }
 
-// Dismiss hides the current hint until the phase advances.
-func (tm *TutorialManager) Dismiss() {
-	tm.dismissed = true
-}
-
 // OnMove is called when the player moves, advancing tutorial state.
 func (tm *TutorialManager) OnMove() {
-	tm.turnsSinceMove = 0
 	if tm.phase == TutorialWelcome {
 		tm.phase = TutorialMovement
-		tm.dismissed = false
 	}
 }
 
 // OnTurnAdvance is called each turn to track progress.
 func (tm *TutorialManager) OnTurnAdvance(turn int) {
-	tm.turnsSinceMove++
 	if tm.phase == TutorialMovement && turn >= tutorialPhaseThresholds[TutorialResources] {
 		tm.phase = TutorialResources
-		tm.dismissed = false
 	}
 }
 
@@ -86,7 +75,6 @@ func (tm *TutorialManager) OnEventSeen() {
 	tm.hasSeenEvent = true
 	if tm.phase == TutorialResources || tm.phase == TutorialMovement {
 		tm.phase = TutorialEvents
-		tm.dismissed = false
 	}
 }
 
@@ -94,26 +82,25 @@ func (tm *TutorialManager) OnEventSeen() {
 func (tm *TutorialManager) OnEventResolved() {
 	if tm.phase == TutorialEvents {
 		tm.phase = TutorialComplete
-		tm.dismissed = false
 	}
 }
 
 // ShouldShowHint returns true if a tutorial hint should be displayed.
 func (tm *TutorialManager) ShouldShowHint() bool {
-	return !tm.IsComplete() && !tm.dismissed
+	return !tm.IsComplete()
 }
 
 // GetHintText returns the current tutorial hint text.
 func (tm *TutorialManager) GetHintText() string {
 	switch tm.phase {
 	case TutorialWelcome:
-		return "Use ARROW KEYS to move your vessel toward the destination."
+		return "Use ARROW KEYS or WASD to move your vessel toward the destination."
 	case TutorialMovement:
 		return "Each move costs resources. Watch your Food, Water, and Fuel."
 	case TutorialResources:
 		return "Keep Morale above zero! Low Food or Water drains Morale quickly."
 	case TutorialEvents:
-		return "Press 1-4 to choose during events. Choose wisely!"
+		return "Press 1-9 to choose during events. Choose wisely!"
 	default:
 		return ""
 	}
@@ -126,7 +113,7 @@ func GetObjectiveText() string {
 
 // GetControlsText returns a summary of game controls.
 func GetControlsText() string {
-	return "ARROW KEYS: Move | ESC: Pause | 1-4: Event Choices | R: Rest | F3: Debug"
+	return "ARROW KEYS/WASD: Move | ESC: Pause | 1-9: Event Choices | F3: Debug"
 }
 
 // GetLoseReasonTip returns a tip based on the loss condition.
@@ -147,18 +134,22 @@ func GetLoseReasonTip(lc LoseCondition) string {
 
 // GetResourceDescription returns a brief description of what a resource does.
 func GetResourceDescription(name string) string {
-	descriptions := map[string]string{
-		"Food":     "Consumed each turn per crew member. Depletion drops Morale.",
-		"Water":    "Consumed each turn per crew member. Depletion drops Morale fast.",
-		"Fuel":     "Consumed each move based on vessel speed. Without it, you stop.",
-		"Medicine": "Used to heal injured crew during events.",
-		"Morale":   "Drops when resources deplete. At zero, your crew deserts you.",
-		"Currency": "Trade for supplies at destinations. Earned through events.",
+	switch name {
+	case "Food":
+		return "Consumed each turn per crew member. Depletion drops Morale."
+	case "Water":
+		return "Consumed each turn per crew member. Depletion drops Morale fast."
+	case "Fuel":
+		return "Consumed each move based on vessel speed. Without it, you stop."
+	case "Medicine":
+		return "Used to heal injured crew during events."
+	case "Morale":
+		return "Drops when resources deplete. At zero, your crew deserts you."
+	case "Currency":
+		return "Trade for supplies at destinations. Earned through events."
+	default:
+		return ""
 	}
-	if desc, ok := descriptions[name]; ok {
-		return desc
-	}
-	return ""
 }
 
 // directionArrow returns a cardinal direction string from a delta vector.

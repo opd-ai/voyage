@@ -22,7 +22,7 @@ func TestTutorialPhaseProgression(t *testing.T) {
 		t.Error("should show hint at welcome phase")
 	}
 
-	// Welcome hint text should mention arrow keys
+	// Welcome hint text should mention arrow keys and WASD
 	hint := tm.GetHintText()
 	if hint == "" {
 		t.Error("hint text should not be empty at welcome phase")
@@ -58,25 +58,6 @@ func TestTutorialPhaseProgression(t *testing.T) {
 	}
 	if tm.ShouldShowHint() {
 		t.Error("should not show hint when tutorial is complete")
-	}
-}
-
-func TestTutorialDismiss(t *testing.T) {
-	tm := NewTutorialManager()
-
-	if !tm.ShouldShowHint() {
-		t.Error("should show hint before dismissal")
-	}
-
-	tm.Dismiss()
-	if tm.ShouldShowHint() {
-		t.Error("should not show hint after dismissal")
-	}
-
-	// Moving to next phase resets dismissal
-	tm.OnMove()
-	if !tm.ShouldShowHint() {
-		t.Error("should show hint after phase advance resets dismissal")
 	}
 }
 
