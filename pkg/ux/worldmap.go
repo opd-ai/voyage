@@ -160,7 +160,8 @@ func (wmv *WorldMapView) createDestinationMarker() {
 // extractSkinColor converts a color.Color to RGBA uint8 components.
 func (wmv *WorldMapView) extractSkinColor(c interface {
 	RGBA() (uint32, uint32, uint32, uint32)
-}) (uint8, uint8, uint8, uint8) {
+},
+) (uint8, uint8, uint8, uint8) {
 	r32, g32, b32, a32 := c.RGBA()
 	return uint8(r32 >> 8), uint8(g32 >> 8), uint8(b32 >> 8), uint8(a32 >> 8)
 }
